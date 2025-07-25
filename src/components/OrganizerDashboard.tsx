@@ -30,15 +30,15 @@ const formatData = [
 ];
 
 const upcomingTournaments = [
-  { id: 1, name: 'Weekly Modern', date: '2024-12-20', participants: 28, maxParticipants: 32, status: 'open' },
-  { id: 2, name: 'Standard Showdown', date: '2024-12-22', participants: 24, maxParticipants: 24, status: 'full' },
-  { id: 3, name: 'Commander Night', date: '2024-12-25', participants: 8, maxParticipants: 16, status: 'open' },
+  { id: 1, name: 'Modern Masters', date: '18-08-2025', participants: 28, maxParticipants: 32, status: 'open' },
+  { id: 2, name: 'Standard Weekly', date: '22-08-2025', participants: 24, maxParticipants: 24, status: 'full' },
+  { id: 3, name: 'Commander Night', date: '25-08-2025', participants: 8, maxParticipants: 16, status: 'open' },
 ];
 
 const recentTournaments = [
-  { id: 1, name: 'Friday Night Magic', date: '2024-12-15', participants: 32, status: 'completed', winner: 'Alex Chen' },
-  { id: 2, name: 'Standard Weekly', date: '2024-12-12', participants: 24, status: 'completed', winner: 'Sarah Johnson' },
-  { id: 3, name: 'Modern Masters', date: '2024-12-10', participants: 48, status: 'completed', winner: 'Mike Rodriguez' },
+  { id: 1, name: 'Weekly Modern', date: '15-07-2025', participants: 32, status: 'completed', winner: 'Alex Chen' },
+  { id: 2, name: 'Standard Showdown', date: '12-07-2025', participants: 24, status: 'completed', winner: 'Sarah Johnson' },
+  { id: 3, name: 'Friday Night Magic', date: '11-07-2025', participants: 48, status: 'completed', winner: 'Mike Rodriguez' },
 ];
 
 export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {

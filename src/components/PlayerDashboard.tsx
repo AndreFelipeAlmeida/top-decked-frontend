@@ -32,9 +32,9 @@ const performanceData = [
 ];
 
 const recentTournaments = [
-  { id: 1, name: 'Weekly Modern', date: '2024-12-15', placement: 2, participants: 32, points: 180 },
-  { id: 2, name: 'Standard Showdown', date: '2024-12-10', placement: 5, participants: 24, points: 120 },
-  { id: 3, name: 'Friday Night Magic', date: '2024-12-08', placement: 1, participants: 16, points: 200 },
+  { id: 1, name: 'Weekly Modern', date: '15-07-2025', placement: 2, participants: 32, points: 180 },
+  { id: 2, name: 'Standard Showdown', date: '12-07-2025', placement: 5, participants: 24, points: 120 },
+  { id: 3, name: 'Friday Night Magic', date: '11-07-2025', placement: 1, participants: 16, points: 200 },
 ];
 
 export function PlayerDashboard({ onNavigate }: PlayerDashboardProps) {
