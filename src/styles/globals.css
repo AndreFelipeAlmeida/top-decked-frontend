@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-size: 14px;
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --card: #ffffff;
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #2d1b69;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: #f5f3ff;
+  --secondary-foreground: #2d1b69;
+  --muted: #f8f9fa;
+  --muted-foreground: #6c757d;
+  --accent: #ffd700;
+  --accent-foreground: #2d1b69;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: transparent;
+  --input-background: #f8f9fa;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: oklch(0.708 0 0);
+  --chart-1: #2d1b69;
+  --chart-2: #ffd700;
+  --chart-3: #8b5cf6;
+  --chart-4: #06b6d4;
+  --chart-5: #10b981;
+  --radius: 0.625rem;
+  --sidebar: #f8f9fa;
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #2d1b69;
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: #f5f3ff;
+  --sidebar-accent-foreground: #2d1b69;
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: #0f0f23;
+  --foreground: oklch(0.985 0 0);
+  --card: #1a1a2e;
+  --card-foreground: oklch(0.985 0 0);
+  --popover: #1a1a2e;
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: #6366f1;
+  --primary-foreground: oklch(1 0 0);
+  --secondary: #16213e;
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: #16213e;
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: #ffd700;
+  --accent-foreground: #0f0f23;
+  --destructive: #ef4444;
+  --destructive-foreground: oklch(1 0 0);
+  --border: #16213e;
+  --input: #16213e;
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: #6366f1;
+  --chart-2: #ffd700;
+  --chart-3: #8b5cf6;
+  --chart-4: #06b6d4;
+  --chart-5: #10b981;
+  --sidebar: #0f0f23;
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: #6366f1;
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: #16213e;
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: #16213e;
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+html {
+  font-size: var(--font-size);
+}
