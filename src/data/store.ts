@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   type: 'player' | 'organizer';
-  store?: string;=
+  store?: string;
   stats: {
     totalPoints: number;
     winRate: number;

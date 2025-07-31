@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Trophy, Users, Calendar, Eye, EyeOff } from 'lucide-react';
-import { tournamentStore, User } from '../data/store.ts'; // Certifique-se de que o caminho para 'store' está correto
+import { tournamentStore, User } from '../data/store.ts';
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
@@ -15,14 +15,13 @@ interface LoginScreenProps {
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [activeTab, setActiveTab] = useState('login');
-  // Adicionado userType ao estado de loginData
   const [loginData, setLoginData] = useState({ email: '', password: '', userType: 'player' as 'player' | 'organizer' });
   const [registerData, setRegisterData] = useState({
-    name: '', // Será 'Nome Completo' para jogador, 'Nome da Loja' para organizador
+    name: '',
     email: '',
     password: '',
     userType: 'player' as 'player' | 'organizer',
-    address: '' // Novo campo para 'Endereço', apenas para organizador
+    address: ''
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +36,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     // Simula chamada de API
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Passa o tipo de usuário para a função de autenticação
     const user = tournamentStore.authenticateUser(loginData.email, loginData.password, loginData.userType);
 
     if (user) {
@@ -57,14 +55,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
     setMessage(null);
 
-    // Validação básica dos campos de registro necessários
     if (!registerData.name || !registerData.email || !registerData.password) {
       setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
       setIsLoading(false);
       return;
     }
 
-    // Validação específica para organizador: 'name' (Nome da Loja) e 'address' (Endereço) são obrigatórios
     if (registerData.userType === 'organizer' && (!registerData.name || !registerData.address)) {
       setMessage({ type: 'error', text: 'Para organizadores, o nome da loja e o endereço são obrigatórios.' });
       setIsLoading(false);
@@ -77,11 +73,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     // Tenta registrar o usuário
     try {
       const newUser = tournamentStore.registerUser({
-        name: registerData.name, // Será o nome do jogador ou o nome da loja
+        name: registerData.name,
         email: registerData.email,
         type: registerData.userType,
-        store: registerData.userType === 'organizer' ? registerData.address : undefined, // 'store' no frontend mapeia para 'endereco' no backend para organizador
-        // Removido 'stats' daqui, pois é inicializado pelo tournamentStore/backend
+        store: registerData.userType === 'organizer' ? registerData.address : undefined,
       });
 
       setMessage({ type: 'success', text: 'Registro realizado com sucesso!' });
@@ -89,7 +84,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         onLogin(newUser);
       }, 500);
     } catch (error: any) {
-      // Captura erros do tournamentStore (ex: email já existe)
       setMessage({ type: 'error', text: error.message || 'Erro ao registrar. Tente novamente.' });
     }
 
@@ -97,8 +91,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   const handleDemoLogin = (email: string, type: 'player' | 'organizer') => {
-    // Ao fazer login demo, também precisamos do tipo de conta para autenticar corretamente
-    const user = tournamentStore.authenticateUser(email, 'demo', type); // Assumindo 'demo' como senha para contas demo
+    const user = tournamentStore.authenticateUser(email, 'demo', type);
     if (user) {
       onLogin(user);
     } else {
@@ -107,14 +100,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   const handleAccountTypeSelect = (accountType: 'player' | 'organizer') => {
-    // Reseta os dados de registro ao mudar o tipo de conta, sem preencher com dados demo
     setRegisterData(prevData => ({
       ...prevData,
       userType: accountType,
-      name: '', // Limpa o nome/nome da loja
-      email: '', // Limpa o email
-      password: '', // Limpa a senha
-      address: '' // Limpa o endereço
+      name: '',
+      email: '',
+      password: '',
+      address: ''
     }));
   };
 
@@ -176,14 +168,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     <div className="flex items-center space-x-2">
                       <span className="font-medium">{account.name}</span>
                       <Badge variant="outline" className="text-xs">
-                        {account.displayType} {/* Usar displayType para o texto da badge */}
+                        {account.displayType}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{account.description}</p>
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => handleDemoLogin(account.email, account.type)} // Passa o tipo de conta
+                    onClick={() => handleDemoLogin(account.email, account.type)}
                   >
                     Entrar
                   </Button>
@@ -398,7 +390,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       <option value="organizer">Organizador</option>
                     </select>
                   </div>
-                  {/* Campo 'Endereço' renderizado condicionalmente para organizadores */}
                   {registerData.userType === 'organizer' && (
                     <div className="space-y-2">
                       <Label htmlFor="address">Endereço *</Label>
@@ -407,7 +398,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         placeholder="Endereço completo da loja"
                         value={registerData.address}
                         onChange={(e) => setRegisterData({ ...registerData, address: e.target.value })}
-                        required={true} // É obrigatório para organizador
+                        required={true}
                       />
                     </div>
                   )}
