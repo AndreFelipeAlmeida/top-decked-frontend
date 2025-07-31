@@ -274,6 +274,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
+                      className="bg-blue-50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -286,6 +287,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         required
+                        className="bg-blue-50"
                       />
                       <Button
                         type="button"
@@ -298,14 +300,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       </Button>
                     </div>
                   </div>
-                  {/* Campo para Tipo de Conta no Login */}
                   <div className="space-y-2">
                     <Label htmlFor="login-userType">Tipo de conta</Label>
                     <select
                       id="login-userType"
                       value={loginData.userType}
                       onChange={(e) => setLoginData({ ...loginData, userType: e.target.value as 'player' | 'organizer' })}
-                      className="w-full p-2 border border-border rounded-md bg-background"
+                      className="w-full p-2 border border-border bg-blue-50 focus-visible:ring-yellow"
                     >
                       <option value="player">Jogador</option>
                       <option value="organizer">Organizador</option>
@@ -354,6 +355,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       value={registerData.name}
                       onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
                       required
+                      className="bg-blue-50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -365,6 +367,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       value={registerData.email}
                       onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                       required
+                      className="bg-blue-50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -377,6 +380,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         value={registerData.password}
                         onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
                         required
+                        className="bg-blue-50"
                       />
                       <Button
                         type="button"
@@ -395,7 +399,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       id="userType"
                       value={registerData.userType}
                       onChange={(e) => handleAccountTypeSelect(e.target.value as 'player' | 'organizer')}
-                      className="w-full p-2 border border-border rounded-md bg-background"
+                      className="w-full p-2 border border-border bg-blue-50 focus-visible:ring-yellow-400"
                     >
                       <option value="player">Jogador</option>
                       <option value="organizer">Organizador</option>
@@ -410,6 +414,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         value={registerData.address}
                         onChange={(e) => setRegisterData({ ...registerData, address: e.target.value })}
                         required={true}
+                        className="bg-blue-50 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                       />
                     </div>
                   )}

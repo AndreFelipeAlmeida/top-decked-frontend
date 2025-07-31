@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
 import { Progress } from './ui/progress.tsx';
-import { Trophy, TrendingUp, Calendar, Target, Medal, Users } from 'lucide-react';
+import { Trophy, TrendingUp, Calendar, Target, Medal, Users, BarChart3 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
@@ -393,7 +393,7 @@ export function PlayerDashboard({ onNavigate, currentUser }: PlayerDashboardProp
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {sortedRecentTournaments.map((tournament) => (
+            {sortedRecentTournaments.map((tournament) => ( // Usando o array ordenado
               <div key={tournament.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
@@ -432,6 +432,13 @@ export function PlayerDashboard({ onNavigate, currentUser }: PlayerDashboardProp
               </div>
             ))}
           </div>
+          <div className="mt-6 flex justify-center">
+            <Button onClick={navigateToPlayerDashboard}
+            className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-[#3f2d7b] transition-colors">
+              <BarChart3 className="h-4 w-4" />
+              <span>Ver Todos os Torneios</span>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -457,7 +464,8 @@ export function PlayerDashboard({ onNavigate, currentUser }: PlayerDashboardProp
             </div>
           </div>
           <div className="mt-6 flex justify-center">
-            <Button onClick={navigateToPlayerDashboard} className="flex items-center space-x-2">
+            <Button onClick={navigateToPlayerDashboard} 
+            className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-[#3f2d7b] transition-colors">
               <Trophy className="h-4 w-4" />
               <span>Ver Rankings Completos</span>
             </Button>
