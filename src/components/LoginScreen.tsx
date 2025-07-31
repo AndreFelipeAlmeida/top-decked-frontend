@@ -7,21 +7,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Trophy, Users, Calendar, Eye, EyeOff } from 'lucide-react';
-import { tournamentStore, User } from '../data/store.ts';
+import { tournamentStore, User } from '../data/store.ts'; // Certifique-se de que o caminho para 'store' está correto
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
 }
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [activeTab, setActiveTab] = useState('login');
+  // Adicionado userType ao estado de loginData
+  const [loginData, setLoginData] = useState({ email: '', password: '', userType: 'player' as 'player' | 'organizer' });
   const [registerData, setRegisterData] = useState({
-    name: '',
+    name: '', // Será 'Nome Completo' para jogador, 'Nome da Loja' para organizador
     email: '',
     password: '',
-    dateOfBirth: '',
     userType: 'player' as 'player' | 'organizer',
-    store: ''
+    address: '' // Novo campo para 'Endereço', apenas para organizador
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,9 +34,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
     setMessage(null);
 
+    // Simula chamada de API
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const user = tournamentStore.authenticateUser(loginData.email, loginData.password);
+    // Passa o tipo de usuário para a função de autenticação
+    const user = tournamentStore.authenticateUser(loginData.email, loginData.password, loginData.userType);
 
     if (user) {
       setMessage({ type: 'success', text: 'Login realizado com sucesso!' });
@@ -43,7 +46,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         onLogin(user);
       }, 500);
     } else {
-      setMessage({ type: 'error', text: 'E-mail ou senha inválidos.' });
+      setMessage({ type: 'error', text: 'Email, senha ou tipo de conta inválidos.' });
     }
 
     setIsLoading(false);
@@ -54,39 +57,87 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
     setMessage(null);
 
+    // Validação básica dos campos de registro necessários
+    if (!registerData.name || !registerData.email || !registerData.password) {
+      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Validação específica para organizador: 'name' (Nome da Loja) e 'address' (Endereço) são obrigatórios
+    if (registerData.userType === 'organizer' && (!registerData.name || !registerData.address)) {
+      setMessage({ type: 'error', text: 'Para organizadores, o nome da loja e o endereço são obrigatórios.' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Simula chamada de API
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    if (registerData.name && registerData.email && registerData.password && registerData.dateOfBirth) {
+    // Tenta registrar o usuário
+    try {
       const newUser = tournamentStore.registerUser({
-        name: registerData.name,
+        name: registerData.name, // Será o nome do jogador ou o nome da loja
         email: registerData.email,
         type: registerData.userType,
-        store: registerData.store || undefined,
-        dateOfBirth: registerData.dateOfBirth
+        store: registerData.userType === 'organizer' ? registerData.address : undefined, // 'store' no frontend mapeia para 'endereco' no backend para organizador
+        // Removido 'stats' daqui, pois é inicializado pelo tournamentStore/backend
       });
 
       setMessage({ type: 'success', text: 'Registro realizado com sucesso!' });
       setTimeout(() => {
         onLogin(newUser);
       }, 500);
-    } else {
-      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos.' });
+    } catch (error: any) {
+      // Captura erros do tournamentStore (ex: email já existe)
+      setMessage({ type: 'error', text: error.message || 'Erro ao registrar. Tente novamente.' });
     }
 
     setIsLoading(false);
   };
 
-  const handleDemoLogin = (email: string) => {
-    setLoginData({ email, password: 'demo' });
-    const user = tournamentStore.authenticateUser(email, 'demo');
+  const handleDemoLogin = (email: string, type: 'player' | 'organizer') => {
+    // Ao fazer login demo, também precisamos do tipo de conta para autenticar corretamente
+    const user = tournamentStore.authenticateUser(email, 'demo', type); // Assumindo 'demo' como senha para contas demo
     if (user) {
       onLogin(user);
+    } else {
+      setMessage({ type: 'error', text: 'Erro ao fazer login na conta demo. Tente novamente.' });
     }
   };
 
-  const mockAccounts = [
-    { email: 'alex.chen@example.com', name: 'Alex Chen', type: 'Jogador', description: 'Jogador de torneios com rankings' },
-    { email: 'sarah.johnson@gamestore.com', name: 'Sarah Johnson', type: 'Organizador', description: 'Organizador de torneios na Game Central' }
+  const handleAccountTypeSelect = (accountType: 'player' | 'organizer') => {
+    // Reseta os dados de registro ao mudar o tipo de conta, sem preencher com dados demo
+    setRegisterData(prevData => ({
+      ...prevData,
+      userType: accountType,
+      name: '', // Limpa o nome/nome da loja
+      email: '', // Limpa o email
+      password: '', // Limpa a senha
+      address: '' // Limpa o endereço
+    }));
+  };
+
+  const demoAccounts = [
+    { email: 'alex.chen@example.com', name: 'Alex Chen', type: 'player' as 'player' | 'organizer', displayType: 'Jogador', description: 'Jogador de torneios' },
+    { email: 'sarah.johnson@gamestore.com', name: 'Sarah Johnson', type: 'organizer' as 'player' | 'organizer', displayType: 'Organizador', description: 'Organizador de torneios' }
+  ];
+
+  const accountTemplates = [
+    {
+      type: 'player' as const,
+      name: 'Conta de Jogador',
+      description: 'Acompanhe seu progresso e rankings',
+      icon: Users,
+      details: 'Participe de torneios, visualize rankings, acompanhe estatísticas'
+    },
+    {
+      type: 'organizer' as const,
+      name: 'Conta de Organizador',
+      description: 'Gerencie torneios com facilidade',
+      icon: Calendar,
+      details: 'Crie torneios, gerencie eventos, visualize análises'
+    }
   ];
 
   return (
@@ -96,18 +147,18 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           <div className="flex justify-center mb-4">
             <Trophy className="h-16 w-16 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-primary">Bem-vindo ao TopDecked</h1>
+          <h1 className="text-3xl font-bold text-primary">Bem-vindo(a) ao TopDecked</h1>
           <p className="text-muted-foreground mt-2">
-            A plataforma definitiva para gerenciamento de torneios de TCG.
+            A plataforma definitiva para gerenciamento de torneios de TCG
           </p>
         </div>
 
-        {/* Contas de Demonstração */}
-        {showDemoAccounts && (
+        {/* Contas Demo - Exibir durante o login */}
+        {activeTab === 'login' && showDemoAccounts && (
           <Card className="border-accent/50 bg-accent/5">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Contas de Demonstração</CardTitle>
+                <CardTitle className="text-lg">Contas pré-configuradas</CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -116,23 +167,23 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   <EyeOff className="h-4 w-4" />
                 </Button>
               </div>
-              <CardDescription>Experimente a plataforma com contas pré-configuradas.</CardDescription>
+              <CardDescription>Experimente a plataforma com contas pré-configuradas</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {mockAccounts.map((account) => (
+              {demoAccounts.map((account) => (
                 <div key={account.email} className="flex items-center justify-between p-3 bg-white rounded-lg border">
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium">{account.name}</span>
                       <Badge variant="outline" className="text-xs">
-                        {account.type}
+                        {account.displayType} {/* Usar displayType para o texto da badge */}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{account.description}</p>
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => handleDemoLogin(account.email)}
+                    onClick={() => handleDemoLogin(account.email, account.type)} // Passa o tipo de conta
                   >
                     Entrar
                   </Button>
@@ -142,6 +193,57 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           </Card>
         )}
 
+        {/* Seleção de Tipo de Conta - Exibir durante o registro */}
+        {activeTab === 'register' && showDemoAccounts && (
+          <Card className="border-accent/50 bg-accent/5">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Escolha seu tipo de conta</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDemoAccounts(false)}
+                >
+                  <EyeOff className="h-4 w-4" />
+                </Button>
+              </div>
+              <CardDescription>Selecione um tipo de conta</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {accountTemplates.map((template) => {
+                const IconComponent = template.icon;
+                const isSelected = registerData.userType === template.type;
+                return (
+                  <div
+                    key={template.type}
+                    className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-primary/10 border-primary shadow-sm'
+                        : 'bg-white hover:bg-secondary/50 hover:shadow-sm'
+                    }`}
+                    onClick={() => handleAccountTypeSelect(template.type)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${isSelected ? 'bg-primary/20' : 'bg-secondary'}`}>
+                        <IconComponent className={`h-5 w-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{template.name}</span>
+                          {isSelected && <Badge variant="default" className="text-xs">Selecionado</Badge>}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{template.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{template.details}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Botão para mostrar/esconder contas demo/tipos de conta */}
         {!showDemoAccounts && (
           <Button
             variant="outline"
@@ -150,25 +252,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             className="w-full"
           >
             <Eye className="h-4 w-4 mr-2" />
-            Mostrar Contas de Demonstração
+            {activeTab === 'login' ? 'Mostrar contas pré-cadastradas' : 'Mostrar tipos de conta'}
           </Button>
         )}
 
-        {/* Seções "Para Jogadores" e "Para Organizadores"*/}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <Card className="p-4 text-center">
-            <Users className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold">Para Jogadores</h3>
-            <p className="text-sm text-muted-foreground">Acompanhe seu progresso e rankings</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <Calendar className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold">Para Organizadores</h3>
-            <p className="text-sm text-muted-foreground">Gerencie torneios com facilidade</p>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Entrar</TabsTrigger>
             <TabsTrigger value="register">Registrar</TabsTrigger>
@@ -179,17 +267,17 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               <CardHeader>
                 <CardTitle>Entrar</CardTitle>
                 <CardDescription>
-                  Insira suas credenciais para acessar sua conta.
+                  Insira suas credenciais para acessar sua conta
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">E-mail</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="Seu e-mail"
+                      placeholder="Digite seu email"
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
@@ -201,7 +289,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       <Input
                         id="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Sua senha"
+                        placeholder="Digite sua senha"
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         required
@@ -216,6 +304,19 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
+                  </div>
+                  {/* Campo para Tipo de Conta no Login */}
+                  <div className="space-y-2">
+                    <Label htmlFor="login-userType">Tipo de conta</Label>
+                    <select
+                      id="login-userType"
+                      value={loginData.userType}
+                      onChange={(e) => setLoginData({ ...loginData, userType: e.target.value as 'player' | 'organizer' })}
+                      className="w-full p-2 border border-border rounded-md bg-background"
+                    >
+                      <option value="player">Jogador</option>
+                      <option value="organizer">Organizador</option>
+                    </select>
                   </div>
 
                   {message && (
@@ -237,27 +338,38 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               <CardHeader>
                 <CardTitle>Registrar</CardTitle>
                 <CardDescription>
-                  Crie uma nova conta para começar.
+                  Crie uma nova conta para começar
+                  {registerData.userType && (
+                    <span className="block mt-1">
+                      Criando conta de <Badge variant="outline" className="ml-1">{registerData.userType === 'player' ? 'Jogador' : 'Organizador'}</Badge>
+                    </span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome Completo</Label>
+                    <Label htmlFor="name">
+                      {registerData.userType === 'organizer' ? 'Nome da loja' : 'Nome completo'}
+                    </Label>
                     <Input
                       id="name"
-                      placeholder="Seu nome completo"
+                      placeholder={
+                        registerData.userType === 'organizer'
+                          ? "O nome da sua loja de jogos"
+                          : "Digite seu nome completo"
+                      }
                       value={registerData.name}
                       onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">E-mail</Label>
+                    <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
                       type="email"
-                      placeholder="Seu e-mail"
+                      placeholder="Digite seu email"
                       value={registerData.email}
                       onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
                       required
@@ -275,36 +387,30 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dob">Data de Nascimento</Label>
-                    <Input
-                      id="dob"
-                      type="date"
-                      value={registerData.dateOfBirth}
-                      onChange={(e) => setRegisterData({ ...registerData, dateOfBirth: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="userType">Tipo de Conta</Label>
+                    <Label htmlFor="userType">Tipo de conta</Label>
                     <select
                       id="userType"
                       value={registerData.userType}
-                      onChange={(e) => setRegisterData({ ...registerData, userType: e.target.value as 'player' | 'organizer' })}
+                      onChange={(e) => handleAccountTypeSelect(e.target.value as 'player' | 'organizer')}
                       className="w-full p-2 border border-border rounded-md bg-background"
                     >
                       <option value="player">Jogador</option>
-                      <option value="organizer">Organizador de Torneios</option>
+                      <option value="organizer">Organizador</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="store">Loja/Local (Opcional)</Label>
-                    <Input
-                      id="store"
-                      placeholder="Sua loja de jogos local"
-                      value={registerData.store}
-                      onChange={(e) => setRegisterData({ ...registerData, store: e.target.value })}
-                    />
-                  </div>
+                  {/* Campo 'Endereço' renderizado condicionalmente para organizadores */}
+                  {registerData.userType === 'organizer' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Endereço *</Label>
+                      <Input
+                        id="address"
+                        placeholder="Endereço completo da loja"
+                        value={registerData.address}
+                        onChange={(e) => setRegisterData({ ...registerData, address: e.target.value })}
+                        required={true} // É obrigatório para organizador
+                      />
+                    </div>
+                  )}
 
                   {message && (
                     <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
@@ -313,7 +419,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   )}
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Criando Conta...' : 'Registrar'}
+                    {isLoading ? 'Criando conta...' : 'Registrar'}
                   </Button>
                 </form>
               </CardContent>
