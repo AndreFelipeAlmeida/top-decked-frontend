@@ -143,12 +143,24 @@ export function PlayerDashboard({ onNavigate, currentUser }: PlayerDashboardProp
   };
 
   const [selectedMetric, setSelectedMetric] = useState('points');
-  const availableYears = Array.from(new Set(yearlyProgressionData.map(d => d.year.toString())))
-
+  
+  const allYearsFromData = Array.from(new Set(yearlyProgressionData.map(d => d.year.toString())));
+  
   const currentYear = new Date().getFullYear().toString();
 
+  let yearsForButtonDisplay: string[] = [];
+  if (allYearsFromData.includes(currentYear)) {
+    yearsForButtonDisplay.push(currentYear);
+    const otherYearsSorted = allYearsFromData
+      .filter(year => year !== currentYear)
+      .sort((a, b) => parseInt(b) - parseInt(a));
+    yearsForButtonDisplay = [...yearsForButtonDisplay, ...otherYearsSorted];
+  } else {
+    yearsForButtonDisplay = allYearsFromData.sort((a, b) => parseInt(b) - parseInt(a));
+  }
+
   const [selectedYears, setSelectedYears] = useState<string[]>(
-    availableYears.includes(currentYear) ? [currentYear] : (availableYears.length > 0 ? [availableYears[0]] : [])
+    yearsForButtonDisplay.includes(currentYear) ? [currentYear] : (yearsForButtonDisplay.length > 0 ? [yearsForButtonDisplay[0]] : [])
   );
 
   const chartData = Array.from(new Set(yearlyProgressionData.map(d => d.month))).map(month => {
@@ -322,7 +334,7 @@ export function PlayerDashboard({ onNavigate, currentUser }: PlayerDashboardProp
               <div className="flex items-center space-x-4">
                 <label className="text-sm font-medium">Anos:</label>
                 <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {availableYears.map(year => (
+                  {yearsForButtonDisplay.map(year => (
                     <Button
                       key={year}
                       size="sm"

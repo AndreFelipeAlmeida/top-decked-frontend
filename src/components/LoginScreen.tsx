@@ -26,6 +26,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showDemoAccounts, setShowDemoAccounts] = useState(true);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -330,7 +331,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               <CardHeader>
                 <CardTitle>Registrar</CardTitle>
                 <CardDescription>
-                  Crie uma nova conta para começar
                   {registerData.userType && (
                     <span className="block mt-1">
                       Criando conta de <Badge variant="outline" className="ml-1">{registerData.userType === 'player' ? 'Jogador' : 'Organizador'}</Badge>
@@ -348,7 +348,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       id="name"
                       placeholder={
                         registerData.userType === 'organizer'
-                          ? "O nome da sua loja de jogos"
+                          ? "Digite o nome da sua loja de jogos"
                           : "Digite seu nome completo"
                       }
                       value={registerData.name}
@@ -369,14 +369,25 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Senha</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      placeholder="Crie uma senha"
-                      value={registerData.password}
-                      onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="register-password"
+                        type={showRegisterPassword ? 'text' : 'password'}
+                        placeholder="Crie uma senha"
+                        value={registerData.password}
+                        onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1 h-7 w-7 p-0"
+                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                      >
+                        {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="userType">Tipo de conta</Label>
@@ -392,10 +403,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   </div>
                   {registerData.userType === 'organizer' && (
                     <div className="space-y-2">
-                      <Label htmlFor="address">Endereço *</Label>
+                      <Label htmlFor="address">Endereço da Loja</Label>
                       <Input
                         id="address"
-                        placeholder="Endereço completo da loja"
+                        placeholder="Digite o endereço completo da loja"
                         value={registerData.address}
                         onChange={(e) => setRegisterData({ ...registerData, address: e.target.value })}
                         required={true}
