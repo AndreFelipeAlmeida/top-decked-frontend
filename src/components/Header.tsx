@@ -4,7 +4,8 @@ import { Badge } from './ui/badge.tsx';
 import { Trophy, BarChart3, LogOut, List, Calendar, CreditCard } from 'lucide-react';
 import { User as UserType } from '../data/store';
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard';
+
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation';
 
 interface HeaderProps {
   userType: UserType['type'] | null;
@@ -16,11 +17,6 @@ interface HeaderProps {
 
 export function Header({ userType, onNavigate, onLogout, currentPage, currentUser }: HeaderProps) {
   const isActive = (page: Page) => currentPage === page;
-
-  const navigateToDashboard = () => {
-    const targetPage: Page = userType === 'player' ? 'player-dashboard' : 'organizer-dashboard';
-    onNavigate(targetPage);
-  };
 
   return (
     <header className="fixed top-0 w-full bg-white border-b border-border z-50">
@@ -43,10 +39,10 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
               <span className="sr-only md:hidden">Painel</span>
             </Button>
 
-            {/* Botão Torneios */}
+            {/* Botão Torneios (placeholder) */}
             <Button
               variant="ghost"
-              onClick={navigateToDashboard}
+              onClick={() => onNavigate(userType === 'player' ? 'player-dashboard' : 'organizer-dashboard')}
               className="p-2 md:px-4 md:py-2 flex items-center justify-center md:justify-start md:space-x-2"
             >
               <List className="h-4 w-4" />
@@ -54,10 +50,10 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
               <span className="sr-only md:hidden">Torneios</span>
             </Button>
 
-            {/* Botão Rankings */}
+            {/* Botão Rankings (placeholder) */}
             <Button
               variant="ghost"
-              onClick={navigateToDashboard}
+              onClick={() => onNavigate(userType === 'player' ? 'player-dashboard' : 'organizer-dashboard')}
               className="p-2 md:px-4 md:py-2 flex items-center justify-center md:justify-start md:space-x-2"
             >
               <Trophy className="h-4 w-4" />
@@ -65,11 +61,11 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
               <span className="sr-only md:hidden">Rankings</span>
             </Button>
 
-            {/* Botão Criar Torneio (para organizadores) */}
+            {/* Botão Criar Torneio (para organizadores)*/}
             {userType === 'organizer' && (
               <Button
-                variant="ghost"
-                onClick={navigateToDashboard}
+                variant={isActive('tournament-creation') ? 'default' : 'ghost'}
+                onClick={() => onNavigate('tournament-creation')}
                 className="p-2 md:px-4 md:py-2 flex items-center justify-center md:justify-start md:space-x-2"
               >
                 <Calendar className="h-4 w-4" />
@@ -82,7 +78,7 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
             {userType === 'organizer' && (
               <Button
                 variant="ghost"
-                onClick={navigateToDashboard}
+                onClick={() => onNavigate('organizer-dashboard')}
                 className="p-2 md:px-4 md:py-2 flex items-center justify-center md:justify-start md:space-x-2"
               >
                 <CreditCard className="h-4 w-4" />

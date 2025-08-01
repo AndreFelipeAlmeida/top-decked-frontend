@@ -3,10 +3,11 @@ import { Header } from './components/Header.tsx';
 import { LoginScreen } from './components/LoginScreen.tsx';
 import { PlayerDashboard } from './components/PlayerDashboard.tsx';
 import { OrganizerDashboard } from './components/OrganizerDashboard.tsx';
+import { TournamentCreation } from './components/TournamentCreation.tsx';
 import { tournamentStore, User } from './data/store.ts';
 
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'tournament-details';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
@@ -27,13 +28,8 @@ export default function App() {
     setCurrentPage('login');
   };
 
-  const handleNavigate = (page: Page, data?: any) => {
-    if (page !== 'login' && page !== 'player-dashboard' && page !== 'organizer-dashboard') {
-      const targetDashboard: Page = currentUser?.type === 'player' ? 'player-dashboard' : 'organizer-dashboard';
-      setCurrentPage(targetDashboard);
-    } else {
-      setCurrentPage(page);
-    }
+  const handleNavigate = (page: Page) => {
+    setCurrentPage(page);
   };
 
   const renderPage = () => {
@@ -54,6 +50,8 @@ export default function App() {
             currentUser={currentUser}
           />
         );
+      case 'tournament-creation':
+        return <TournamentCreation onNavigate={handleNavigate} currentUser={currentUser} />;
       default:
         return <LoginScreen onLogin={handleLogin} />;
     }

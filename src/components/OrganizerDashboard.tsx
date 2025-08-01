@@ -5,7 +5,7 @@ import { Button } from './ui/button.tsx';
 import { Calendar, Users, Trophy, Plus, Upload, Settings, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation';
 
 interface OrganizerDashboardProps {
   onNavigate: (page: Page, data?: any) => void;
@@ -36,10 +36,10 @@ const upcomingTournaments = [
 ];
 
 const allTournaments = [
-  { id: 't1', name: 'Modern Masters', date: '10 de Junho, 2024', participants: 16, winner: 'Ana Silva', status: 'concluded' },
-  { id: 't2', name: 'Standard Weekly', date: '25 de Junho, 2024', participants: 32, winner: 'Pedro Costa', status: 'concluded' },
-  { id: 't3', name: 'Commander Night', date: '12 de Julho, 2024', participants: 12, winner: 'João Santos', status: 'concluded' },
-  { id: 't4', name: 'Mês do Pokemon', date: '30 de Julho, 2024', participants: 40, winner: '', status: 'ongoing' },
+  { id: 't1', name: 'Campeonato de Xadrez', date: '10 de Junho, 2024', participants: 16, winner: 'Ana Silva', status: 'concluded' },
+  { id: 't2', name: 'Torneio de Magic', date: '25 de Junho, 2024', participants: 32, winner: 'Pedro Costa', status: 'concluded' },
+  { id: 't3', name: 'Open de D&D', date: '12 de Julho, 2024', participants: 12, winner: 'João Santos', status: 'concluded' },
+  { id: 't4', name: 'Mês do Poker', date: '30 de Julho, 2024', participants: 40, winner: '', status: 'ongoing' },
   { id: 't5', name: 'Liga de TCG', date: '15 de Agosto, 2024', participants: 24, winner: '', status: 'upcoming' },
 ]
 
@@ -56,11 +56,8 @@ const getMetricName = (name: string) => {
   }
 };
 
-export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
-  const navigateToOrganizerDashboard = () => {
-    onNavigate('organizer-dashboard');
-  };
 
+export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -69,9 +66,9 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {/* Botão para Criar Novo Torneio*/}
+        {/* Botão para Criar Novo Torneio - ALTERADO AQUI */}
         <Button
-          onClick={navigateToOrganizerDashboard}
+          onClick={() => onNavigate('tournament-creation')}
           className="h-16 flex items-center space-x-3"
         >
           <Plus className="h-5 w-5" />
@@ -87,7 +84,7 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
         {/* Botão para Gerenciar Assinatura*/}
         <Button
           variant="outline"
-          onClick={navigateToOrganizerDashboard}
+          onClick={() => onNavigate('organizer-dashboard')}
           className="h-16 flex items-center space-x-3"
         >
           <Settings className="h-5 w-5" />
@@ -152,7 +149,7 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      <Card>
+        <Card>
           <CardHeader>
             <CardTitle>Atividade Mensal de Torneios</CardTitle>
             <CardDescription>Torneios e participantes ao longo do tempo</CardDescription>
@@ -235,7 +232,7 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={navigateToOrganizerDashboard}
+                    onClick={() => onNavigate('organizer-dashboard')}
                   >
                     Gerenciar
                   </Button>
@@ -265,14 +262,12 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
                     <p className="text-sm text-muted-foreground">{tournament.date}</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{tournament.participants} jogadores</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Vencedor: {tournament.winner}</p>
+                <div className="flex flex-col items-end">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{tournament.participants} jogadores</span>
                   </div>
+                  <p className="text-sm text-muted-foreground">Vencedor: {tournament.winner}</p>
                 </div>
               </div>
             ))}
