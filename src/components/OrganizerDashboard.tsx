@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
 import { Calendar, Users, Trophy, Plus, Upload, Settings, TrendingUp } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard';
 
@@ -35,11 +35,26 @@ const upcomingTournaments = [
   { id: 3, name: 'Commander Night', date: '25-08-2025', participants: 8, maxParticipants: 16, status: 'open' },
 ];
 
-const recentTournaments = [
-  { id: 1, name: 'Weekly Modern', date: '15-07-2025', participants: 32, status: 'completed', winner: 'Alex Chen' },
-  { id: 2, name: 'Standard Showdown', date: '12-07-2025', participants: 24, status: 'completed', winner: 'Sarah Johnson' },
-  { id: 3, name: 'Friday Night Magic', date: '11-07-2025', participants: 48, status: 'completed', winner: 'Mike Rodriguez' },
-];
+const allTournaments = [
+  { id: 't1', name: 'Modern Masters', date: '10 de Junho, 2024', participants: 16, winner: 'Ana Silva', status: 'concluded' },
+  { id: 't2', name: 'Standard Weekly', date: '25 de Junho, 2024', participants: 32, winner: 'Pedro Costa', status: 'concluded' },
+  { id: 't3', name: 'Commander Night', date: '12 de Julho, 2024', participants: 12, winner: 'João Santos', status: 'concluded' },
+  { id: 't4', name: 'Mês do Pokemon', date: '30 de Julho, 2024', participants: 40, winner: '', status: 'ongoing' },
+  { id: 't5', name: 'Liga de TCG', date: '15 de Agosto, 2024', participants: 24, winner: '', status: 'upcoming' },
+]
+
+const recentTournaments = allTournaments.filter(t => t.status === 'concluded');
+
+const getMetricName = (name: string) => {
+  switch (name) {
+    case 'tournaments':
+      return 'Torneios';
+    case 'participants':
+      return 'Participantes';
+    default:
+      return name;
+  }
+};
 
 export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
   const navigateToOrganizerDashboard = () => {
@@ -137,7 +152,7 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        <Card>
+      <Card>
           <CardHeader>
             <CardTitle>Atividade Mensal de Torneios</CardTitle>
             <CardDescription>Torneios e participantes ao longo do tempo</CardDescription>
@@ -148,9 +163,10 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip />
-                <Bar dataKey="tournaments" fill="#2d1b69" />
-                <Bar dataKey="participants" fill="#6366f1" />
+                <Tooltip formatter={(value, name) => [value, getMetricName(name)]} />
+                <Legend formatter={getMetricName} />
+                <Bar dataKey="tournaments" name="Torneios" fill="#2d1b69" />
+                <Bar dataKey="participants" name="Participantes" fill="#6366f1" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -257,9 +273,6 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
                     </div>
                     <p className="text-sm text-muted-foreground">Vencedor: {tournament.winner}</p>
                   </div>
-                  <Badge variant="outline">
-                    {tournament.status === 'completed' ? 'Concluído' : tournament.status}
-                  </Badge>
                 </div>
               </div>
             ))}
