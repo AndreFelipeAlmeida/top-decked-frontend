@@ -1,21 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Button } from './ui/button.tsx';
 import { Input } from './ui/input.tsx';
 import { Label } from './ui/label.tsx';
 import { Textarea } from './ui/textarea.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
-import { Alert, AlertDescription } from './ui/alert.tsx';
-import { Calendar, Trophy, ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Trophy, Calendar, XCircle } from 'lucide-react';
 import { tournamentStore, User } from '../data/store.ts';
 
-
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'tournament-details';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules';
 
 interface TournamentCreationProps {
   onNavigate: (page: Page, data?: any) => void;
   currentUser: User | null;
 }
+
+interface Message {
+  type: 'success' | 'error';
+  text: string;
+}
+
+const MessageBox = ({ type, text, onClose }: { type: 'success' | 'error', text: string, onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const icon = type === 'success' 
+    ? <CheckCircle className="h-5 w-5 text-green-500" /> 
+    : <XCircle className="h-5 w-5 text-red-500" />;
+
+  return (
+    <div className="flex items-center space-x-3 p-4 bg-white rounded-xl border border-gray-200">
+      {icon}
+      <p className="text-sm font-medium text-gray-800">{text}</p>
+    </div>
+  );
+};
 
 export function TournamentCreation({ onNavigate, currentUser }: TournamentCreationProps) {
   const [formData, setFormData] = useState({
@@ -32,7 +55,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
     rounds: '',
   });
 
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -260,12 +283,9 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
         </Card>
 
         {message && (
-          <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
-            <AlertDescription className="flex items-center space-x-2">
-              {message.type === 'success' && <CheckCircle className="h-4 w-4" />}
-              <span>{message.text}</span>
-            </AlertDescription>
-          </Alert>
+          <div className="mt-4">
+            <MessageBox type={message.type} text={message.text} onClose={() => setMessage(null)} />
+          </div>
         )}
 
         <div className="flex justify-end space-x-4">

@@ -7,7 +7,7 @@ import { Trophy, TrendingUp, Calendar, Target, Medal, Users, BarChart3 } from 'l
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules';
 
 interface PlayerDashboardProps {
   onNavigate: (page: Page) => void;
@@ -393,7 +393,7 @@ export function PlayerDashboard({ onNavigate, currentUser }: PlayerDashboardProp
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {sortedRecentTournaments.map((tournament) => ( // Usando o array ordenado
+            {sortedRecentTournaments.map((tournament) => (
               <div key={tournament.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
