@@ -1,3 +1,5 @@
+import { nanoid } from 'nanoid';
+
 export interface User {
   id: string;
   name: string;
@@ -29,6 +31,19 @@ export interface Tournament {
   rounds: number;
   status: 'upcoming' | 'registration' | 'in-progress' | 'completed';
   participants: { userId: string; userName: string; }[];
+}
+
+export interface PlayerRule {
+  id: string;
+  typeName: string;
+  pointsForWin: number;
+  pointsForLoss: number;
+  pointsForTie: number;
+  pointsGivenToOpponent: number;
+  pointsLostByOpponent: number;
+  pointsToOpponentOnTie: number;
+  organizerId: string;
+  createdAt: string;
 }
 
 // --- Dados Mock ---
@@ -92,11 +107,40 @@ const initialTournaments: Tournament[] = [
   },
 ];
 
+const initialPlayerRules: PlayerRule[] = [
+  {
+    id: nanoid(),
+    typeName: 'Normal Player',
+    pointsForWin: 3,
+    pointsForLoss: 0,
+    pointsForTie: 1,
+    pointsGivenToOpponent: 0,
+    pointsLostByOpponent: 0,
+    pointsToOpponentOnTie: 0,
+    organizerId: '2',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: nanoid(),
+    typeName: 'Team Rocket',
+    pointsForWin: 3,
+    pointsForLoss: 0,
+    pointsForTie: 1,
+    pointsGivenToOpponent: 0,
+    pointsLostByOpponent: 0.5,
+    pointsToOpponentOnTie: 0.5,
+    organizerId: '2',
+    createdAt: new Date().toISOString()
+  },
+];
+
+
 // --- Classe para gerenciar o estado da aplicação ---
 
 class TournamentStore {
   private users: User[] = [...initialUsers];
   private tournaments: Tournament[] = [...initialTournaments];
+  private playerRules: PlayerRule[] = [...initialPlayerRules];
   private _currentUser: User | null = null;
 
   get currentUser(): User | null {
@@ -105,6 +149,10 @@ class TournamentStore {
 
   setCurrentUser(user: User | null) {
     this._currentUser = user;
+  }
+  
+  getCurrentUser(): User | null {
+    return this._currentUser;
   }
 
   // --- Gerenciamento de Usuários ---
@@ -181,6 +229,42 @@ class TournamentStore {
 
   getTournamentById(id: string): Tournament | undefined {
     return this.tournaments.find(t => t.id === id);
+  }
+
+  // --- Gerenciamento de Regras de Jogador ---
+  getPlayerRulesByOrganizer(organizerId: string): PlayerRule[] {
+    return this.playerRules.filter(rule => rule.organizerId === organizerId);
+  }
+
+  getPlayerRuleById(ruleId: string): PlayerRule | undefined {
+    return this.playerRules.find(rule => rule.id === ruleId);
+  }
+
+  createPlayerRule(ruleData: Omit<PlayerRule, 'id' | 'createdAt'>): PlayerRule {
+    const newRule: PlayerRule = {
+      ...ruleData,
+      id: nanoid(),
+      createdAt: new Date().toISOString()
+    };
+    this.playerRules.push(newRule);
+    return newRule;
+  }
+
+  updatePlayerRule(ruleId: string, updates: Partial<Omit<PlayerRule, 'id' | 'organizerId' | 'createdAt'>>): PlayerRule | null {
+    const rule = this.getPlayerRuleById(ruleId);
+    if (!rule) return null;
+
+    Object.assign(rule, updates);
+
+    return rule;
+  }
+
+  deletePlayerRule(ruleId: string): boolean {
+    const ruleIndex = this.playerRules.findIndex(rule => rule.id === ruleId);
+    if (ruleIndex === -1) return false;
+
+    this.playerRules.splice(ruleIndex, 1);
+    return true;
   }
 }
 

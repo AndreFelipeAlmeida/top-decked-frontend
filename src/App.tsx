@@ -4,10 +4,10 @@ import { LoginScreen } from './components/LoginScreen.tsx';
 import { PlayerDashboard } from './components/PlayerDashboard.tsx';
 import { OrganizerDashboard } from './components/OrganizerDashboard.tsx';
 import { TournamentCreation } from './components/TournamentCreation.tsx';
+import { PlayerRules } from './components/PlayerRules.tsx';
 import { tournamentStore, User } from './data/store.ts';
 
-
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'tournament-details';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'tournament-details' | 'player-rules';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
@@ -52,6 +52,8 @@ export default function App() {
         );
       case 'tournament-creation':
         return <TournamentCreation onNavigate={handleNavigate} currentUser={currentUser} />;
+      case 'player-rules':
+        return <PlayerRules onNavigate={handleNavigate} currentUser={currentUser} />;
       default:
         return <LoginScreen onLogin={handleLogin} />;
     }

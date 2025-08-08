@@ -5,7 +5,7 @@ import { Trophy, BarChart3, LogOut, List, Calendar, CreditCard } from 'lucide-re
 import { User as UserType } from '../data/store';
 
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules';
 
 interface HeaderProps {
   userType: UserType['type'] | null;

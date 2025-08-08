@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
-import { Calendar, Users, Trophy, Plus, Upload, Settings, TrendingUp } from 'lucide-react';
+import { Calendar, Users, Trophy, Plus, Upload, TrendingUp, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules';
 
 interface OrganizerDashboardProps {
   onNavigate: (page: Page, data?: any) => void;
@@ -66,7 +66,7 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {/* Botão para Criar Novo Torneio - ALTERADO AQUI */}
+        {/* Botão para Criar Novo Torneio */}
         <Button
           onClick={() => onNavigate('tournament-creation')}
           className="h-16 flex items-center space-x-3"
@@ -75,20 +75,20 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
           <span>Criar Novo Torneio</span>
         </Button>
 
-        {/* Botão para Importar Dados de Torneio*/}
+        {/* Botão para Importar Dados de Torneio */}
         <Button variant="outline" className="h-16 w-full flex items-center space-x-3">
           <Upload className="h-5 w-5" />
           <span>Importar Dados de Torneio</span>
         </Button>
 
-        {/* Botão para Gerenciar Assinatura*/}
-        <Button
-          variant="outline"
-          onClick={() => onNavigate('organizer-dashboard')}
+        {/* Botão para Gerenciar as Regras dos Jogadores */}
+        <Button 
+          variant="outline" 
+          onClick={() => onNavigate('player-rules')}
           className="h-16 flex items-center space-x-3"
         >
-          <Settings className="h-5 w-5" />
-          <span>Gerenciar Assinatura</span>
+          <FileText className="h-5 w-5" />
+          <span>Gerenciar Regras do Jogador</span>
         </Button>
       </div>
 
