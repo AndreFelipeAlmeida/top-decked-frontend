@@ -5,14 +5,17 @@ import { PlayerDashboard } from './components/PlayerDashboard.tsx';
 import { OrganizerDashboard } from './components/OrganizerDashboard.tsx';
 import { TournamentCreation } from './components/TournamentCreation.tsx';
 import { PlayerRules } from './components/PlayerRules.tsx';
+import { TournamentList } from './components/TournamentList.tsx';
 import { tournamentStore, User } from './data/store.ts';
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'tournament-details' | 'player-rules';
+
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'tournament-details' | 'player-rules' | 'tournament-list';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -31,6 +34,11 @@ export default function App() {
   const handleNavigate = (page: Page) => {
     setCurrentPage(page);
   };
+  
+  const handleNavigateToTournament = (tournamentId: string) => {
+    setSelectedTournamentId(tournamentId);
+    setCurrentPage('tournament-list'); 
+  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -40,6 +48,7 @@ export default function App() {
         return (
           <PlayerDashboard
             onNavigate={handleNavigate}
+            onNavigateToTournament={handleNavigateToTournament}
             currentUser={currentUser}
           />
         );
@@ -54,6 +63,14 @@ export default function App() {
         return <TournamentCreation onNavigate={handleNavigate} currentUser={currentUser} />;
       case 'player-rules':
         return <PlayerRules onNavigate={handleNavigate} currentUser={currentUser} />;
+      case 'tournament-list':
+        return (
+          <TournamentList
+            onNavigate={handleNavigate}
+            onNavigateToTournament={handleNavigateToTournament}
+            currentUser={currentUser}
+          />
+        );
       default:
         return <LoginScreen onLogin={handleLogin} />;
     }

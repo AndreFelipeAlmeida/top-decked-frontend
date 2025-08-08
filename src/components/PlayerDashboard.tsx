@@ -10,7 +10,8 @@ import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Responsi
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules';
 
 interface PlayerDashboardProps {
-  onNavigate: (page: Page) => void;
+  onNavigate: (page: Page) => void; 
+  onNavigateToTournament: (tournamentId: string) => void; 
   currentUser: any;
 }
 

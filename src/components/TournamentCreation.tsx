@@ -90,7 +90,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
           rounds: parseInt(formData.rounds),
         });
 
-        tournamentStore.updateTournamentStatus(tournament.id, 'registration');
+        tournamentStore.updateTournamentStatus(tournament.id, 'aberto');
 
         setMessage({ type: 'success', text: 'Torneio criado com sucesso!' });
         setTimeout(() => {

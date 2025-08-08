@@ -4,8 +4,8 @@ import { Badge } from './ui/badge.tsx';
 import { Trophy, BarChart3, LogOut, List, Calendar, CreditCard } from 'lucide-react';
 import { User as UserType } from '../data/store';
 
-
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules';
+// Adicionado 'tournament-list' ao tipo Page
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules' | 'tournament-list';
 
 interface HeaderProps {
   userType: UserType['type'] | null;
@@ -39,10 +39,10 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
               <span className="sr-only md:hidden">Painel</span>
             </Button>
 
-            {/* Botão Torneios (placeholder) */}
+            {/* Botão Torneios (agora funcional) */}
             <Button
-              variant="ghost"
-              onClick={() => onNavigate(userType === 'player' ? 'player-dashboard' : 'organizer-dashboard')}
+              variant={isActive('tournament-list') ? 'default' : 'ghost'} // Ativa o botão quando na página de torneios
+              onClick={() => onNavigate('tournament-list')} // Navega para a nova página
               className="p-2 md:px-4 md:py-2 flex items-center justify-center md:justify-start md:space-x-2"
             >
               <List className="h-4 w-4" />
@@ -53,7 +53,7 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
             {/* Botão Rankings (placeholder) */}
             <Button
               variant="ghost"
-              onClick={() => onNavigate(userType === 'player' ? 'player-dashboard' : 'organizer-dashboard')}
+              onClick={() => onNavigate('tournament-list')} // Redireciona para a lista de torneios
               className="p-2 md:px-4 md:py-2 flex items-center justify-center md:justify-start md:space-x-2"
             >
               <Trophy className="h-4 w-4" />

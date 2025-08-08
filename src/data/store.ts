@@ -14,6 +14,7 @@ export interface User {
   };
 }
 
+// O status do torneio agora é apenas 'aberto' ou 'fechado'
 export interface Tournament {
   id: string;
   name: string;
@@ -29,7 +30,7 @@ export interface Tournament {
   entryFee: string;
   structure: string;
   rounds: number;
-  status: 'upcoming' | 'registration' | 'in-progress' | 'completed';
+  status: 'aberto' | 'fechado';
   participants: { userId: string; userName: string; }[];
 }
 
@@ -66,6 +67,7 @@ const initialUsers: User[] = [
   },
 ];
 
+// Atualizamos o status dos torneios iniciais para refletir a nova lógica
 const initialTournaments: Tournament[] = [
   {
     id: 'tournament-1',
@@ -82,7 +84,7 @@ const initialTournaments: Tournament[] = [
     entryFee: '$15',
     structure: 'Swiss',
     rounds: 5,
-    status: 'registration',
+    status: 'aberto',
     participants: [
       { userId: '1', userName: 'Alex Chen' },
     ],
@@ -102,7 +104,7 @@ const initialTournaments: Tournament[] = [
     entryFee: '$12',
     structure: 'Swiss',
     rounds: 4,
-    status: 'upcoming',
+    status: 'fechado',
     participants: [],
   },
 ];
@@ -197,6 +199,9 @@ class TournamentStore {
   }
   
   // --- Gerenciamento de Torneios ---
+  getAllTournaments(): Tournament[] {
+    return this.tournaments;
+  }
 
   getTournamentsByOrganizer(organizerId: string): Tournament[] {
     return this.tournaments.filter(t => t.organizerId === organizerId);
@@ -213,7 +218,8 @@ class TournamentStore {
       ...tournamentData,
       id: `tournament-${this.tournaments.length + 1}`,
       participants: [],
-      status: 'registration',
+      // Novos torneios são criados com status 'aberto'
+      status: 'aberto',
     };
 
     this.tournaments.push(newTournament);
