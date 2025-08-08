@@ -14,7 +14,6 @@ export interface User {
   };
 }
 
-// O status do torneio agora é apenas 'aberto' ou 'fechado'
 export interface Tournament {
   id: string;
   name: string;
@@ -67,7 +66,6 @@ const initialUsers: User[] = [
   },
 ];
 
-// Atualizamos o status dos torneios iniciais para refletir a nova lógica
 const initialTournaments: Tournament[] = [
   {
     id: 'tournament-1',
@@ -218,7 +216,6 @@ class TournamentStore {
       ...tournamentData,
       id: `tournament-${this.tournaments.length + 1}`,
       participants: [],
-      // Novos torneios são criados com status 'aberto'
       status: 'aberto',
     };
 

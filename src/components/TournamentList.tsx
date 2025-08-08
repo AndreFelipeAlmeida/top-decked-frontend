@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Calendar, Users, Trophy, MapPin, Search, Filter, Plus, ArrowLeft } from 'lucide-react';
 import { tournamentStore, Tournament, User } from '../data/store.ts';
 
-// Definição do tipo Page, sincronizado com App.tsx
+
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules' | 'tournament-list';
 
 interface TournamentListProps {
@@ -26,33 +26,28 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
   const [formatFilter, setFormatFilter] = useState('all');
 
   useEffect(() => {
-    // Obter todos os torneios
     const tournaments = tournamentStore.getAllTournaments();
     setAllTournaments(tournaments);
 
     if (currentUser) {
       if (currentUser.type === 'player') {
-        // Obter torneios do jogador
         const playerTourns = tournamentStore.getTournamentsByPlayer(currentUser.id);
         setPlayerTournaments(playerTourns);
       } else if (currentUser.type === 'organizer') {
-        // Obter torneios do organizador
         const organizerTourns = tournamentStore.getTournamentsByOrganizer(currentUser.id);
         setOrganizerTournaments(organizerTourns);
       }
     }
   }, [currentUser]);
 
-  // Função para definir a cor da badge com base no novo status
   const getStatusColor = (status: Tournament['status']) => {
     switch (status) {
-      case 'aberto': return 'default';
-      case 'fechado': return 'secondary';
+      case 'aberto': return 'text-xs bg-purple-100 text-purple-800'; 
+      case 'fechado': return 'text-xs bg-gray-50 text-gray-800';
       default: return 'outline';
     }
   };
 
-  // Função para definir o texto da badge com base no novo status
   const getStatusText = (status: Tournament['status']) => {
     switch (status) {
       case 'aberto': return 'Aberto';
@@ -90,11 +85,11 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               <CardDescription>Organizado por {tournament.organizerName}</CardDescription>
             </div>
             <div className="flex flex-col items-end space-y-2">
-              <Badge variant={getStatusColor(tournament.status)}>
+              <Badge className={getStatusColor(tournament.status)}>
                 {getStatusText(tournament.status)}
               </Badge>
               {isRegistered && (
-                <Badge variant="outline" className="text-xs bg-green-50 text-green-800 border-green-200 hover:bg-green-50 hover:text-green-800 rounded-md">
+                <Badge variant="secondary" className="text-xs bg-green-50 text-green-800">
                   Inscrito
                 </Badge>
               )}
@@ -162,7 +157,6 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
   const filteredOrganizerTournaments = filterTournaments(organizerTournaments);
 
   const availableFormats = ['all', ...Array.from(new Set(allTournaments.map(t => t.format)))];
-  // A lista de status disponíveis agora é 'all', 'aberto' e 'fechado'
   const availableStatuses = ['all', 'aberto', 'fechado'];
 
   return (
