@@ -9,7 +9,7 @@ import { Calendar, Users, Trophy, MapPin, Search, Filter, Plus, ArrowLeft } from
 import { tournamentStore, Tournament, User } from '../data/store.ts';
 
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'player-rules' | 'tournament-list';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
 interface TournamentListProps {
   onNavigate: (page: Page, data?: any) => void;
@@ -40,28 +40,38 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
     }
   }, [currentUser]);
 
-  const getStatusColor = (status: Tournament['status']) => {
-    switch (status) {
-      case 'aberto': return 'text-xs bg-purple-100 text-purple-800'; 
-      case 'fechado': return 'text-xs bg-gray-50 text-gray-800';
-      default: return 'outline';
+  const getStatusStyle = (status: Tournament['status']) => {
+    // Determine if tournament is "Open" (upcoming, registration, in-progress) or "Closed" (completed)
+    const isOpen = status === 'open';
+    
+    if (isOpen) {
+      return 'bg-purple-100 text-purple-800';
+    } else {
+      return 'bg-gray-100 text-black';
     }
   };
 
   const getStatusText = (status: Tournament['status']) => {
-    switch (status) {
-      case 'aberto': return 'Aberto';
-      case 'fechado': return 'Fechado';
-      default: return 'Desconhecido';
-    }
+    // Simplified status text: only "Open" or "Closed"
+    const isOpen = status === 'open';
+    return isOpen ? 'Aberto' : 'Fechado';
   };
 
   const filterTournaments = (tournaments: Tournament[]) => {
     return tournaments.filter(tournament => {
       const matchesSearch = tournament.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            tournament.organizerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            tournament.store.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || tournament.status === statusFilter;
+                           tournament.organizerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           tournament.store.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Updated status filtering logic for "open"/"closed" filter
+      let matchesStatus = true;
+      if (statusFilter === 'open') {
+        matchesStatus = tournament.status === 'open';
+      } else if (statusFilter === 'closed') {
+        matchesStatus = tournament.status === 'closed';
+      }
+      // If statusFilter is 'all', matchesStatus remains true
+      
       const matchesFormat = formatFilter === 'all' || tournament.format.toLowerCase() === formatFilter.toLowerCase();
       
       return matchesSearch && matchesStatus && matchesFormat;
@@ -70,11 +80,11 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
 
   const renderTournamentCard = (tournament: Tournament, showRegistrationButton = false) => {
     const isRegistered = currentUser?.type === 'player' && 
-                         tournament.participants.some(p => p.userId === currentUser.id);
+                        tournament.participants.some(p => p.userId === currentUser.id);
     const canRegister = currentUser?.type === 'player' && 
-                        !isRegistered && 
-                        tournament.status === 'aberto' && 
-                        tournament.participants.length < tournament.totalVagas;
+                       !isRegistered && 
+                       tournament.status === 'open' &&
+                       tournament.participants.length < tournament.maxParticipants;
 
     return (
       <Card key={tournament.id} className="hover:shadow-lg transition-shadow">
@@ -85,11 +95,11 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               <CardDescription>Organizado por {tournament.organizerName}</CardDescription>
             </div>
             <div className="flex flex-col items-end space-y-2">
-              <Badge className={getStatusColor(tournament.status)}>
+              <Badge className={getStatusStyle(tournament.status)}>
                 {getStatusText(tournament.status)}
               </Badge>
               {isRegistered && (
-                <Badge variant="secondary" className="text-xs bg-green-50 text-green-800">
+                <Badge variant="outline" className="text-xs bg-green-50 text-green-800 border-green-200 hover:bg-green-50 hover:text-green-800 rounded-md">
                   Inscrito
                 </Badge>
               )}
@@ -112,7 +122,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
             </div>
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{tournament.participants.length}/{tournament.totalVagas}</span>
+              <span>{tournament.participants.length}/{tournament.maxParticipants}</span>
             </div>
           </div>
           
@@ -157,7 +167,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
   const filteredOrganizerTournaments = filterTournaments(organizerTournaments);
 
   const availableFormats = ['all', ...Array.from(new Set(allTournaments.map(t => t.format)))];
-  const availableStatuses = ['all', 'aberto', 'fechado'];
+  const availableStatuses = ['all', 'open', 'closed'];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -168,7 +178,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar ao Painel
+          Voltar para o Painel
         </Button>
         <div className="flex items-center justify-between">
           <div>
@@ -186,7 +196,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filters */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -197,11 +207,11 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Pesquisar</label>
+              <label className="text-sm font-medium">Buscar</label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Pesquisar torneios..."
+                  placeholder="Buscar torneios..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -218,7 +228,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
                 <SelectContent>
                   {availableStatuses.map(status => (
                     <SelectItem key={status} value={status}>
-                      {status === 'all' ? 'Todos os Status' : getStatusText(status as Tournament['status'])}
+                      {status === 'all' ? 'Todos os Status' : status === 'open' ? 'Abertos' : status === 'closed' ? 'Fechados' : status}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -260,7 +270,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
             {filteredAllTournaments.length === 0 ? (
               <div className="col-span-full text-center py-8">
                 <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Nenhum torneio encontrado com os critérios de pesquisa.</p>
+                <p className="text-muted-foreground">Nenhum torneio encontrado com os critérios de busca</p>
               </div>
             ) : (
               filteredAllTournaments.map(tournament => 
@@ -276,12 +286,12 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               filteredPlayerTournaments.length === 0 ? (
                 <div className="col-span-full text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Você ainda não participou de nenhum torneio.</p>
+                  <p className="text-muted-foreground">Você ainda não participou de nenhum torneio</p>
                   <Button 
                     className="mt-4"
                     onClick={() => onNavigate('tournament-list')}
                   >
-                    Navegar nos Torneios
+                    Navegar Torneios
                   </Button>
                 </div>
               ) : (
@@ -291,12 +301,12 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               filteredOrganizerTournaments.length === 0 ? (
                 <div className="col-span-full text-center py-8">
                   <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Você ainda não criou nenhum torneio.</p>
+                  <p className="text-muted-foreground">Você ainda não criou nenhum torneio</p>
                   <Button 
                     className="mt-4"
                     onClick={() => onNavigate('tournament-creation')}
                   >
-                    Criar seu Primeiro Torneio
+                    Criar Seu Primeiro Torneio
                   </Button>
                 </div>
               ) : (
@@ -311,9 +321,9 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAllTournaments
                 .filter(t => 
-                  t.status === 'aberto' && 
+                  t.status === 'open' && 
                   !t.participants.some(p => p.userId === currentUser.id) &&
-                  t.participants.length < t.totalVagas
+                  t.participants.length < t.maxParticipants
                 )
                 .map(tournament => renderTournamentCard(tournament, true))
               }
