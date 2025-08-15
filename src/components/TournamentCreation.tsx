@@ -7,8 +7,7 @@ import { Textarea } from './ui/textarea.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Calendar, Trophy, ArrowLeft, CheckCircle } from 'lucide-react';
-import { tournamentStore, User } from '../data/store.ts';
-
+import { User } from '../data/store.ts';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -29,6 +28,9 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
     entryFee: '',
     structure: '',
     rounds: '',
+    city: '',
+    state: '',
+    roundTime: '',
   });
 
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -39,42 +41,75 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
     setIsLoading(true);
     setMessage(null);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setMessage({ type: 'error', text: 'Sessão expirada. Por favor, faça login novamente.' });
+      setIsLoading(false);
+      onNavigate('login');
+      return;
+    }
 
-    if (formData.name && formData.date && formData.format && formData.structure && currentUser) {
-      try {
-        const tournament = tournamentStore.createTournament({
-          name: formData.name,
-          organizerId: currentUser.id,
-          organizerName: currentUser.name,
-          date: formData.date,
-          time: formData.time,
-          format: formData.format,
-          store: currentUser?.store || '',
-          description: formData.description,
-          prizes: formData.prizes,
-          maxParticipants: parseInt(formData.maxParticipants) || 32,
-          entryFee: formData.entryFee,
-          structure: formData.structure,
-          rounds: parseInt(formData.rounds) || 5,
-        });
+    if (!currentUser) {
+      setMessage({ type: 'error', text: 'Você deve estar logado para criar um torneio.' });
+      setIsLoading(false);
+      return;
+    }
 
-        // Update tournament status to registration
-        tournamentStore.updateTournamentStatus(tournament.id, 'open');
+    const { name, date, format, structure, maxParticipants, entryFee, rounds, roundTime } = formData;
+    if (!name || !date || !format || !structure) {
+      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
+      setIsLoading(false);
+      return;
+    }
 
+    // Convertendo valores para os tipos corretos e usando os nomes de campos corretos
+    const parsedVagas = maxParticipants ? parseInt(maxParticipants, 10) : 0;
+    const parsedTaxa = entryFee ? parseFloat(entryFee.replace(',', '.')) : 0.00;
+    const parsedRodadas = rounds ? parseInt(rounds, 10) : 0;
+    const parsedTempoRodada = roundTime ? parseInt(roundTime, 10) : 30;
+
+    const payload = {
+      nome: formData.name,
+      descricao: formData.description,
+      cidade: formData.city,
+      estado: formData.state,
+      tempo_por_rodada: parsedTempoRodada,
+      data_inicio: formData.date,
+      vagas: parsedVagas,
+      hora: formData.time || '12:00',
+      formato: formData.format,
+      taxa: parsedTaxa,
+      premio: formData.prizes,
+      n_rodadadas: parsedRodadas,
+    };
+    
+    try {
+      const response = await fetch('http://localhost:8000/lojas/torneios/criar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
         setMessage({ type: 'success', text: 'Torneio criado com sucesso!' });
         setTimeout(() => {
-          onNavigate('tournament-details', { tournamentId: tournament.id });
+          onNavigate('tournament-details', { tournamentId: data.id });
         }, 1500);
-      } catch (error) {
-        setMessage({ type: 'error', text: 'Falha ao criar o torneio. Por favor, tente novamente.' });
+      } else {
+        console.error('Falha na criação do torneio:', data);
+        setMessage({ type: 'error', text: data.detail || 'Falha ao criar o torneio. Por favor, tente novamente.' });
       }
-    } else {
-      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
+    } catch (error) {
+      console.error('Erro ao conectar com a API:', error);
+      setMessage({ type: 'error', text: 'Falha na conexão com o servidor. Por favor, tente novamente mais tarde.' });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const resetForm = () => {
@@ -89,6 +124,9 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
       entryFee: '',
       structure: '',
       rounds: '',
+      city: '',
+      state: '',
+      roundTime: '',
     });
     setMessage(null);
   };
@@ -109,7 +147,6 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Basic Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -170,6 +207,27 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input
+                  id="city"
+                  placeholder="São Paulo"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">Estado</Label>
+                <Input
+                  id="state"
+                  placeholder="SP"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                />
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -186,7 +244,8 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Label htmlFor="entryFee">Taxa de Inscrição</Label>
                 <Input
                   id="entryFee"
-                  placeholder="$15"
+                  type="number"
+                  placeholder="15.00"
                   value={formData.entryFee}
                   onChange={(e) => setFormData({ ...formData, entryFee: e.target.value })}
                 />
@@ -215,7 +274,6 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
           </CardContent>
         </Card>
 
-        {/* Tournament Structure */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -236,7 +294,6 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                     <SelectItem value="Swiss">Suíço</SelectItem>
                     <SelectItem value="Single Elimination">Eliminação Simples</SelectItem>
                     <SelectItem value="Double Elimination">Eliminação Dupla</SelectItem>
-                    <SelectItem value="Round Robin">Todos contra Todos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -250,6 +307,16 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                   onChange={(e) => setFormData({ ...formData, rounds: e.target.value })}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="roundTime">Tempo por Rodada (minutos)</Label>
+              <Input
+                id="roundTime"
+                type="number"
+                placeholder="30"
+                value={formData.roundTime}
+                onChange={(e) => setFormData({ ...formData, roundTime: e.target.value })}
+              />
             </div>
           </CardContent>
         </Card>

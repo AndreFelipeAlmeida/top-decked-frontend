@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Badge } from './ui/badge.tsx';
-import { Trophy, Users, Calendar, Eye, EyeOff } from 'lucide-react';
-import { tournamentStore, User } from '../data/store.ts';
+import { Trophy, Eye, EyeOff, Users, Calendar } from 'lucide-react';
+import { User } from '../data/store.ts'
 
 
 interface LoginScreenProps {
@@ -23,47 +23,80 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     accountType: 'player' as 'player' | 'organizer' 
   });
   const [registerData, setRegisterData] = useState({ 
-    name: '', // This will be 'Full Name' for player, 'Store Name' for organizer
+    name: '',
     email: '', 
     password: '', 
     userType: 'player' as 'player' | 'organizer',
-    storeAddress: '' // This will be 'Store Address' for organizer, unused for player
+    storeAddress: ''
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showDemoAccounts, setShowDemoAccounts] = useState(true);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const formData = new URLSearchParams();
+    formData.append('username', loginData.email);
+    formData.append('password', loginData.password);
 
-    const user = tournamentStore.authenticateUser(loginData.email, loginData.password);
-    
-    if (user) {
-      // Verify account type matches what user selected
-      if (user.type !== loginData.accountType) {
-        setMessage({ 
-          type: 'error', 
-          text: `Este e-mail está registrado como um ${user.type === 'player' ? 'jogador' : 'organizador'}, mas você selecionou ${loginData.accountType === 'player' ? 'jogador' : 'organizador'}. Por favor, verifique o tipo de sua conta.` 
+    try {
+      const response = await fetch('http://localhost:8000/login/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('accessToken', data.access_token);
+        
+        const userProfileResponse = await fetch('http://localhost:8000/login/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${data.access_token}`,
+          },
         });
-        setIsLoading(false);
-        return;
+
+        if (userProfileResponse.ok) {
+          const userProfile = await userProfileResponse.json();
+          const userType = userProfile.tipo === 'loja' ? 'organizer' : 'player';
+
+          if (userType !== loginData.accountType) {
+            setMessage({
+              type: 'error',
+              text: `Este e-mail está registrado como um ${userProfile.tipo}, mas você selecionou ${loginData.accountType === 'player' ? 'jogador':'loja'}. Por favor, verifique o tipo de sua conta.`
+            });
+            localStorage.removeItem('accessToken');
+          } else {
+            setMessage({ type: 'success', text: 'Login bem-sucedido!' });
+            setTimeout(() => {
+              onLogin({
+                email: userProfile.email,
+                name: userProfile.nome,
+                type: userType,
+                id: userProfile.usuario_id,
+              });
+            }, 500);
+          }
+        } else {
+          setMessage({ type: 'error', text: 'Não foi possível buscar os dados do usuário.' });
+          localStorage.removeItem('accessToken');
+        }
+      } else {
+        setMessage({ type: 'error', text: data.detail || 'E-mail ou senha inválidos' });
       }
-      
-      setMessage({ type: 'success', text: 'Login bem-sucedido!' });
-      setTimeout(() => {
-        onLogin(user);
-      }, 500);
-    } else {
-      setMessage({ type: 'error', text: 'E-mail ou senha inválidos' });
+    } catch (error) {
+      console.error('Erro de login:', error);
+      setMessage({ type: 'error', text: 'Falha na conexão com o servidor. Tente novamente mais tarde.' });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -71,10 +104,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
     setMessage(null);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Validation based on account type
     const requiredFields = ['name', 'email', 'password'];
     if (registerData.userType === 'organizer') {
       requiredFields.push('storeAddress');
@@ -82,59 +111,74 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
     const isValid = requiredFields.every(field => registerData[field as keyof typeof registerData]?.trim());
 
-    if (isValid) {
-      const newUser = tournamentStore.registerUser({
-        name: registerData.name,
-        email: registerData.email,
-        type: registerData.userType,
-        store: registerData.userType === 'organizer' ? registerData.storeAddress : undefined,
-        dateOfBirth: '1990-01-01' // Default value since we removed the field
-      });
-      
-      setMessage({ type: 'success', text: 'Cadastro bem-sucedido!' });
-      setTimeout(() => {
-        onLogin(newUser);
-      }, 500);
-    } else {
+    if (!isValid) {
       setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios' });
+      setIsLoading(false);
+      return;
     }
-    
-    setIsLoading(false);
-  };
+  
+    let endpoint = '';
+    let payload = {};
 
-  const handleDemoLogin = (email: string) => {
-    const user = tournamentStore.authenticateUser(email, 'demo');
-    if (user) {
-      // Auto-set the account type based on the demo user
-      setLoginData(prev => ({ ...prev, email, accountType: user.type }));
-      onLogin(user);
+    if (registerData.userType === 'player') {
+      endpoint = 'http://localhost:8000/jogadores/';
+      payload = {
+        nome: registerData.name,
+        email: registerData.email,
+        senha: registerData.password,
+      };
+    } else if (registerData.userType === 'organizer') {
+      endpoint = 'http://localhost:8000/lojas/';
+      payload = {
+        nome: registerData.name,
+        email: registerData.email,
+        senha: registerData.password,
+        endereco: registerData.storeAddress,
+      };
+    }
+  
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Cadastro bem-sucedido!' });
+        setTimeout(() => {
+          onLogin({
+            email: data.email,
+            name: data.nome,
+            type: registerData.userType === 'organizer' ? 'organizer' : 'player',
+            id: data.id,
+          });
+        }, 500);
+      } else {
+        setMessage({ type: 'error', text: data.detail || 'Erro no cadastro. Por favor, tente novamente.' });
+      }
+    } catch (error) {
+      console.error('Erro de cadastro:', error);
+      setMessage({ type: 'error', text: 'Falha na conexão com o servidor. Tente novamente mais tarde.' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAccountTypeSelect = (accountType: 'player' | 'organizer') => {
-    if (accountType === 'player') {
-      setRegisterData({
-        name: 'Alex Chen',
-        email: 'alex.chen@example.com',
-        password: '',
-        userType: 'player',
-        storeAddress: ''
-      });
-    } else {
-      setRegisterData({
-        name: 'Game Central',
-        email: 'sarah.johnson@gamestore.com',
-        password: '',
-        userType: 'organizer',
-        storeAddress: '123 Gaming Street, Downtown'
-      });
-    }
+    setRegisterData(prev => ({
+      ...prev,
+      userType: accountType,
+      name: '',
+      email: '',
+      password: '',
+      storeAddress: ''
+    }));
   };
-
-  const demoAccounts = [
-    { email: 'alex.chen@example.com', name: 'Alex Chen', type: 'Jogador', description: 'Jogador de torneios com classificações' },
-    { email: 'sarah.johnson@gamestore.com', name: 'Sarah Johnson', type: 'Organizador', description: 'Organizador de torneios na Game Central' }
-  ];
 
   const accountTemplates = [
     { 
@@ -146,7 +190,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     },
     { 
       type: 'organizer' as const, 
-      name: 'Conta de Organizador', 
+      name: 'Conta de Loja', 
       description: 'Gerencie torneios com facilidade',
       icon: Calendar,
       details: 'Crie torneios, gerencie eventos, veja análises'
@@ -166,60 +210,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           </p>
         </div>
 
-        {/* Demo Accounts - Show during login */}
-        {activeTab === 'login' && showDemoAccounts && (
+        {activeTab === 'register' && (
           <Card className="border-accent/50 bg-accent/5">
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Contas de Demonstração</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowDemoAccounts(false)}
-                >
-                  <EyeOff className="h-4 w-4" />
-                </Button>
-              </div>
-              <CardDescription>Experimente a plataforma com contas pré-configuradas</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {demoAccounts.map((account) => (
-                <div key={account.email} className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="font-medium">{account.name}</span>
-                      <Badge variant="outline" className="text-xs">
-                        {account.type}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{account.description}</p>
-                  </div>
-                  <Button 
-                    size="sm"
-                    onClick={() => handleDemoLogin(account.email)}
-                  >
-                    Login
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Account Type Selection - Show during registration */}
-        {activeTab === 'register' && showDemoAccounts && (
-          <Card className="border-accent/50 bg-accent/5">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Escolha o Tipo de Conta</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowDemoAccounts(false)}
-                >
-                  <EyeOff className="h-4 w-4" />
-                </Button>
-              </div>
+              <CardTitle className="text-lg">Escolha o Tipo de Conta</CardTitle>
               <CardDescription>Selecione um tipo de conta para personalizar seu cadastro</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -254,19 +248,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               })}
             </CardContent>
           </Card>
-        )}
-
-        {/* Toggle for showing accounts */}
-        {!showDemoAccounts && (
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowDemoAccounts(true)}
-            className="w-full"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            {activeTab === 'login' ? 'Mostrar Contas de Demonstração' : 'Mostrar Tipos de Conta'}
-          </Button>
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -319,7 +300,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     </div>
                   </div>
                   
-                  {/* Account Type Dropdown */}
                   <div className="space-y-2">
                     <Label htmlFor="accountType">Tipo de Conta</Label>
                     <Select
@@ -333,7 +313,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="player">Jogador</SelectItem>
-                        <SelectItem value="organizer">Organizador</SelectItem>
+                        <SelectItem value="organizer">Loja</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -358,13 +338,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <CardTitle>Cadastro</CardTitle>
                 {registerData.userType && (
                   <CardDescription>
-                    Criando conta de <Badge variant="outline" className="ml-1">{registerData.userType === 'player' ? 'Jogador' : 'Organizador'}</Badge>
+                    Criando conta de <Badge variant="outline" className="ml-1">{registerData.userType === 'player' ? 'Jogador' : 'Loja'}</Badge>
                   </CardDescription>
                 )}
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleRegister} className="space-y-4">
-                  {/* Name field - changes label based on account type */}
                   <div className="space-y-2">
                     <Label htmlFor="name">
                       {registerData.userType === 'organizer' ? 'Nome da Loja' : 'Nome Completo'}
@@ -396,14 +375,25 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Senha</Label>
-                    <Input
+                    <div className="relative">
+                      < Input
                       id="register-password"
                       type="password"
                       placeholder="Crie uma senha"
                       value={registerData.password}
                       onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
                       required
-                    />
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1 h-7 w-7 p-0"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -419,12 +409,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="player">Jogador</SelectItem>
-                        <SelectItem value="organizer">Organizador</SelectItem>
+                        <SelectItem value="organizer">Loja</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
-                  {/* Store Address field - only for organizers */}
                   {registerData.userType === 'organizer' && (
                     <div className="space-y-2">
                       <Label htmlFor="storeAddress">Endereço da Loja</Label>

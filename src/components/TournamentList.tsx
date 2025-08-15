@@ -6,8 +6,52 @@ import { Input } from './ui/input.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Calendar, Users, Trophy, MapPin, Search, Filter, Plus, ArrowLeft } from 'lucide-react';
-import { tournamentStore, Tournament, User } from '../data/store.ts';
+import { User, Tournament } from '../data/store.ts';
 
+// -------------------------------------------------------------
+// Interfaces do Backend para o mapeamento
+// -------------------------------------------------------------
+interface JogadorTorneioLinkPublico {
+  jogador_id: number; 
+  torneio_id: string;
+  ponto: number;
+}
+
+interface RodadaBase {
+  id: string;
+  numero: number;
+  data: string;
+}
+
+interface LojaPublico {
+    id: number;
+    nome: string;
+    email: string;
+    // outros campos da loja
+}
+
+interface BackendTournament {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  cidade: string | null;
+  data_inicio: string;
+  loja_id: number;
+  loja?: LojaPublico; // <-- Mudança: Agora o campo é 'loja'
+  formato: string | null;
+  taxa: number;
+  premios: string | null;
+  estrutura: string | null;
+  vagas: number;
+  finalizado: boolean;
+  jogadores: JogadorTorneioLinkPublico[];
+  rodadas: RodadaBase[];
+  regras_adicionais: any[];
+}
+
+interface PlayerTournamentLink {
+  torneio_id: string;
+}
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -17,44 +61,122 @@ interface TournamentListProps {
   currentUser: User | null;
 }
 
+// -------------------------------------------------------------
+// Função de Mapeamento Corrigida
+// -------------------------------------------------------------
+const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
+  return backendData.map(t => ({
+    id: parseInt(t.id),
+    name: t.nome,
+    organizerId: t.loja_id,
+    organizerName: t.loja?.nome || "Organizador não informado", // <-- Mudança aqui
+    date: t.data_inicio,
+    time: "Horário não informado",
+    format: t.formato || 'Formato não informado',
+    store: t.cidade || 'Local não informado',
+    description: t.descricao || '',
+    prizes: t.premios || '',
+    maxParticipants: t.vagas,
+    entryFee: `$${t.taxa}`,
+    structure: t.estrutura || '',
+    rounds: t.rodadas?.length || 0,
+    status: t.finalizado ? 'closed' : 'open',
+    currentRound: t.rodadas?.length || 0,
+    participants: t.jogadores.map(p => ({ 
+      id: p.jogador_id, 
+      userId: p.jogador_id,
+      userName: "Nome não disponível",
+      registeredAt: new Date().toISOString(),
+      points: p.ponto,
+      wins: 0, losses: 0, draws: 0, currentStanding: 0
+    })),
+    matches: [],
+    bracket: [],
+    createdAt: new Date().toISOString(),
+    hasImportedResults: false,
+  }));
+};
+
 export function TournamentList({ onNavigate, onNavigateToTournament, currentUser }: TournamentListProps) {
   const [allTournaments, setAllTournaments] = useState<Tournament[]>([]);
-  const [playerTournaments, setPlayerTournaments] = useState<Tournament[]>([]);
-  const [organizerTournaments, setOrganizerTournaments] = useState<Tournament[]>([]);
+  const [myTournaments, setMyTournaments] = useState<Tournament[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formatFilter, setFormatFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const tournaments = tournamentStore.getAllTournaments();
-    setAllTournaments(tournaments);
-
-    if (currentUser) {
-      if (currentUser.type === 'player') {
-        const playerTourns = tournamentStore.getTournamentsByPlayer(currentUser.id);
-        setPlayerTournaments(playerTourns);
-      } else if (currentUser.type === 'organizer') {
-        const organizerTourns = tournamentStore.getTournamentsByOrganizer(currentUser.id);
-        setOrganizerTournaments(organizerTourns);
+    const fetchTournaments = async () => {
+      setIsLoading(true);
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    }
+
+      try {
+        // 1. Buscar todos os torneios
+        const allResponse = await fetch('http://localhost:8000/lojas/torneios/', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!allResponse.ok) {
+          throw new Error("Falha ao buscar todos os torneios.");
+        }
+        const allData: BackendTournament[] = await allResponse.json();
+        const mappedAllTournaments = mapBackendToFrontend(allData);
+        setAllTournaments(mappedAllTournaments);
+
+        // 2. Buscar os torneios específicos do usuário logado
+        if (currentUser) {
+          if (currentUser.type === 'player') {
+            try {
+              const playerResponse = await fetch('http://localhost:8000/jogadores/torneios/inscritos', {
+                headers: { 'Authorization': `Bearer ${token}` },
+              });
+              if (!playerResponse.ok) {
+                 if (playerResponse.status !== 404) {
+                     console.error("Aviso: Falha ao buscar torneios do jogador.");
+                 }
+                 setMyTournaments([]);
+              } else {
+                const specificData: PlayerTournamentLink[] = await playerResponse.json();
+                const myTournamentIds = new Set(specificData.map(link => parseInt(link.torneio_id)));
+                const myFilteredTournaments = mappedAllTournaments.filter(t => myTournamentIds.has(t.id));
+                setMyTournaments(myFilteredTournaments);
+              }
+            } catch (playerError: any) {
+              console.error("Erro ao buscar torneios do jogador:", playerError.message);
+            }
+          } else if (currentUser.type === 'organizer') {
+            const organizerResponse = await fetch('http://localhost:8000/lojas/torneios/loja', {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+            if (!organizerResponse.ok) {
+              throw new Error("Falha ao buscar torneios do organizador.");
+            }
+            const specificData: BackendTournament[] = await organizerResponse.json();
+            const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
+            setMyTournaments(mappedOrganizerTournaments);
+          }
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTournaments();
   }, [currentUser]);
 
-  const getStatusStyle = (status: Tournament['status']) => {
-    // Determine if tournament is "Open" (upcoming, registration, in-progress) or "Closed" (completed)
+  const getStatusStyle = (status: 'open' | 'closed') => {
     const isOpen = status === 'open';
-    
-    if (isOpen) {
-      return 'bg-purple-100 text-purple-800';
-    } else {
-      return 'bg-gray-100 text-black';
-    }
+    return isOpen ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-black';
   };
 
-  const getStatusText = (status: Tournament['status']) => {
-    // Simplified status text: only "Open" or "Closed"
-    const isOpen = status === 'open';
-    return isOpen ? 'Aberto' : 'Fechado';
+  const getStatusText = (status: 'open' | 'closed') => {
+    return status === 'open' ? 'Aberto' : 'Fechado';
   };
 
   const filterTournaments = (tournaments: Tournament[]) => {
@@ -63,29 +185,45 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
                            tournament.organizerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            tournament.store.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Updated status filtering logic for "open"/"closed" filter
       let matchesStatus = true;
       if (statusFilter === 'open') {
         matchesStatus = tournament.status === 'open';
       } else if (statusFilter === 'closed') {
         matchesStatus = tournament.status === 'closed';
       }
-      // If statusFilter is 'all', matchesStatus remains true
       
-      const matchesFormat = formatFilter === 'all' || tournament.format.toLowerCase() === formatFilter.toLowerCase();
+      const matchesFormat = formatFilter === 'all' || (tournament.format && tournament.format.toLowerCase() === formatFilter.toLowerCase());
       
       return matchesSearch && matchesStatus && matchesFormat;
     });
   };
 
+  const filteredAllTournaments = filterTournaments(allTournaments);
+  const filteredMyTournaments = filterTournaments(myTournaments);
+
+  const availableFormats = ['all', ...Array.from(new Set(allTournaments.map(t => t.format)))];
+  const availableStatuses = ['all', 'open', 'closed'];
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p>Carregando torneios...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-red-500">Erro ao carregar torneios: {error}</p>
+      </div>
+    );
+  }
+
   const renderTournamentCard = (tournament: Tournament, showRegistrationButton = false) => {
     const isRegistered = currentUser?.type === 'player' && 
-                        tournament.participants.some(p => p.userId === currentUser.id);
-    const canRegister = currentUser?.type === 'player' && 
-                       !isRegistered && 
-                       tournament.status === 'open' &&
-                       tournament.participants.length < tournament.maxParticipants;
-
+                        myTournaments.some(t => t.id === tournament.id);
+    
     return (
       <Card key={tournament.id} className="hover:shadow-lg transition-shadow">
         <CardHeader>
@@ -137,21 +275,9 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               <span className="font-medium">Inscrição:</span> {tournament.entryFee}
             </div>
             <div className="flex space-x-2">
-              {canRegister && showRegistrationButton && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigateToTournament(tournament.id);
-                  }}
-                >
-                  Inscrever-se
-                </Button>
-              )}
               <Button 
                 size="sm"
-                onClick={() => onNavigateToTournament(tournament.id)}
+                onClick={() => onNavigateToTournament(tournament.id.toString())}
               >
                 Ver Detalhes
               </Button>
@@ -161,14 +287,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
       </Card>
     );
   };
-
-  const filteredAllTournaments = filterTournaments(allTournaments);
-  const filteredPlayerTournaments = filterTournaments(playerTournaments);
-  const filteredOrganizerTournaments = filterTournaments(organizerTournaments);
-
-  const availableFormats = ['all', ...Array.from(new Set(allTournaments.map(t => t.format)))];
-  const availableStatuses = ['all', 'open', 'closed'];
-
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -196,7 +315,6 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
         </div>
       </div>
 
-      {/* Filters */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -228,7 +346,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
                 <SelectContent>
                   {availableStatuses.map(status => (
                     <SelectItem key={status} value={status}>
-                      {status === 'all' ? 'Todos os Status' : status === 'open' ? 'Abertos' : status === 'closed' ? 'Fechados' : status}
+                      {status === 'all' ? 'Todos os Status' : status === 'open' ? 'Abertos' : 'Fechados'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -282,37 +400,21 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
 
         <TabsContent value="my-tournaments" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {currentUser?.type === 'player' ? (
-              filteredPlayerTournaments.length === 0 ? (
+            {filteredMyTournaments.length === 0 ? (
                 <div className="col-span-full text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Você ainda não participou de nenhum torneio</p>
+                  <p className="text-muted-foreground">Você ainda não tem nenhum torneio</p>
                   <Button 
                     className="mt-4"
-                    onClick={() => onNavigate('tournament-list')}
+                    onClick={() => currentUser?.type === 'player' ? onNavigate('tournament-list') : onNavigate('tournament-creation')}
                   >
-                    Navegar Torneios
+                    {currentUser?.type === 'player' ? 'Navegar Torneios' : 'Criar Seu Primeiro Torneio'}
                   </Button>
                 </div>
               ) : (
-                filteredPlayerTournaments.map(tournament => renderTournamentCard(tournament))
+                filteredMyTournaments.map(tournament => renderTournamentCard(tournament))
               )
-            ) : (
-              filteredOrganizerTournaments.length === 0 ? (
-                <div className="col-span-full text-center py-8">
-                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Você ainda não criou nenhum torneio</p>
-                  <Button 
-                    className="mt-4"
-                    onClick={() => onNavigate('tournament-creation')}
-                  >
-                    Criar Seu Primeiro Torneio
-                  </Button>
-                </div>
-              ) : (
-                filteredOrganizerTournaments.map(tournament => renderTournamentCard(tournament))
-              )
-            )}
+            }
           </div>
         </TabsContent>
 
@@ -322,7 +424,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               {filteredAllTournaments
                 .filter(t => 
                   t.status === 'open' && 
-                  !t.participants.some(p => p.userId === currentUser.id) &&
+                  !myTournaments.some(mt => mt.id === t.id) &&
                   t.participants.length < t.maxParticipants
                 )
                 .map(tournament => renderTournamentCard(tournament, true))

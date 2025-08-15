@@ -6,9 +6,8 @@ import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table.tsx';
 import { ArrowLeft, Calendar, Users, Trophy, MapPin, DollarSign, CheckCircle, UserPlus, UserMinus, Upload, Settings } from 'lucide-react';
-import { tournamentStore, Tournament, User, PlayerRule } from '../data/store.ts';
+import { Tournament, User, PlayerRule } from '../data/store.ts';
 import { TournamentImport } from './TournamentImport.tsx';
-
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -18,6 +17,50 @@ interface TournamentDetailsProps {
   currentUser: User | null;
 }
 
+// -------------------------------------------------------------
+// Interfaces para a API do Backend e Frontend
+// -------------------------------------------------------------
+interface LojaPublico {
+    id: number;
+    nome: string;
+    email: string;
+}
+
+interface JogadorTorneioLinkPublico {
+  jogador_id: number;
+  torneio_id: string;
+  ponto: number;
+  jogador?: { nome: string };
+}
+
+interface RodadaBase {
+  id: string;
+  numero: number;
+  data: string;
+}
+
+interface BackendTournament {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  cidade: string | null;
+  data_inicio: string;
+  loja_id: number;
+  loja?: LojaPublico;
+  formato: string | null;
+  taxa: number;
+  premios: string | null;
+  estrutura: string | null;
+  vagas: number;
+  finalizado: boolean;
+  jogadores: JogadorTorneioLinkPublico[];
+  rodadas: RodadaBase[];
+  regras_adicionais: any[];
+}
+
+// -------------------------------------------------------------
+// Interfaces e Dados Mockados Corrigidos (mantidos para as tabs que ainda não tem backend)
+// -------------------------------------------------------------
 interface PlayerRuleAssignment {
   id: string;
   playerId: string;
@@ -26,13 +69,67 @@ interface PlayerRuleAssignment {
   ruleName: string;
 }
 
+interface MockTournamentResult {
+  id: string;
+  userId: string;
+  userName: string;
+  points: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  currentStanding: number;
+}
+
+interface MockMonthlyResult {
+  playerId: string;
+  playerName: string;
+  totalPoints: number;
+  tournaments: number;
+  avgPlacement: number;
+}
+
+
+const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
+    return {
+        id: parseInt(backendData.id),
+        name: backendData.nome,
+        organizerId: backendData.loja_id,
+        organizerName: backendData.loja?.nome || "Organizador não informado",
+        date: backendData.data_inicio,
+        time: "Horário não informado",
+        format: backendData.formato || 'Formato não informado',
+        store: backendData.cidade || 'Local não informado',
+        description: backendData.descricao || '',
+        prizes: backendData.premios || '',
+        maxParticipants: backendData.vagas,
+        entryFee: `$${backendData.taxa}`,
+        structure: backendData.estrutura || '',
+        rounds: backendData.rodadas?.length || 0,
+        status: backendData.finalizado ? 'closed' : 'open',
+        currentRound: backendData.rodadas?.length || 0,
+        participants: backendData.jogadores.map(p => ({
+            id: p.jogador_id,
+            userId: p.jogador_id,
+            userName: p.jogador?.nome || 'Nome indisponível',
+            registeredAt: new Date().toISOString(),
+            points: p.ponto,
+            wins: 0, losses: 0, draws: 0, currentStanding: 0
+        })),
+        matches: [],
+        bracket: [],
+        createdAt: new Date().toISOString(),
+        hasImportedResults: false,
+    };
+};
+
 export function TournamentDetails({ onNavigate, tournamentId, currentUser }: TournamentDetailsProps) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [registrationStatus, setRegistrationStatus] = useState<'loading' | 'registered' | 'not-registered' | 'full'>('loading');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  
-  // Mock data for player rules and results (in real app this would come from the tournament data)
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Dados mockados com tipagem correta
   const [playerRuleAssignments] = useState<PlayerRuleAssignment[]>([
     {
       id: 'assignment-1',
@@ -49,7 +146,6 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
       ruleName: 'Time Rocket'
     }
   ]);
-
   const [availableRules] = useState<PlayerRule[]>([
     {
       id: 'rule-1',
@@ -83,8 +179,8 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
     }
   ]);
 
-  // Mock tournament results
-  const mockTournamentResults = [
+  // Dados mockados com tipagem correta
+  const mockTournamentResults: MockTournamentResult[] = [
     {
       id: 'part-1',
       userId: 'player-1',
@@ -117,8 +213,8 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
     },
   ];
 
-  // Mock monthly results
-  const mockMonthlyResults = [
+  // Dados mockados com tipagem correta
+  const mockMonthlyResults: MockMonthlyResult[] = [
     {
       playerId: 'player-1',
       playerName: 'Alex Chen',
@@ -143,56 +239,121 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
   ];
 
   useEffect(() => {
-    if (tournamentId) {
-      const foundTournament = tournamentStore.getTournamentById(tournamentId);
-      setTournament(foundTournament || null);
-      
-      if (foundTournament && currentUser?.type === 'player') {
-        const isRegistered = foundTournament.participants.some(p => p.userId === currentUser.id);
-        const isFull = foundTournament.participants.length >= foundTournament.maxParticipants;
-        
-        if (isRegistered) {
-          setRegistrationStatus('registered');
-        } else if (isFull) {
-          setRegistrationStatus('full');
-        } else {
-          setRegistrationStatus('not-registered');
-        }
+    const fetchTournamentDetails = async () => {
+      if (!tournamentId) return;
+
+      setIsLoading(true);
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    }
+
+      try {
+        const response = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error("Falha ao buscar detalhes do torneio.");
+        }
+
+        const backendData: BackendTournament = await response.json();
+        const mappedTournament = mapBackendToFrontend(backendData);
+        setTournament(mappedTournament);
+        
+        if (currentUser?.type === 'player') {
+          const isRegistered = mappedTournament.participants.some(p => p.userId === currentUser.id);
+          const isFull = mappedTournament.participants.length >= mappedTournament.maxParticipants;
+          
+          if (isRegistered) {
+            setRegistrationStatus('registered');
+          } else if (isFull) {
+            setRegistrationStatus('full');
+          } else {
+            setRegistrationStatus('not-registered');
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao buscar detalhes do torneio:", error);
+        setTournament(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTournamentDetails();
   }, [tournamentId, currentUser]);
 
-  const handleRegistration = () => {
+  const handleRegistration = async () => {
     if (!tournament || !currentUser || currentUser.type !== 'player') return;
 
-    const success = tournamentStore.registerPlayerForTournament(tournament.id, currentUser.id);
-    
-    if (success) {
-      setMessage({ type: 'success', text: 'Inscrição para o torneio realizada com sucesso!' });
-      setRegistrationStatus('registered');
-      // Refresh tournament data
-      const updatedTournament = tournamentStore.getTournamentById(tournament.id);
-      setTournament(updatedTournament || null);
-    } else {
-      setMessage({ type: 'error', text: 'Falha ao se inscrever. O torneio pode estar lotado.' });
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}/inscricao`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Falha ao se inscrever.');
+        }
+        
+        setMessage({ type: 'success', text: 'Inscrição para o torneio realizada com sucesso!' });
+        setRegistrationStatus('registered');
+        
+        // Refresh tournament data to update participants list
+        const updatedTournamentResponse = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const updatedBackendData: BackendTournament = await updatedTournamentResponse.json();
+        const updatedTournament = mapBackendToFrontend(updatedBackendData);
+        setTournament(updatedTournament);
+
+    } catch (err: any) {
+        console.error("Erro na inscrição:", err.message);
+        setMessage({ type: 'error', text: err.message || 'Falha ao se inscrever. O torneio pode estar lotado.' });
     }
     
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleUnregistration = () => {
+  const handleUnregistration = async () => {
     if (!tournament || !currentUser || currentUser.type !== 'player') return;
 
-    const success = tournamentStore.unregisterPlayerFromTournament(tournament.id, currentUser.id);
-    
-    if (success) {
-      setMessage({ type: 'success', text: 'Inscrição no torneio removida com sucesso.' });
-      setRegistrationStatus('not-registered');
-      // Refresh tournament data
-      const updatedTournament = tournamentStore.getTournamentById(tournament.id);
-      setTournament(updatedTournament || null);
-    } else {
-      setMessage({ type: 'error', text: 'Falha ao remover a inscrição.' });
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}/inscricao`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Falha ao remover a inscrição.');
+        }
+
+        setMessage({ type: 'success', text: 'Inscrição no torneio removida com sucesso.' });
+        setRegistrationStatus('not-registered');
+        
+        // Refresh tournament data to update participants list
+        const updatedTournamentResponse = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const updatedBackendData: BackendTournament = await updatedTournamentResponse.json();
+        const updatedTournament = mapBackendToFrontend(updatedBackendData);
+        setTournament(updatedTournament);
+
+    } catch (err: any) {
+        console.error("Erro ao remover inscrição:", err.message);
+        setMessage({ type: 'error', text: err.message || 'Falha ao remover a inscrição.' });
     }
     
     setTimeout(() => setMessage(null), 3000);
@@ -226,6 +387,14 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         return "bg-secondary text-secondary-foreground";
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p>Carregando detalhes do torneio...</p>
+      </div>
+    );
+  }
 
   if (!tournament) {
     return (
@@ -439,8 +608,8 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                   <div>
                     <h4 className="font-medium mb-3">Regras Específicas de Jogador</h4>
                     <div className="space-y-3">
-                      {playerRuleAssignments.map((assignment) => (
-                        <Card key={assignment.id} className="p-4">
+                      {playerRuleAssignments.map((assignment, index) => (
+                        <Card key={index} className="p-4">
                           <div className="flex items-center justify-between">
                             <div>
                               <span className="font-medium">{assignment.playerName}</span>

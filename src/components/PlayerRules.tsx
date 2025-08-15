@@ -7,9 +7,58 @@ import { Input } from './ui/input.tsx';
 import { Label } from './ui/label.tsx';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog.tsx';
 import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
-import { tournamentStore, PlayerRule } from '../data/store.ts';
 import { toast } from 'sonner';
 
+// Adicionadas interfaces do backend
+interface TipoJogadorPublico {
+  id: number;
+  nome: string;
+  pt_vitoria: number;
+  pt_derrota: number;
+  pt_empate: number;
+  pt_oponente_perde: number;
+  pt_oponente_ganha: number;
+  pt_oponente_empate: number;
+  loja: number;
+  tcg: string; // Adicionado o campo tcg
+}
+
+interface PlayerRule {
+  id: number;
+  typeName: string;
+  pointsForWin: number;
+  pointsForLoss: number;
+  pointsForDraw: number;
+  pointsGivenToOpponent: number;
+  pointsLostByOpponent: number;
+  pointsGivenToOpponentOnDraw: number;
+  tcg: string; // Adicionado o campo tcg
+}
+
+interface PlayerRuleFormData {
+  nome: string;
+  pt_vitoria: number;
+  pt_derrota: number;
+  pt_empate: number;
+  pt_oponente_ganha: number;
+  pt_oponente_perde: number;
+  pt_oponente_empate: number;
+  tcg: string; // Adicionado o campo tcg
+}
+
+const mapBackendToFrontendRule = (backendRule: TipoJogadorPublico): PlayerRule => {
+  return {
+    id: backendRule.id,
+    typeName: backendRule.nome,
+    pointsForWin: backendRule.pt_vitoria,
+    pointsForLoss: backendRule.pt_derrota,
+    pointsForDraw: backendRule.pt_empate,
+    pointsGivenToOpponent: backendRule.pt_oponente_ganha,
+    pointsLostByOpponent: backendRule.pt_oponente_perde,
+    pointsGivenToOpponentOnDraw: backendRule.pt_oponente_empate,
+    tcg: backendRule.tcg,
+  };
+};
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -18,125 +67,193 @@ interface PlayerRulesProps {
   currentUser: any;
 }
 
-interface PlayerRuleFormData {
-  typeName: string;
-  pointsForWin: number;
-  pointsForLoss: number;
-  pointsGivenToOpponent: number;
-  pointsLostByOpponent: number;
-}
-
 export function PlayerRules({ onNavigate }: PlayerRulesProps) {
   const [playerRules, setPlayerRules] = useState<PlayerRule[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<PlayerRule | null>(null);
   const [formData, setFormData] = useState<PlayerRuleFormData>({
-    typeName: '',
-    pointsForWin: 3,
-    pointsForLoss: 0,
-    pointsGivenToOpponent: 0,
-    pointsLostByOpponent: 0
+    nome: '',
+    pt_vitoria: 3,
+    pt_derrota: 0,
+    pt_empate: 1,
+    pt_oponente_ganha: 0,
+    pt_oponente_perde: 0,
+    pt_oponente_empate: 0,
+    tcg: ''
   });
 
-  const currentUser = tournamentStore.getCurrentUser();
+  // Substitua `tournamentStore.getCurrentUser()` pela sua lógica real de autenticação.
+  const currentUser = { id: 1, type: 'organizer' }; // Exemplo, deve vir do seu contexto
+
+  const fetchRules = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      toast.error('Token de acesso não encontrado. Faça o login novamente.');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/lojas/tipoJogador/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data: TipoJogadorPublico[] = await response.json();
+        setPlayerRules(data.map(mapBackendToFrontendRule));
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Falha ao buscar as regras de jogador.');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar regras:', error);
+      toast.error((error as Error).message);
+    }
+  };
 
   useEffect(() => {
-    if (currentUser) {
-      const rules = tournamentStore.getPlayerRulesByOrganizer(currentUser.id);
-      setPlayerRules(rules);
+    if (currentUser?.type === 'organizer') {
+      fetchRules();
     }
   }, [currentUser]);
 
   const resetForm = () => {
     setFormData({
-      typeName: '',
-      pointsForWin: 3,
-      pointsForLoss: 0,
-      pointsGivenToOpponent: 0,
-      pointsLostByOpponent: 0
+      nome: '',
+      pt_vitoria: 3,
+      pt_derrota: 0,
+      pt_empate: 1,
+      pt_oponente_ganha: 0,
+      pt_oponente_perde: 0,
+      pt_oponente_empate: 0,
+      tcg: ''
     });
     setEditingRule(null);
   };
 
   const openEditForm = (rule: PlayerRule) => {
     setFormData({
-      typeName: rule.typeName,
-      pointsForWin: rule.pointsForWin,
-      pointsForLoss: rule.pointsForLoss,
-      pointsGivenToOpponent: rule.pointsGivenToOpponent,
-      pointsLostByOpponent: rule.pointsLostByOpponent
+      nome: rule.typeName,
+      pt_vitoria: rule.pointsForWin,
+      pt_derrota: rule.pointsForLoss,
+      pt_empate: rule.pointsForDraw,
+      pt_oponente_ganha: rule.pointsGivenToOpponent,
+      pt_oponente_perde: rule.pointsLostByOpponent,
+      pt_oponente_empate: rule.pointsGivenToOpponentOnDraw,
+      tcg: rule.tcg,
     });
     setEditingRule(rule);
     setIsFormOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!currentUser) {
       toast.error('Você deve estar logado para gerenciar as regras de jogadores');
       return;
     }
 
-    if (!formData.typeName.trim()) {
+    if (!formData.nome.trim()) {
       toast.error('O nome do tipo é obrigatório');
+      return;
+    }
+
+    if (!formData.tcg.trim()) {
+      toast.error('O TCG é obrigatório');
+      return;
+    }
+    
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      toast.error('Token de acesso não encontrado. Faça o login novamente.');
       return;
     }
 
     try {
       if (editingRule) {
-        // Update existing rule
-        const updatedRule = tournamentStore.updatePlayerRule(editingRule.id, formData);
-        if (updatedRule) {
-          const updatedRules = playerRules.map(rule => 
-            rule.id === editingRule.id ? updatedRule : rule
-          );
-          setPlayerRules(updatedRules);
+        // Lógica de atualização (PUT)
+        const response = await fetch(`http://localhost:8000/lojas/tipoJogador/${editingRule.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (response.ok) {
           toast.success('Regra do jogador atualizada com sucesso');
+          setIsFormOpen(false);
+          resetForm();
+          fetchRules(); // Recarrega a lista
         } else {
-          toast.error('Falha ao atualizar a regra do jogador');
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Falha ao atualizar a regra do jogador');
         }
       } else {
-        // Create new rule
-        const newRule = tournamentStore.createPlayerRule({
-          ...formData,
-          organizerId: currentUser.id
+        // Lógica de criação (POST)
+        const response = await fetch('http://localhost:8000/lojas/tipoJogador/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
         });
-        setPlayerRules([...playerRules, newRule]);
-        toast.success('Regra do jogador criada com sucesso');
-      }
 
-      setIsFormOpen(false);
-      resetForm();
+        if (response.ok) {
+          toast.success('Regra do jogador criada com sucesso');
+          setIsFormOpen(false);
+          resetForm();
+          fetchRules(); // Recarrega a lista
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Falha ao criar a regra do jogador');
+        }
+      }
     } catch (error) {
-      toast.error('Ocorreu um erro ao salvar a regra do jogador');
+      console.error('Erro ao salvar a regra:', error);
+      toast.error((error as Error).message);
     }
   };
 
-  const handleDelete = (ruleId: string) => {
-    const success = tournamentStore.deletePlayerRule(ruleId);
-    if (success) {
-      setPlayerRules(playerRules.filter(rule => rule.id !== ruleId));
-      toast.success('Regra do jogador excluída com sucesso');
-    } else {
-      toast.error('Falha ao excluir a regra do jogador');
+  const handleDelete = async (ruleId: number) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      toast.error('Token de acesso não encontrado. Faça o login novamente.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/lojas/tipoJogador/${ruleId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast.success('Regra do jogador excluída com sucesso');
+        fetchRules(); // Recarrega a lista
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Falha ao excluir a regra do jogador');
+      }
+    } catch (error) {
+      console.error('Erro ao excluir regra:', error);
+      toast.error((error as Error).message);
     }
   };
 
   const formatScoringRule = (rule: PlayerRule) => {
-    let description = `Vitória: ${rule.pointsForWin} pontos, Derrota: ${rule.pointsForLoss} pontos`;
-    
-    if (rule.pointsGivenToOpponent > 0) {
-      description += `, Pontos dados ao oponente (se o oponente vencer): ${rule.pointsGivenToOpponent}`;
-    } else {
-      description += `, Pontos dados ao oponente (se o oponente vencer): 0`;
-    }
-    
-    if (rule.pointsLostByOpponent > 0) {
-      description += `, Pontos perdidos pelo oponente (se o oponente perder): ${rule.pointsLostByOpponent}`;
-    } else {
-      description += `, Pontos perdidos pelo oponente (se o oponente perder): 0`;
-    }
+    let description = `Vitória: ${rule.pointsForWin} pontos, Derrota: ${rule.pointsForLoss} pontos, Empate: ${rule.pointsForDraw} pontos`;
+    description += `, Pontos dados ao oponente (se o oponente vencer): ${rule.pointsGivenToOpponent}`;
+    description += `, Pontos perdidos pelo oponente (se o oponente perder): ${rule.pointsLostByOpponent}`;
+    description += `, Pontos dados ao oponente (se o oponente empatar): ${rule.pointsGivenToOpponentOnDraw}`;
     
     return description;
   };
@@ -187,11 +304,11 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <Label htmlFor="typeName">Nome do Tipo</Label>
+                  <Label htmlFor="nome">Nome do Tipo</Label>
                   <Input
-                    id="typeName"
-                    value={formData.typeName}
-                    onChange={(e) => setFormData({ ...formData, typeName: e.target.value })}
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                     placeholder="e.g., Equipe Rocket"
                     required
                   />
@@ -199,54 +316,91 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="pointsForWin">Pontos por Vitória</Label>
+                    <Label htmlFor="pt_vitoria">Pontos por Vitória</Label>
                     <Input
-                      id="pointsForWin"
+                      id="pt_vitoria"
                       type="number"
                       min="0"
                       step="0.1"
-                      value={formData.pointsForWin}
-                      onChange={(e) => setFormData({ ...formData, pointsForWin: parseFloat(e.target.value) || 0 })}
+                      value={formData.pt_vitoria}
+                      onChange={(e) => setFormData({ ...formData, pt_vitoria: parseFloat(e.target.value) || 0 })}
                       required
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="pointsForLoss">Pontos por Derrota</Label>
+                    <Label htmlFor="pt_derrota">Pontos por Derrota</Label>
                     <Input
-                      id="pointsForLoss"
+                      id="pt_derrota"
                       type="number"
                       min="0"
                       step="0.1"
-                      value={formData.pointsForLoss}
-                      onChange={(e) => setFormData({ ...formData, pointsForLoss: parseFloat(e.target.value) || 0 })}
+                      value={formData.pt_derrota}
+                      onChange={(e) => setFormData({ ...formData, pt_derrota: parseFloat(e.target.value) || 0 })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pt_empate">Pontos por Empate</Label>
+                    <Input
+                      id="pt_empate"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={formData.pt_empate}
+                      onChange={(e) => setFormData({ ...formData, pt_empate: parseFloat(e.target.value) || 0 })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pt_oponente_ganha">Pts. Oponente (Vitória)</Label>
+                    <Input
+                      id="pt_oponente_ganha"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={formData.pt_oponente_ganha}
+                      onChange={(e) => setFormData({ ...formData, pt_oponente_ganha: parseFloat(e.target.value) || 0 })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pt_oponente_perde">Pts. Oponente (Derrota)</Label>
+                    <Input
+                      id="pt_oponente_perde"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={formData.pt_oponente_perde}
+                      onChange={(e) => setFormData({ ...formData, pt_oponente_perde: parseFloat(e.target.value) || 0 })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pt_oponente_empate">Pts. Oponente (Empate)</Label>
+                    <Input
+                      id="pt_oponente_empate"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={formData.pt_oponente_empate}
+                      onChange={(e) => setFormData({ ...formData, pt_oponente_empate: parseFloat(e.target.value) || 0 })}
                       required
                     />
                   </div>
                 </div>
-                
+
                 <div>
-                  <Label htmlFor="pointsGivenToOpponent">Pontos dados ao oponente (se o oponente vencer)</Label>
+                  <Label htmlFor="tcg">TCG</Label>
                   <Input
-                    id="pointsGivenToOpponent"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    value={formData.pointsGivenToOpponent}
-                    onChange={(e) => setFormData({ ...formData, pointsGivenToOpponent: parseFloat(e.target.value) || 0 })}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="pointsLostByOpponent">Pontos perdidos pelo oponente (se o oponente perder)</Label>
-                  <Input
-                    id="pointsLostByOpponent"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    value={formData.pointsLostByOpponent}
-                    onChange={(e) => setFormData({ ...formData, pointsLostByOpponent: parseFloat(e.target.value) || 0 })}
+                    id="tcg"
+                    value={formData.tcg}
+                    onChange={(e) => setFormData({ ...formData, tcg: e.target.value })}
+                    placeholder="e.g., Magic: The Gathering"
                     required
                   />
                 </div>
@@ -302,7 +456,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
                       <h3 className="text-lg font-semibold">{rule.typeName}</h3>
-                      <Badge variant="secondary">Regra personalizada</Badge>
+                      <Badge variant="secondary">{rule.tcg}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {formatScoringRule(rule)}

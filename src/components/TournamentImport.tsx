@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover.tsx';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from './ui/utils.ts';
-import { tournamentStore, User} from '../data/store.ts';
+import { tournamentStore, User, Tournament } from '../data/store.ts';
 import { toast } from 'sonner';
 
 
@@ -23,14 +23,18 @@ interface TournamentImportProps {
   currentUser: User | null;
 }
 
-export function TournamentImport({ isOpen, onOpenChange, onNavigate, targetTournamentId, targetTournamentName }: TournamentImportProps) {
+export function TournamentImport({ isOpen, onOpenChange, onNavigate, targetTournamentId, targetTournamentName, currentUser }: TournamentImportProps) {
   const [importType, setImportType] = useState(targetTournamentId ? 'existing' : 'new');
   const [selectedTournamentId, setSelectedTournamentId] = useState(targetTournamentId || '');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const currentUser = tournamentStore.getCurrentUser();
-  const tournaments = currentUser ? tournamentStore.getTournamentsByOrganizer(currentUser.id) : [];
+  // Usando dados mock temporariamente para a seleção de torneio
+  // No futuro, isso virá da API
+  const tournaments: Tournament[] = currentUser
+    ? tournamentStore.getTournamentsByOrganizer(currentUser.id)
+    : [];
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -46,7 +50,7 @@ export function TournamentImport({ isOpen, onOpenChange, onNavigate, targetTourn
     setOpen(false);
   };
 
-  const handleImportNext = () => {
+  const handleImportNext = async () => {
     if (!importFile) {
       toast.error('Por favor, selecione um arquivo para importar');
       return;
@@ -56,44 +60,60 @@ export function TournamentImport({ isOpen, onOpenChange, onNavigate, targetTourn
       toast.error('Por favor, selecione um torneio para importar');
       return;
     }
+    
+    setIsLoading(true);
 
-    // Process the import
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      toast.error('Sessão expirada. Por favor, faça login novamente.');
+      onNavigate('login');
+      setIsLoading(false);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('arquivo', importFile);
+    
+    let apiUrl = '';
+    let successMessage = '';
+    let tournamentIdToNavigate = '';
+
+    if (importType === 'new') {
+      apiUrl = 'http://localhost:8000/lojas/torneios/importar';
+      successMessage = 'Torneio importado com sucesso!';
+    } else {
+      apiUrl = `http://localhost:8000/lojas/torneios/${selectedTournamentId}/importar`;
+      successMessage = 'Dados importados para o torneio existente!';
+      tournamentIdToNavigate = selectedTournamentId;
+    }
+    
     try {
-      if (importType === 'new') {
-        // Create a new tournament and redirect to edit page
-        const newTournament = tournamentStore.createTournament({
-          name: `Torneio Importado - ${importFile.name.replace('.xml', '')}`,
-          organizerId: currentUser?.id || '',
-          organizerName: currentUser?.name || '',
-          date: new Date().toISOString().split('T')[0],
-          time: '18:00',
-          format: 'Modern',
-          store: currentUser?.store || '',
-          description: `Torneio importado de ${importFile.name}`,
-          prizes: 'A ser definido',
-          maxParticipants: 32,
-          entryFee: '$15',
-          structure: 'Suíço',
-          rounds: 5
-        });
-        
-        // Mark tournament as having imported results
-        tournamentStore.markTournamentAsImported(newTournament.id);
-        
-        toast.success('Torneio importado com sucesso!');
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(successMessage);
         onOpenChange(false);
         resetForm();
-        onNavigate('tournament-edit', { tournamentId: newTournament.id });
+
+        tournamentIdToNavigate = result.id;
+        onNavigate('tournament-edit', { tournamentId: tournamentIdToNavigate });
       } else {
-        // Import to existing tournament and redirect to edit page
-        tournamentStore.markTournamentAsImported(selectedTournamentId);
-        toast.success('Dados importados para o torneio existente!');
-        onOpenChange(false);
-        resetForm();
-        onNavigate('tournament-edit', { tournamentId: selectedTournamentId });
+        console.error('Falha na importação:', result);
+        toast.error(result.detail || 'Falha ao importar os dados do torneio');
       }
     } catch (error) {
-      toast.error('Falha ao importar os dados do torneio');
+      console.error('Erro ao conectar com a API:', error);
+      toast.error('Falha na conexão com o servidor. Por favor, tente novamente mais tarde.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -120,13 +140,13 @@ export function TournamentImport({ isOpen, onOpenChange, onNavigate, targetTourn
           <div>
             <Label htmlFor="import-file">Arquivo XML</Label>
             <div className="mt-2">
-              <Input
+            <Input
                 id="import-file"
                 type="file"
-                accept=".xml"
+                accept=".xml, .tdf"
                 onChange={handleFileUpload}
                 className="cursor-pointer"
-              />
+            />
               {importFile && (
                 <p className="text-sm text-muted-foreground mt-1">
                   Selecionado: {importFile.name}
@@ -226,7 +246,7 @@ export function TournamentImport({ isOpen, onOpenChange, onNavigate, targetTourn
               Cancelar
             </Button>
             <Button onClick={handleImportNext}>
-              Próximo
+              {isLoading ? 'Importando...' : 'Próximo'}
             </Button>
           </div>
         </div>
