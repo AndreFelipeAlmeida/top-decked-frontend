@@ -66,10 +66,10 @@ interface TournamentListProps {
 // -------------------------------------------------------------
 const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
   return backendData.map(t => ({
-    id: t.id,
+    id: t.id.toString(), // Garante que o ID do torneio é uma string
     name: t.nome,
     organizerId: t.loja_id,
-    organizerName: t.loja?.nome || "Organizador não informado", // <-- Mudança aqui
+    organizerName: t.loja?.nome || "Organizador não informado",
     date: t.data_inicio,
     time: "Horário não informado",
     format: t.formato || 'Formato não informado',
@@ -83,7 +83,7 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
     status: t.finalizado ? 'closed' : 'open',
     currentRound: t.rodadas?.length || 0,
     participants: t.jogadores.map(p => ({ 
-      id: p.jogador_id, 
+      id: p.jogador_id.toString(), 
       userId: p.jogador_id,
       userName: "Nome não disponível",
       registeredAt: new Date().toISOString(),

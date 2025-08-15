@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Button } from './ui/button.tsx';
 import { Badge } from './ui/badge.tsx';
-import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table.tsx';
-import { ArrowLeft, Calendar, Users, Trophy, MapPin, DollarSign, CheckCircle, UserPlus, UserMinus, Upload, Settings } from 'lucide-react';
-import { Tournament, User, PlayerRule } from '../data/store.ts';
+import { ArrowLeft, Calendar, Users, Trophy, MapPin, DollarSign, UserPlus, UserMinus, Upload, Settings } from 'lucide-react';
+import { Tournament, User, PlayerRule, PlayerRuleAssignment } from '../data/store.ts';
 import { TournamentImport } from './TournamentImport.tsx';
+import { toast } from 'sonner';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -17,26 +17,46 @@ interface TournamentDetailsProps {
   currentUser: User | null;
 }
 
-// -------------------------------------------------------------
-// Interfaces para a API do Backend e Frontend
-// -------------------------------------------------------------
 interface LojaPublico {
     id: number;
     nome: string;
     email: string;
 }
 
+interface JogadorPublico {
+  id: number;
+  nome: string;
+}
+
 interface JogadorTorneioLinkPublico {
   jogador_id: number;
   torneio_id: string;
   ponto: number;
-  jogador?: { nome: string };
+  jogador?: JogadorPublico;
 }
 
 interface RodadaBase {
   id: string;
   numero: number;
   data: string;
+}
+
+interface TipoJogadorPublico {
+  id: number;
+  nome: string;
+  pt_vitoria: number;
+  pt_derrota: number;
+  pt_empate: number;
+  pt_oponente_perde: number;
+  pt_oponente_ganha: number;
+  pt_oponente_empate: number;
+  loja: number;
+  tcg: string;
+}
+
+interface TorneioRegraAdicionalPublico {
+  tipo_jogador: TipoJogadorPublico;
+  jogadores: JogadorPublico[];
 }
 
 interface BackendTournament {
@@ -55,21 +75,10 @@ interface BackendTournament {
   finalizado: boolean;
   jogadores: JogadorTorneioLinkPublico[];
   rodadas: RodadaBase[];
-  regras_adicionais: any[];
+  regras_adicionais: TorneioRegraAdicionalPublico[];
 }
 
-// -------------------------------------------------------------
-// Interfaces e Dados Mockados Corrigidos (mantidos para as tabs que ainda não tem backend)
-// -------------------------------------------------------------
-interface PlayerRuleAssignment {
-  id: string;
-  playerId: string;
-  playerName: string;
-  ruleId: string;
-  ruleName: string;
-}
-
-interface MockTournamentResult {
+interface TournamentResult {
   id: string;
   userId: string;
   userName: string;
@@ -79,15 +88,6 @@ interface MockTournamentResult {
   draws: number;
   currentStanding: number;
 }
-
-interface MockMonthlyResult {
-  playerId: string;
-  playerName: string;
-  totalPoints: number;
-  tournaments: number;
-  avgPlacement: number;
-}
-
 
 const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
     return {
@@ -108,7 +108,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
         status: backendData.finalizado ? 'closed' : 'open',
         currentRound: backendData.rodadas?.length || 0,
         participants: backendData.jogadores.map(p => ({
-            id: p.jogador_id,
+            id: p.jogador_id.toString(),
             userId: p.jogador_id,
             userName: p.jogador?.nome || 'Nome indisponível',
             registeredAt: new Date().toISOString(),
@@ -118,172 +118,98 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
         matches: [],
         bracket: [],
         createdAt: new Date().toISOString(),
-        hasImportedResults: false,
+        hasImportedResults: !!backendData.rodadas?.length,
     };
 };
 
 export function TournamentDetails({ onNavigate, tournamentId, currentUser }: TournamentDetailsProps) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [registrationStatus, setRegistrationStatus] = useState<'loading' | 'registered' | 'not-registered' | 'full'>('loading');
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(false);
 
-  // Dados mockados com tipagem correta
-  const [playerRuleAssignments] = useState<PlayerRuleAssignment[]>([
-    {
-      id: 'assignment-1',
-      playerId: 'player-1',
-      playerName: 'Alex Chen',
-      ruleId: 'rule-3',
-      ruleName: 'Jogador de Sorte'
-    },
-    {
-      id: 'assignment-2',
-      playerId: 'player-2',
-      playerName: 'Mike Rodriguez',
-      ruleId: 'rule-2',
-      ruleName: 'Time Rocket'
+  const [playerRuleAssignments, setPlayerRuleAssignments] = useState<PlayerRuleAssignment[]>([]);
+  const [availableRules, setAvailableRules] = useState<PlayerRule[]>([]);
+  const [tournamentResults, setTournamentResults] = useState<TournamentResult[]>([]);
+  
+  const fetchTournamentDetails = useCallback(async () => {
+    if (!tournamentId) return;
+
+    setIsLoading(true);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setIsLoading(false);
+      toast.error('Token de acesso não encontrado. Faça o login novamente.');
+      return;
     }
-  ]);
-  const [availableRules] = useState<PlayerRule[]>([
-    {
-      id: 'rule-1',
-      typeName: 'Jogador Normal',
-      pointsForWin: 3,
-      pointsForLoss: 0,
-      pointsGivenToOpponent: 0,
-      pointsLostByOpponent: 0,
-      organizerId: 'organizer-1',
-      createdAt: '2024-12-01T09:00:00Z'
-    },
-    {
-      id: 'rule-2',
-      typeName: 'Time Rocket',
-      pointsForWin: 3,
-      pointsForLoss: 0,
-      pointsGivenToOpponent: 0,
-      pointsLostByOpponent: 0.5,
-      organizerId: 'organizer-1',
-      createdAt: '2024-12-01T10:00:00Z'
-    },
-    {
-      id: 'rule-3',
-      typeName: 'Jogador de Sorte',
-      pointsForWin: 4,
-      pointsForLoss: 1,
-      pointsGivenToOpponent: 0.5,
-      pointsLostByOpponent: 0,
-      organizerId: 'organizer-1',
-      createdAt: '2024-12-01T11:00:00Z'
+
+    try {
+      const response = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Falha ao buscar detalhes do torneio.");
+      }
+
+      const backendData: BackendTournament = await response.json();
+      const mappedTournament = mapBackendToFrontend(backendData);
+
+      const mappedRules: PlayerRuleAssignment[] = backendData.regras_adicionais?.flatMap(rule => 
+        rule.jogadores.map(player => ({
+          id: `${rule.tipo_jogador.id}-${player.id}`,
+          playerId: player.id.toString(),
+          playerName: player.nome,
+          ruleId: rule.tipo_jogador.id.toString(),
+          ruleName: rule.tipo_jogador.nome,
+        }))
+      ) || [];
+      setPlayerRuleAssignments(mappedRules);
+      
+      const mappedResults: TournamentResult[] = mappedTournament.participants
+        .sort((a, b) => b.points - a.points)
+        .map((p, index) => ({
+          id: p.id.toString(),
+          userId: p.userId.toString(),
+          userName: p.userName,
+          points: p.points,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          currentStanding: index + 1,
+        }));
+      setTournamentResults(mappedResults);
+
+      const availableRulesFromBackend = backendData.regras_adicionais?.map(rule => ({
+        id: rule.tipo_jogador.id.toString(),
+        typeName: rule.tipo_jogador.nome,
+        pointsForWin: rule.tipo_jogador.pt_vitoria,
+        pointsForLoss: rule.tipo_jogador.pt_derrota,
+        pointsForDraw: rule.tipo_jogador.pt_empate,
+        pointsGivenToOpponent: rule.tipo_jogador.pt_oponente_ganha,
+        pointsLostByOpponent: rule.tipo_jogador.pt_oponente_perde,
+        pointsGivenToOpponentOnDraw: rule.tipo_jogador.pt_oponente_empate,
+        tcg: rule.tipo_jogador.tcg,
+        organizerId: rule.tipo_jogador.loja.toString(),
+        createdAt: new Date().toISOString()
+      })) || [];
+      setAvailableRules(availableRulesFromBackend);
+      
+      setTournament(mappedTournament);
+    
+    } catch (error) {
+      console.error("Erro ao buscar detalhes do torneio:", error);
+      toast.error((error as Error).message);
+      setTournament(null);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
-
-  // Dados mockados com tipagem correta
-  const mockTournamentResults: MockTournamentResult[] = [
-    {
-      id: 'part-1',
-      userId: 'player-1',
-      userName: 'Alex Chen',
-      points: 12,
-      wins: 4,
-      losses: 1,
-      draws: 0,
-      currentStanding: 1,
-    },
-    {
-      id: 'part-2',
-      userId: 'player-2',
-      userName: 'Mike Rodriguez',
-      points: 9,
-      wins: 3,
-      losses: 2,
-      draws: 0,
-      currentStanding: 2,
-    },
-    {
-      id: 'part-3',
-      userId: 'player-3',
-      userName: 'Emma Davis',
-      points: 6,
-      wins: 2,
-      losses: 3,
-      draws: 0,
-      currentStanding: 3,
-    },
-  ];
-
-  // Dados mockados com tipagem correta
-  const mockMonthlyResults: MockMonthlyResult[] = [
-    {
-      playerId: 'player-1',
-      playerName: 'Alex Chen',
-      totalPoints: 45,
-      tournaments: 4,
-      avgPlacement: 1.8,
-    },
-    {
-      playerId: 'player-2',
-      playerName: 'Mike Rodriguez',
-      totalPoints: 38,
-      tournaments: 3,
-      avgPlacement: 2.3,
-    },
-    {
-      playerId: 'player-3',
-      playerName: 'Emma Davis',
-      totalPoints: 32,
-      tournaments: 5,
-      avgPlacement: 2.8,
-    },
-  ];
+  }, [tournamentId]);
 
   useEffect(() => {
-    const fetchTournamentDetails = async () => {
-      if (!tournamentId) return;
-
-      setIsLoading(true);
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          throw new Error("Falha ao buscar detalhes do torneio.");
-        }
-
-        const backendData: BackendTournament = await response.json();
-        const mappedTournament = mapBackendToFrontend(backendData);
-        setTournament(mappedTournament);
-        
-        if (currentUser?.type === 'player') {
-          const isRegistered = mappedTournament.participants.some(p => p.userId === currentUser.id);
-          const isFull = mappedTournament.participants.length >= mappedTournament.maxParticipants;
-          
-          if (isRegistered) {
-            setRegistrationStatus('registered');
-          } else if (isFull) {
-            setRegistrationStatus('full');
-          } else {
-            setRegistrationStatus('not-registered');
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao buscar detalhes do torneio:", error);
-        setTournament(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchTournamentDetails();
-  }, [tournamentId, currentUser]);
+  }, [fetchTournamentDetails]);
 
   const handleRegistration = async () => {
     if (!tournament || !currentUser || currentUser.type !== 'player') return;
@@ -303,23 +229,12 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
             throw new Error(errorData.detail || 'Falha ao se inscrever.');
         }
         
-        setMessage({ type: 'success', text: 'Inscrição para o torneio realizada com sucesso!' });
-        setRegistrationStatus('registered');
-        
-        // Refresh tournament data to update participants list
-        const updatedTournamentResponse = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const updatedBackendData: BackendTournament = await updatedTournamentResponse.json();
-        const updatedTournament = mapBackendToFrontend(updatedBackendData);
-        setTournament(updatedTournament);
-
+        toast.success('Inscrição para o torneio realizada com sucesso!');
+        fetchTournamentDetails();
     } catch (err: any) {
         console.error("Erro na inscrição:", err.message);
-        setMessage({ type: 'error', text: err.message || 'Falha ao se inscrever. O torneio pode estar lotado.' });
+        toast.error(err.message || 'Falha ao se inscrever. O torneio pode estar lotado ou você precisa de um Pokémon ID.');
     }
-    
-    setTimeout(() => setMessage(null), 3000);
   };
 
   const handleUnregistration = async () => {
@@ -340,23 +255,12 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
             throw new Error(errorData.detail || 'Falha ao remover a inscrição.');
         }
 
-        setMessage({ type: 'success', text: 'Inscrição no torneio removida com sucesso.' });
-        setRegistrationStatus('not-registered');
-        
-        // Refresh tournament data to update participants list
-        const updatedTournamentResponse = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const updatedBackendData: BackendTournament = await updatedTournamentResponse.json();
-        const updatedTournament = mapBackendToFrontend(updatedBackendData);
-        setTournament(updatedTournament);
-
+        toast.success('Inscrição no torneio removida com sucesso.');
+        fetchTournamentDetails();
     } catch (err: any) {
         console.error("Erro ao remover inscrição:", err.message);
-        setMessage({ type: 'error', text: err.message || 'Falha ao remover a inscrição.' });
+        toast.error(err.message || 'Falha ao remover a inscrição.');
     }
-    
-    setTimeout(() => setMessage(null), 3000);
   };
 
   const getStatusColor = (status: Tournament['status']) => {
@@ -388,6 +292,12 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
     }
   };
 
+  const getRulePointsDescription = (ruleId: string) => {
+    const rule = availableRules.find(r => r.id === ruleId);
+    if (!rule) return 'Regra não encontrada.';
+    return `Vitória: ${rule.pointsForWin}pts, Derrota: ${rule.pointsForLoss}pts, Empate: ${rule.pointsForDraw}pts`;
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
@@ -410,9 +320,10 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
     );
   }
 
-  const canManage = currentUser?.type === 'organizer' && currentUser.id === tournament.organizerId;
-  const canRegister = currentUser?.type === 'player' && registrationStatus === 'not-registered' && tournament.status === 'open';
-  const canUnregister = currentUser?.type === 'player' && registrationStatus === 'registered' && tournament.status === 'open';
+  const isOrganizer = currentUser?.type === 'organizer';
+  const isPlayer = currentUser?.type === 'player';
+  
+  const hasSpecificRules = playerRuleAssignments.length > 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -427,7 +338,6 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         </Button>
       </div>
 
-      {/* Tournament Header */}
       <Card className="mb-8">
         <CardHeader>
           <div className="flex items-start justify-between">
@@ -441,19 +351,29 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
               <p className="text-muted-foreground">Organizado por {tournament.organizerName}</p>
             </div>
             <div className="flex space-x-2">
-              {canRegister && (
-                <Button onClick={handleRegistration} className="flex items-center space-x-2">
-                  <UserPlus className="h-4 w-4" />
-                  <span>Inscrever-se</span>
-                </Button>
+            {isPlayer && (
+                <>
+                  {isRegistered ? (
+                    <Button 
+                      variant="outline" 
+                      onClick={handleUnregistration} 
+                      className="flex items-center space-x-2"
+                    >
+                      <UserMinus className="h-4 w-4" />
+                      <span>Remover Inscrição</span>
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleRegistration} 
+                      className="flex items-center space-x-2"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span>Inscrever-se</span>
+                    </Button>
+                  )}
+                </>
               )}
-              {canUnregister && (
-                <Button variant="outline" onClick={handleUnregistration} className="flex items-center space-x-2">
-                  <UserMinus className="h-4 w-4" />
-                  <span>Remover Inscrição</span>
-                </Button>
-              )}
-              {canManage && (
+              {isOrganizer && (
                 <>
                   <Button 
                     variant="outline"
@@ -508,30 +428,11 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         </CardContent>
       </Card>
 
-      {message && (
-        <Alert variant={message.type === 'error' ? 'destructive' : 'default'} className="mb-6">
-          <AlertDescription className="flex items-center space-x-2">
-            {message.type === 'success' && <CheckCircle className="h-4 w-4" />}
-            <span>{message.text}</span>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {registrationStatus === 'registered' && currentUser?.type === 'player' && (
-        <Alert className="mb-6">
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription>
-            Você está inscrito neste torneio!
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Tabs defaultValue="details" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="player-rules">Regras de Jogador Utilizadas</TabsTrigger>
           <TabsTrigger value="tournament-results">Resultados do Torneio</TabsTrigger>
-          <TabsTrigger value="monthly-results">Resultados Mensais</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
@@ -560,7 +461,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                 <div>
                   <h4 className="font-semibold mb-2">Status Atual</h4>
                   <div className="space-y-1 text-sm">
-                    <div>Rodada: <span className="font-medium">{tournament.currentRound}/{tournament.rounds}</span></div>
+                    <div>Rodada: <span className="font-medium">{tournament.currentRound}</span></div>
                     <div>Status: <span className="font-medium">{getStatusText(tournament.status)}</span></div>
                   </div>
                 </div>
@@ -588,7 +489,6 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Default Rule */}
                   <div>
                     <h4 className="font-medium mb-3">Regra Padrão</h4>
                     <Card className="p-4 bg-muted/50">
@@ -596,38 +496,37 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                         <div>
                           <span className="font-medium">Jogador Normal</span>
                           <div className="text-sm text-muted-foreground">
-                            Vitória: 3pts, Derrota: 0pts
+                            Vitória: 3pts, Derrota: 0pts, Empate: 1pt
                           </div>
                         </div>
                         <Badge variant="secondary">Aplicado a todos os jogadores por padrão</Badge>
                       </div>
                     </Card>
                   </div>
-
-                  {/* Specific Rules */}
                   <div>
                     <h4 className="font-medium mb-3">Regras Específicas de Jogador</h4>
                     <div className="space-y-3">
-                      {playerRuleAssignments.map((assignment, index) => (
-                        <Card key={index} className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="font-medium">{assignment.playerName}</span>
+                      {hasSpecificRules ? (
+                        playerRuleAssignments.map((assignment, index) => (
+                          <Card key={index} className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="font-medium">{assignment.playerName}</span>
+                                <div className="text-sm text-muted-foreground">
+                                  Regra: {assignment.ruleName}
+                                </div>
+                              </div>
                               <div className="text-sm text-muted-foreground">
-                                Regra: {assignment.ruleName}
+                                <span>
+                                  {getRulePointsDescription(assignment.ruleId)}
+                                </span>
                               </div>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              {availableRules.find(r => r.id === assignment.ruleId) && (
-                                <span>
-                                  Vitória: {availableRules.find(r => r.id === assignment.ruleId)?.pointsForWin}pts, 
-                                  Derrota: {availableRules.find(r => r.id === assignment.ruleId)?.pointsForLoss}pts
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground">Nenhuma regra específica aplicada.</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -665,7 +564,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockTournamentResults.map((participant) => (
+                      {tournamentResults.map((participant) => (
                         <TableRow key={participant.id}>
                           <TableCell>
                             <Badge 
@@ -689,60 +588,14 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="monthly-results" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Resultados Mensais</span>
-              </CardTitle>
-              <CardDescription>
-                Dados agregados de desempenho mensal
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!tournament.hasImportedResults ? (
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Os resultados mensais aparecerão após a importação dos dados do torneio</p>
-                </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Jogador</TableHead>
-                        <TableHead>Pontos</TableHead>
-                        <TableHead>Torneios</TableHead>
-                        <TableHead>Colocação Média</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {mockMonthlyResults.map((result) => (
-                        <TableRow key={result.playerId}>
-                          <TableCell>{result.playerName}</TableCell>
-                          <TableCell>{result.totalPoints}</TableCell>
-                          <TableCell>{result.tournaments}</TableCell>
-                          <TableCell>{result.avgPlacement.toFixed(1)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
-      {/* Dialog for importing tournament data */}
       {tournament && (
         <TournamentImport
           isOpen={importDialogOpen}
           onOpenChange={setImportDialogOpen}
           onNavigate={onNavigate}
-          targetTournamentId={tournament.id}
+          targetTournamentId={tournament.id.toString()}
           targetTournamentName={tournament.name}
           currentUser={currentUser}
         />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {Card,
+import {
+  Card,
   CardContent,
   CardDescription,
   CardHeader,
@@ -84,6 +85,16 @@ interface PlayerRuleAssignment {
   ruleName: string;
 }
 
+// Adicione a interface para o resultado mensal que o backend irá retornar
+interface MonthlyStats {
+    mes: string;
+    ano: number;
+    pontos: number;
+    vitorias: number;
+    derrotas: number;
+    empates: number;
+}
+
 export function TournamentEdit({
   onNavigate,
   currentUser,
@@ -108,6 +119,7 @@ export function TournamentEdit({
     text: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasAccess, setHasAccess] = useState(true);
 
   // Player Rules state
   const [defaultRuleId, setDefaultRuleId] =
@@ -141,195 +153,260 @@ export function TournamentEdit({
 
   // Mock tournament results - in real app this would come from the tournament data
   const [mockTournamentResults, setMockTournamentResults] =
-    useState<TournamentParticipant[]>([
-      {
-        id: "part-1",
-        userId: "player-1",
-        userName: "Alex Chen",
-        registeredAt: "2024-12-18T10:00:00Z",
-        points: 12,
-        wins: 4,
-        losses: 1,
-        draws: 0,
-        currentStanding: 1,
-      },
-      {
-        id: "part-2",
-        userId: "player-2",
-        userName: "Mike Rodriguez",
-        registeredAt: "2024-12-18T11:30:00Z",
-        points: 9,
-        wins: 3,
-        losses: 2,
-        draws: 0,
-        currentStanding: 2,
-      },
-      {
-        id: "part-3",
-        userId: "player-3",
-        userName: "Emma Davis",
-        registeredAt: "2024-12-18T12:00:00Z",
-        points: 6,
-        wins: 2,
-        losses: 3,
-        draws: 0,
-        currentStanding: 3,
-      },
-    ]);
+    useState<TournamentParticipant[]>([]); // Initialize with an empty array
 
-  // Initialize editing scores when results load
-  useEffect(() => {
-    const initialScores: Record<string, string> = {};
-    mockTournamentResults.forEach((participant) => {
-      initialScores[participant.id] = calculatePlayerPoints(
-        participant,
-        true,
-      ).toString();
-    });
-    setEditingScores(initialScores);
-  }, [
-    mockTournamentResults,
-    applyAdditionalRules,
-    playerRuleAssignments,
-    defaultRuleId,
-  ]);
+  // Estado para os resultados mensais
+  const [monthlyResults, setMonthlyResults] = useState<MonthlyStats[]>([]);
 
-  // Mock monthly results aggregated
-  const mockMonthlyResults = [
-    {
-      playerId: "player-1",
-      playerName: "Alex Chen",
-      totalPoints: 45,
-      tournaments: 4,
-      avgPlacement: 1.8,
-    },
-    {
-      playerId: "player-2",
-      playerName: "Mike Rodriguez",
-      totalPoints: 38,
-      tournaments: 3,
-      avgPlacement: 2.3,
-    },
-    {
-      playerId: "player-3",
-      playerName: "Emma Davis",
-      totalPoints: 32,
-      tournaments: 5,
-      avgPlacement: 2.8,
-    },
-  ];
-
-  useEffect(() => {
-    if (tournamentId && currentUser?.type === "organizer") {
-      const foundTournament =
-        tournamentStore.getTournamentById(tournamentId);
-      if (
-        foundTournament &&
-        foundTournament.organizerId === currentUser.id
-      ) {
-        setTournament(foundTournament);
-        setFormData({
-          name: foundTournament.name,
-          date: foundTournament.date,
-          time: foundTournament.time,
-          format: foundTournament.format,
-          prizes: foundTournament.prizes || "",
-          description: foundTournament.description || "",
-          entryFee: foundTournament.entryFee,
-          structure: foundTournament.structure,
-          rounds: foundTournament.rounds.toString(),
+  // Função para buscar os resultados mensais
+  const fetchMonthlyResults = async (players: User[], token: string) => {
+    try {
+      const resultsPromises = players.map(async (player) => {
+        const response = await fetch(`http://localhost:8000/jogadores/estatisticas`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
         });
-
-        // Load available player rules
-        const rules = tournamentStore.getPlayerRulesByOrganizer(
-          currentUser.id,
-        );
-        setAvailableRules(rules);
-
-        // Set default rule to the first "Normal Player" rule or first available rule
-        const defaultRule =
-          rules.find(
-            (rule) => rule.typeName === "Normal Player",
-          ) || rules[0];
-        if (defaultRule) {
-          setDefaultRuleId(defaultRule.id);
+        
+        if (!response.ok) {
+            console.error(`Falha ao buscar estatísticas para o jogador ${player.name}`);
+            return null;
         }
 
-        // Load available players (all users with player type)
-        const players = tournamentStore
-          .getAllUsers()
-          .filter((user) => user.type === "player");
-        setAvailablePlayers(players);
+        const stats = await response.json();
+        return {
+            jogador_id: player.id,
+            nome_jogador: player.name,
+            ...stats // Inclui as estatísticas do jogador
+        };
+      });
+
+      const allResults = await Promise.all(resultsPromises);
+      setMonthlyResults(allResults.filter(result => result !== null));
+    } catch (error) {
+        console.error('Erro ao buscar resultados mensais:', error);
+        toast.error('Falha ao carregar os resultados mensais.');
+        setMonthlyResults([]);
+    }
+  };
+
+  const fetchTournamentData = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!tournamentId || !token) {
+      setHasAccess(false);
+      return;
+    }
+
+    try {
+      // Ajuste para usar a rota GET do backend existente
+      const tournamentResponse = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (tournamentResponse.ok) {
+        const tournamentData = await tournamentResponse.json();
+        
+        // Atualiza os dados básicos do torneio
+        setTournament(tournamentData);
+        setFormData({
+            name: tournamentData.nome,
+            date: tournamentData.data_inicio,
+            time: tournamentData.hora || "",
+            format: tournamentData.formato || "",
+            prizes: tournamentData.premio || "",
+            description: tournamentData.descricao || "",
+            entryFee: tournamentData.taxa?.toString() || "",
+            structure: "Swiss", 
+            rounds: tournamentData.n_rodadas?.toString() || "",
+        });
+
+        // Verifica se há jogadores para definir se há resultados importados
+        const hasImportedResults = tournamentData.jogadores && tournamentData.jogadores.length > 0;
+        setTournament(prev => prev ? { ...prev, hasImportedResults: hasImportedResults } : prev);
+
+        // Preenche a lista de jogadores a partir dos dados do torneio
+        const playersFromBackend = tournamentData.jogadores.map((player: any) => ({
+          id: player.jogador_id.toString(),
+          name: player.nome,
+          email: '', // Sem e-mail na sua API, deixamos vazio
+          type: 'player', 
+        }));
+        setAvailablePlayers(playersFromBackend);
+        
+        // Chama a nova função para buscar os resultados mensais
+        fetchMonthlyResults(playersFromBackend, token);
+
+
+        // Preenche a tabela de resultados com os dados do torneio
+        const resultsFromBackend = tournamentData.jogadores.map((player: any) => ({
+          id: `part-${player.jogador_id}`,
+          userId: player.jogador_id.toString(),
+          userName: player.nome,
+          registeredAt: "", // Não disponível nos dados, deixamos vazio
+          points: player.pontuacao,
+          wins: 0, // Esses campos precisam ser calculados ou retornados pela sua API
+          losses: 0,
+          draws: 0,
+          currentStanding: 0, // A posição deve ser calculada
+        }));
+        
+        // A lógica para calcular a posição dos jogadores (currentStanding)
+        // pode ser feita aqui no frontend, ordenando por pontuação.
+        const sortedResults = resultsFromBackend.sort((a: any, b: any) => b.points - a.points);
+        const finalResults = sortedResults.map((result: any, index: number) => ({
+          ...result,
+          currentStanding: index + 1,
+        }));
+
+        setMockTournamentResults(finalResults);
+
+        // Atualiza o estado de edição de pontuação
+        const initialScores: Record<string, string> = {};
+        finalResults.forEach((participant: any) => {
+          initialScores[participant.id] = participant.points.toString();
+        });
+        setEditingScores(initialScores);
+        
+        // Carrega a regra básica do torneio, se houver
+        if (tournamentData.regra_basica_id) {
+          setDefaultRuleId(tournamentData.regra_basica_id.toString());
+        }
+
+        // Busca e carrega as regras de jogador
+        const rulesResponse = await fetch('http://localhost:8000/lojas/tipoJogador/', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (rulesResponse.ok) {
+          const rulesData = await rulesResponse.json();
+          setAvailableRules(rulesData.map((rule: any) => ({
+            id: rule.id.toString(),
+            typeName: rule.nome,
+            pointsForWin: rule.pt_vitoria,
+            pointsForLoss: rule.pt_derrota,
+          })));
+
+          // Define a regra padrão a partir da lista
+          const defaultRule = rulesData.find((rule: any) => rule.nome === "Normal Player") || rulesData[0];
+          if (defaultRule) {
+            setDefaultRuleId(defaultRule.id.toString());
+          }
+        } else {
+          console.error('Erro ao buscar tipos de jogador.');
+          toast.error('Não foi possível carregar as regras de jogador.');
+        }
+        
+        setHasAccess(true);
+      } else {
+        setHasAccess(false);
+        const errorData = await tournamentResponse.json();
+        console.error('Erro ao buscar torneio:', errorData.detail);
+        toast.error(errorData.detail || 'Falha ao buscar o torneio.');
       }
+    } catch (error) {
+      console.error('Erro ao buscar torneio:', error);
+      toast.error('Falha ao buscar torneio. Verifique a conexão.');
+      setHasAccess(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser?.type === "organizer") {
+      fetchTournamentData();
+    } else {
+        setHasAccess(false);
     }
   }, [tournamentId, currentUser]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    if (
-      formData.name &&
-      formData.date &&
-      formData.format &&
-      formData.structure &&
-      tournament &&
-      currentUser
-    ) {
-      try {
-        const updatedTournament =
-          tournamentStore.updateTournament(tournament.id, {
-            name: formData.name,
-            date: formData.date,
-            time: formData.time,
-            format: formData.format,
-            description: formData.description,
-            prizes: formData.prizes,
-            entryFee: formData.entryFee,
-            structure: formData.structure,
-            rounds: parseInt(formData.rounds) || 5,
-          });
-
-        if (updatedTournament) {
-          setMessage({
-            type: "success",
-            text: "Torneio atualizado com sucesso!",
-          });
-          toast.success("Torneio atualizado com sucesso!");
-          setTimeout(() => {
-            onNavigate("tournament-details", {
-              tournamentId: tournament.id,
-            });
-          }, 1500);
-        } else {
-          setMessage({
-            type: "error",
-            text: "Falha ao atualizar o torneio. Por favor, tente novamente.",
-          });
-          toast.error("Falha ao atualizar o torneio");
-        }
-      } catch (error) {
-        setMessage({
-          type: "error",
-          text: "Falha ao atualizar o torneio. Por favor, tente novamente.",
-        });
-        toast.error("Falha ao atualizar o torneio");
-      }
-    } else {
-      setMessage({
-        type: "error",
-        text: "Por favor, preencha todos os campos obrigatórios",
-      });
-      toast.error("Por favor, preencha todos os campos obrigatórios");
+    if (!tournamentId || !currentUser) {
+      toast.error('Torneio ou usuário não encontrado.');
+      setIsLoading(false);
+      return;
     }
 
-    setIsLoading(false);
-  };
+    if (!formData.name || !formData.date || !formData.format || !formData.structure) {
+      toast.error("Por favor, preencha todos os campos obrigatórios");
+      setIsLoading(false);
+      return;
+    }
 
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      toast.error('Token de acesso não encontrado. Faça o login novamente.');
+      onNavigate('login');
+      setIsLoading(false);
+      return;
+    }
+
+    // Mapeia as regras adicionais para o formato de dicionário
+    const regrasAdicionaisDict: { [key: string]: number } = {};
+    playerRuleAssignments.forEach(assignment => {
+      regrasAdicionaisDict[assignment.playerId] = parseInt(assignment.ruleId, 10);
+    });
+
+    const requestBody: any = {
+      nome: formData.name,
+      data_inicio: formData.date,
+      formato: formData.format,
+      descricao: formData.description,
+      premio: formData.prizes,
+      taxa: parseFloat(formData.entryFee) || 0,
+      n_rodadadas: parseInt(formData.rounds, 10) || 5, 
+      regra_basica_id: defaultRuleId ? parseInt(defaultRuleId, 10) : undefined, 
+      regras_adicionais: regrasAdicionaisDict,
+      hora: formData.time && formData.time !== "--:--" ? formData.time : null,
+    };
+    
+    Object.keys(requestBody).forEach(key => requestBody[key] === null && delete requestBody[key]);
+
+    try {
+      const response = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.ok) {
+        setMessage({
+          type: "success",
+          text: "Torneio atualizado com sucesso!",
+        });
+        toast.success("Torneio atualizado com sucesso!");
+        setTimeout(() => {
+          onNavigate("tournament-details", {
+            tournamentId: tournamentId,
+          });
+        }, 1500); // Aguarda 1.5 segundos antes de navegar
+      } else {
+        const errorData = await response.json();
+        console.error('Erro de validação do backend:', errorData.detail);
+        const errorMessage = Array.isArray(errorData.detail) ? errorData.detail.map((err: any) => err.msg).join(", ") : errorData.detail;
+        throw new Error(errorMessage || "Falha ao atualizar o torneio. Por favor, tente novamente.");
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: (error as Error).message,
+      });
+      toast.error((error as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const handleAddPlayerRule = () => {
     if (!additionalRuleId || !selectedPlayerId) {
       toast.error("Por favor, selecione uma regra e um jogador");
@@ -533,10 +610,10 @@ export function TournamentEdit({
 
   // Check if tournament exists and user is authorized
   if (
+    !hasAccess ||
     !tournament ||
     !currentUser ||
-    currentUser.type !== "organizer" ||
-    currentUser.id !== tournament.organizerId
+    currentUser.type !== "organizer"
   ) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -782,7 +859,7 @@ export function TournamentEdit({
         </Card>
 
         {/* Player Rules Section - Only show if tournament has imported results */}
-        {tournament.hasImportedResults && (
+        {tournament?.hasImportedResults && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -1031,7 +1108,7 @@ export function TournamentEdit({
         )}
 
         {/* Results Section - Only show if tournament has imported results */}
-        {tournament.hasImportedResults && (
+        {tournament?.hasImportedResults && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -1143,30 +1220,33 @@ export function TournamentEdit({
                         <TableRow>
                           <TableHead>Jogador</TableHead>
                           <TableHead>Pontos</TableHead>
-                          <TableHead>Torneios</TableHead>
-                          <TableHead>Pos. Média</TableHead>
+                          <TableHead>Vitórias</TableHead>
+                          <TableHead>Derrotas</TableHead>
+                          <TableHead>Empates</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {mockMonthlyResults.map((result) => (
-                          <TableRow key={result.playerId}>
-                            <TableCell>
-                              {result.playerName}
-                            </TableCell>
-                            <TableCell>
-                              {calculateMonthlyPlayerPoints(
-                                result.playerId,
-                                result.totalPoints,
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {result.tournaments}
-                            </TableCell>
-                            <TableCell>
-                              {result.avgPlacement.toFixed(1)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {monthlyResults.map((result) => {
+                          return (
+                            <TableRow key={result.jogador_id}>
+                              <TableCell>
+                                {result.nome_jogador}
+                              </TableCell>
+                              <TableCell>
+                                {result.estatisticas[0]?.pontos ?? 0}
+                              </TableCell>
+                              <TableCell>
+                                {result.estatisticas[0]?.vitorias ?? 0}
+                              </TableCell>
+                              <TableCell>
+                                {result.estatisticas[0]?.derrotas ?? 0}
+                              </TableCell>
+                              <TableCell>
+                                {result.estatisticas[0]?.empates ?? 0}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>

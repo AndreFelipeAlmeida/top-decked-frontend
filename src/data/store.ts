@@ -42,7 +42,7 @@ export interface Tournament {
 }
 
 export interface TournamentParticipant {
-  id: number;
+  id: string;
   userId: number;
   userName: string;
   registeredAt: string;
@@ -67,6 +67,14 @@ export interface Match {
   winnerId?: number;
   winnerName?: string;
   status: 'pending' | 'in-progress' | 'completed';
+}
+
+export interface PlayerRuleAssignment {
+  id: string;
+  playerId: string;
+  playerName: string;
+  ruleId: string;
+  ruleName: string;
 }
 
 export interface BracketMatch {
@@ -180,7 +188,7 @@ export const mockTournaments: Tournament[] = [
     currentRound: 0,
     participants: [
       {
-        id: 1,
+        id: '1',
         userId: 1,
         userName: 'Alex Chen',
         registeredAt: '2024-12-18T10:00:00Z',
@@ -191,7 +199,7 @@ export const mockTournaments: Tournament[] = [
         currentStanding: 1
       },
       {
-        id: 2,
+        id: '2',
         userId: 3,
         userName: 'Mike Rodriguez',
         registeredAt: '2024-12-18T11:30:00Z',
@@ -247,7 +255,7 @@ export const mockTournaments: Tournament[] = [
     currentRound: 4,
     participants: [
       {
-        id: 3,
+        id: '3',
         userId: 1,
         userName: 'Alex Chen',
         registeredAt: '2024-12-14T10:00:00Z',
@@ -258,7 +266,7 @@ export const mockTournaments: Tournament[] = [
         currentStanding: 1
       },
       {
-        id: 4,
+        id: '4',
         userId: 3,
         userName: 'Mike Rodriguez',
         registeredAt: '2024-12-14T11:00:00Z',
@@ -269,7 +277,7 @@ export const mockTournaments: Tournament[] = [
         currentStanding: 2
       },
       {
-        id: 5,
+        id: '5',
         userId: 4,
         userName: 'Emma Davis',
         registeredAt: '2024-12-14T12:00:00Z',
@@ -439,7 +447,7 @@ class TournamentStore {
     }
 
     const participant: TournamentParticipant = {
-      id: Date.now(),
+      id: Date.now().toString(),
       userId: playerId,
       userName: player.name,
       registeredAt: new Date().toISOString(),
