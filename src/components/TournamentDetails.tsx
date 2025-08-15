@@ -31,6 +31,7 @@ interface JogadorPublico {
 interface JogadorTorneioLinkPublico {
   jogador_id: number;
   torneio_id: string;
+  nome: string;
   ponto: number;
   jogador?: JogadorPublico;
 }
@@ -110,7 +111,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
         participants: backendData.jogadores.map(p => ({
             id: p.jogador_id.toString(),
             userId: p.jogador_id,
-            userName: p.jogador?.nome || 'Nome indisponível',
+            userName: p.nome || 'Nome indisponível',
             registeredAt: new Date().toISOString(),
             points: p.ponto,
             wins: 0, losses: 0, draws: 0, currentStanding: 0
