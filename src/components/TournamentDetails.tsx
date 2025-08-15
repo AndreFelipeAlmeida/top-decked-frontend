@@ -91,7 +91,7 @@ interface MockMonthlyResult {
 
 const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
     return {
-        id: parseInt(backendData.id),
+        id: backendData.id,
         name: backendData.nome,
         organizerId: backendData.loja_id,
         organizerName: backendData.loja?.nome || "Organizador não informado",

@@ -18,7 +18,7 @@ export interface User {
 }
 
 export interface Tournament {
-  id: number;
+  id: string;
   name: string;
   organizerId: number;
   organizerName: string;
@@ -162,7 +162,7 @@ export const mockUsers: User[] = [
 // Mock Tournaments
 export const mockTournaments: Tournament[] = [
   {
-    id: 1,
+    id: "1",
     name: 'Weekly Modern Championship',
     organizerId: 2,
     organizerName: 'Sarah Johnson',
@@ -207,7 +207,7 @@ export const mockTournaments: Tournament[] = [
     hasImportedResults: false
   },
   {
-    id: 2,
+    id: "2",
     name: 'Standard Showdown',
     organizerId: 2,
     organizerName: 'Sarah Johnson',
@@ -229,7 +229,7 @@ export const mockTournaments: Tournament[] = [
     hasImportedResults: false
   },
   {
-    id: 3,
+    id: "3",
     name: 'Friday Night Magic',
     organizerId: 2,
     organizerName: 'Sarah Johnson',
@@ -396,7 +396,7 @@ class TournamentStore {
     return this.tournaments;
   }
 
-  getTournamentById(id: number): Tournament | undefined {
+  getTournamentById(id: string): Tournament | undefined {
     return this.tournaments.find(t => t.id === id);
   }
 
@@ -413,7 +413,7 @@ class TournamentStore {
   createTournament(tournamentData: Omit<Tournament, 'id' | 'participants' | 'matches' | 'createdAt' | 'status' | 'currentRound' | 'hasImportedResults'>): Tournament {
     const newTournament: Tournament = {
       ...tournamentData,
-      id: Date.now(),
+      id: Date.now().toString(),
       status: 'open',
       currentRound: 0,
       participants: [],
@@ -425,7 +425,7 @@ class TournamentStore {
     return newTournament;
   }
 
-  registerPlayerForTournament(tournamentId: number, playerId: number): boolean {
+  registerPlayerForTournament(tournamentId: string, playerId: number): boolean {
     const tournament = this.getTournamentById(tournamentId);
     const player = this.getUserById(playerId);
     
@@ -454,7 +454,7 @@ class TournamentStore {
     return true;
   }
 
-  unregisterPlayerFromTournament(tournamentId: number, playerId: number): boolean {
+  unregisterPlayerFromTournament(tournamentId: string, playerId: number): boolean {
     const tournament = this.getTournamentById(tournamentId);
     if (!tournament) return false;
 
@@ -465,7 +465,7 @@ class TournamentStore {
     return true;
   }
 
-  updateTournamentStatus(tournamentId: number, status: Tournament['status']): boolean {
+  updateTournamentStatus(tournamentId: string, status: Tournament['status']): boolean {
     const tournament = this.getTournamentById(tournamentId);
     if (!tournament) return false;
 
@@ -473,7 +473,7 @@ class TournamentStore {
     return true;
   }
 
-  updateTournament(tournamentId: number, updates: Partial<Pick<Tournament, 'name' | 'date' | 'time' | 'format' | 'description' | 'prizes' | 'maxParticipants' | 'entryFee' | 'structure' | 'rounds'>>): Tournament | null { // Alterado de string para number
+  updateTournament(tournamentId: string, updates: Partial<Pick<Tournament, 'name' | 'date' | 'time' | 'format' | 'description' | 'prizes' | 'maxParticipants' | 'entryFee' | 'structure' | 'rounds'>>): Tournament | null { // Alterado de string para number
     const tournament = this.getTournamentById(tournamentId);
     if (!tournament) return null;
 
@@ -487,7 +487,7 @@ class TournamentStore {
     return tournament;
   }
 
-  markTournamentAsImported(tournamentId: number): boolean {
+  markTournamentAsImported(tournamentId: string): boolean {
     const tournament = this.getTournamentById(tournamentId);
     if (!tournament) return false;
 

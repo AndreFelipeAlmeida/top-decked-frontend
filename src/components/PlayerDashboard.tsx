@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
 import { Progress } from './ui/progress.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
 import { Trophy, TrendingUp, Calendar, Target, Medal, Users, BarChart3 } from 'lucide-react';
-import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { RadarChart,BarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Bar, PieChart, Pie, Cell } from 'recharts';
 import { User } from '../data/store.ts';
 
 
@@ -17,75 +17,131 @@ interface PlayerDashboardProps {
   currentUser: User | null;
 }
 
-const radarData = [
-  { subject: 'Aggro', A: 120, fullMark: 150 },
-  { subject: 'Control', A: 98, fullMark: 150 },
-  { subject: 'Combo', A: 86, fullMark: 150 },
-  { subject: 'Midrange', A: 99, fullMark: 150 },
-  { subject: 'Tempo', A: 85, fullMark: 150 },
-  { subject: 'Ramp', A: 65, fullMark: 150 },
-];
-
-// Enhanced yearly progression data with multiple metrics and years (limited to recent years)
-const yearlyProgressionData = [
-  // 2023 Data
-  { month: 'Jan', year: 2023, points: 1580, wins: 52, losses: 29, draws: 9 },
-  { month: 'Fev', year: 2023, points: 1640, wins: 56, losses: 31, draws: 8 },
-  { month: 'Mar', year: 2023, points: 1720, wins: 61, losses: 33, draws: 10 },
-  { month: 'Abr', year: 2023, points: 1790, wins: 65, losses: 35, draws: 9 },
-  { month: 'Mai', year: 2023, points: 1860, wins: 70, losses: 37, draws: 11 },
-  { month: 'Jun', year: 2023, points: 1920, wins: 74, losses: 39, draws: 10 },
-  { month: 'Jul', year: 2023, points: 1980, wins: 78, losses: 41, draws: 12 },
-  { month: 'Ago', year: 2023, points: 2050, wins: 83, losses: 43, draws: 11 },
-  { month: 'Set', year: 2023, points: 2120, wins: 87, losses: 45, draws: 13 },
-  { month: 'Out', year: 2023, points: 2180, wins: 92, losses: 47, draws: 12 },
-  { month: 'Nov', year: 2023, points: 2240, wins: 96, losses: 49, draws: 14 },
-  { month: 'Dez', year: 2023, points: 2300, wins: 100, losses: 51, draws: 13 },
-
-  // 2024 Data
-  { month: 'Jan', year: 2024, points: 1200, wins: 15, losses: 8, draws: 2 },
-  { month: 'Fev', year: 2024, points: 1350, wins: 19, losses: 10, draws: 3 },
-  { month: 'Mar', year: 2024, points: 1280, wins: 17, losses: 11, draws: 4 },
-  { month: 'Abr', year: 2024, points: 1450, wins: 23, losses: 12, draws: 3 },
-  { month: 'Mai', year: 2024, points: 1520, wins: 26, losses: 14, draws: 5 },
-  { month: 'Jun', year: 2024, points: 1680, wins: 31, losses: 15, draws: 4 },
-  { month: 'Jul', year: 2024, points: 1750, wins: 34, losses: 17, draws: 6 },
-  { month: 'Ago', year: 2024, points: 1820, wins: 38, losses: 18, draws: 5 },
-  { month: 'Set', year: 2024, points: 1890, wins: 42, losses: 20, draws: 7 },
-  { month: 'Out', year: 2024, points: 1960, wins: 45, losses: 22, draws: 6 },
-  { month: 'Nov', year: 2024, points: 2020, wins: 49, losses: 23, draws: 8 },
-  { month: 'Dez', year: 2024, points: 2080, wins: 52, losses: 25, draws: 7 },
-
-  // 2025 Data (Current Year)
-  { month: 'Jan', year: 2025, points: 1180, wins: 14, losses: 7, draws: 3 },
-  { month: 'Fev', year: 2025, points: 1420, wins: 20, losses: 9, draws: 2 },
-  { month: 'Mar', year: 2025, points: 1580, wins: 26, losses: 11, draws: 4 },
-  { month: 'Abr', year: 2025, points: 1740, wins: 32, losses: 13, draws: 3 },
-  { month: 'Mai', year: 2025, points: 1890, wins: 37, losses: 15, draws: 5 },
-  { month: 'Jun', year: 2025, points: 2020, wins: 43, losses: 17, draws: 4 },
-  { month: 'Jul', year: 2025, points: 2180, wins: 49, losses: 19, draws: 6 },
-  { month: 'Ago', year: 2025, points: 2340, wins: 55, losses: 21, draws: 5 },
-  { month: 'Set', year: 2025, points: 2480, wins: 61, losses: 23, draws: 7 },
-  { month: 'Out', year: 2025, points: 2620, wins: 67, losses: 25, draws: 6 },
-  { month: 'Nov', year: 2025, points: 2750, wins: 73, losses: 27, draws: 8 },
-  { month: 'Dez', year: 2025, points: 2880, wins: 79, losses: 29, draws: 7 },
-];
-
-const recentTournaments = [
-  { id: 1, name: 'Modern Semanal', date: '15/12/2024', placement: 2, participants: 32, points: 180 },
-  { id: 2, name: 'Confronto Padrão', date: '10/12/2024', placement: 5, participants: 24, points: 120 },
-  { id: 3, name: 'Magic de Sexta à Noite', date: '08/12/2024', placement: 1, participants: 16, points: 200 },
-  { id: 4, name: 'Noite de Commander', date: '05/12/2024', placement: 3, participants: 12, points: 100 },
-];
-
 export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUser }: PlayerDashboardProps) {
   const [selectedMetric, setSelectedMetric] = useState('points');
-  const [selectedYears, setSelectedYears] = useState(['2024', '2025']); // Default to current vs previous year
+  const [selectedYears, setSelectedYears] = useState(['2024', '2025']);
 
-  // Years in descending order (current year first)
-  const availableYears = ['2025', '2024', '2023', '2022', '2021'];
+  const [yearlyProgressionData, setYearlyProgressionData] = useState<any[]>([]);
+  const [recentTournaments, setRecentTournaments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [radarData, setRadarData] = useState([]);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [totalRank, setTotalRank] = useState<any>();
+  const [mensalRank, setMensalRank] = useState<any>();
+  const [anualRank, setAnualRank] = useState<any>();
+  const [totalTournments, setTotalTournments] = useState<any>();
+  const [winRate, setWinRate] = useState<any>();
 
-  // Filter data based on selected years
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+      if (!currentUser) return;
+      const token = localStorage.getItem('accessToken');
+
+      const res = await fetch(`http://localhost:8000/jogadores/estatisticas`, {
+        headers: {
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) throw new Error('Erro ao buscar estatísticas');
+      
+      const data = await res.json();
+      setTotalRank(data.rank_geral)
+      setMensalRank(data.rank_mensal)
+      setAnualRank(data.rank_anual)
+      setTotalTournments(data.torneio_totais)
+      setWinRate(data.taxa_vitoria)
+
+      const formattedYearly = data.estatisticas_anuais.map((item: any) => ({
+        month: item.mes,
+        year: item.ano,
+        points: item.pontos,
+        wins: item.vitorias,
+        losses: item.derrotas,
+        draws: item.empates,
+      }));
+
+      const uniqueYears = Array.from(new Set<number>(formattedYearly.map(d => d.year)))
+        .sort((a, b) => b - a)
+        .map(y => y.toString());
+
+      setAvailableYears(uniqueYears);
+      
+      const formattedHistory = data.historico.map((item: any) => ({
+        id: item.id,
+        name: item.nome,
+        date: new Date(item.data_inicio).toLocaleDateString('pt-BR'),
+        placement: item.colocacao,
+        participants: item.participantes,
+        points: item.pontuacao,
+      }));
+
+      setYearlyProgressionData(formattedYearly);
+      setRecentTournaments(formattedHistory);
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+  // Dentro do componente PlayerDashboard, antes do return
+  const currentYear = new Date().getFullYear();
+
+  // Filtra dados do ano atual
+  const dataAnoAtual = yearlyProgressionData.filter(d => d.year === currentYear);
+
+  // Cálculo de pontos anuais (soma de todos os meses do ano atual)
+  const pontosAnuais = dataAnoAtual.reduce((acc, item) => acc + (item.points || 0), 0);
+
+  // Cálculo de pontos mensais (último mês disponível do ano atual)
+  const pontosMensais = dataAnoAtual.length > 0
+    ? dataAnoAtual[dataAnoAtual.length - 1].points
+    : 0;
+  async function fetchRadarData() {
+    if (!currentUser) return;
+    const token = localStorage.getItem('accessToken');
+    try {
+      const res = await fetch(
+        `http://localhost:8000/ranking/desempenho`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error('Erro ao buscar desempenho por formatos');
+
+      const data = await res.json();
+
+      // Mapeando para o formato do RadarChart
+      const formattedData = data.map(item => ({
+        subject: item.formato,
+        A: item.pontos,
+      }));
+
+      const mockData = [
+        { subject: "Challenger", A: 40 },
+        { subject: "Semanal", A: 20 },
+      ];
+
+      // Combina mock + dados reais e atualiza o estado
+      setRadarData(prev => [...mockData, ...formattedData]);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  const fetchData = async () => {
+    await fetchRadarData();
+    await fetchStats();
+  };
+  fetchData();
+}, [currentUser]);
+
   const filteredData = yearlyProgressionData.filter(d => selectedYears.includes(d.year.toString()));
 
   // Group data by month for comparison
@@ -99,7 +155,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
     });
     return monthData;
   });
-
+  const totalPoints = yearlyProgressionData.reduce((acc, item) => acc + (item.points || 0), 0);
   const getMetricLabel = (metric: string) => {
     switch (metric) {
       case 'points': return 'Pontos';
@@ -175,10 +231,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currentUser?.stats?.totalPoints || 1680}</div>
-            <p className="text-xs text-muted-foreground">
-              +160 do mês passado
-            </p>
+            <div className="text-2xl font-bold">{totalPoints}</div>
           </CardContent>
         </Card>
 
@@ -188,8 +241,8 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currentUser?.stats?.winRate || 68}%</div>
-            <Progress value={currentUser?.stats?.winRate || 68} className="mt-2" />
+            <div className="text-2xl font-bold">{winRate}%</div>
+            <Progress value={winRate} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -199,9 +252,9 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currentUser?.stats?.tournaments || 24}</div>
+            <div className="text-2xl font-bold">{totalTournments}</div>
             <p className="text-xs text-muted-foreground">
-              Nesta temporada
+              Torneios Totais
             </p>
           </CardContent>
         </Card>
@@ -212,9 +265,9 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             <Medal className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">#{currentUser?.stats?.rank || 12}</div>
+            <div className="text-2xl font-bold">#{totalRank}</div>
             <p className="text-xs text-muted-foreground">
-              Ranking regional
+              Ranking geral
             </p>
           </CardContent>
         </Card>
@@ -224,27 +277,23 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         {/* Seasonal Progress Radar Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Desempenho por Arquétipo de Deck</CardTitle>
-            <CardDescription>Seu desempenho em diferentes tipos de deck</CardDescription>
+            <CardTitle>Desempenho por Formato</CardTitle>
+            <CardDescription>Seu desempenho em diferentes tipos de formatos de torneios</CardDescription>
           </CardHeader>
           <CardContent className="h-[450px] flex items-center justify-center">
             <div className="w-full h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="subject" />
-                  <PolarRadiusAxis angle={90} domain={[0, 150]} />
-                  <Radar
-                    name="Desempenho"
-                    dataKey="A"
-                    stroke="#2d1b69"
-                    fill="#2d1b69"
-                    fillOpacity={0.6}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={radarData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="subject" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="A" fill="#2d1b69" />
+              </BarChart>
+            </ResponsiveContainer>
             </div>
           </CardContent>
+
         </Card>
 
         {/* Enhanced Performance Trend */}
@@ -396,18 +445,15 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 border rounded-lg">
               <h3 className="font-semibold text-lg">Mensal</h3>
-              <p className="text-3xl font-bold text-primary">#8</p>
-              <p className="text-sm text-muted-foreground">{currentUser?.stats?.totalPoints || 1680} pontos</p>
+              <p className="text-3xl font-bold text-primary">#{mensalRank}</p>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <h3 className="font-semibold text-lg">Anual</h3>
-              <p className="text-3xl font-bold text-primary">#{currentUser?.stats?.rank || 12}</p>
-              <p className="text-sm text-muted-foreground">15.240 pontos</p>
+              <p className="text-3xl font-bold text-primary">#{anualRank}</p>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <h3 className="font-semibold text-lg">Geral</h3>
-              <p className="text-3xl font-bold text-primary">#23</p>
-              <p className="text-sm text-muted-foreground">28.950 pontos</p>
+              <p className="text-3xl font-bold text-primary">#{totalRank}</p>
             </div>
           </div>
           <div className="mt-6 flex justify-center">

@@ -66,7 +66,7 @@ interface TournamentListProps {
 // -------------------------------------------------------------
 const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
   return backendData.map(t => ({
-    id: parseInt(t.id),
+    id: t.id,
     name: t.nome,
     organizerId: t.loja_id,
     organizerName: t.loja?.nome || "Organizador não informado", // <-- Mudança aqui
@@ -141,7 +141,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
                  setMyTournaments([]);
               } else {
                 const specificData: PlayerTournamentLink[] = await playerResponse.json();
-                const myTournamentIds = new Set(specificData.map(link => parseInt(link.torneio_id)));
+                const myTournamentIds = new Set(specificData.map(link => link.torneio_id.toString()));
                 const myFilteredTournaments = mappedAllTournaments.filter(t => myTournamentIds.has(t.id));
                 setMyTournaments(myFilteredTournaments);
               }
