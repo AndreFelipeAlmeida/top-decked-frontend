@@ -227,10 +227,12 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
 
         if (!response.ok) {
             const errorData = await response.json();
+            setIsRegistered(true)
             throw new Error(errorData.detail || 'Falha ao se inscrever.');
         }
         
         toast.success('Inscrição para o torneio realizada com sucesso!');
+        setIsRegistered(true)
         fetchTournamentDetails();
     } catch (err: any) {
         console.error("Erro na inscrição:", err.message);
@@ -252,11 +254,13 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         });
         
         if (!response.ok) {
+            setIsRegistered(false)
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Falha ao remover a inscrição.');
         }
 
         toast.success('Inscrição no torneio removida com sucesso.');
+        setIsRegistered(false)
         fetchTournamentDetails();
     } catch (err: any) {
         console.error("Erro ao remover inscrição:", err.message);
@@ -433,7 +437,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="player-rules">Regras de Jogador Utilizadas</TabsTrigger>
-          <TabsTrigger value="tournament-results">Resultados do Torneio</TabsTrigger>
+          <TabsTrigger value="tournament-results">Participantes do Torneio</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
@@ -541,17 +545,17 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Trophy className="h-5 w-5" />
-                <span>Resultados do Torneio</span>
+                <span>Participantes do Torneio</span>
               </CardTitle>
               <CardDescription>
-                Classificação final deste torneio
+                participação deste torneio
               </CardDescription>
             </CardHeader>
             <CardContent>
               {!tournament.hasImportedResults ? (
                 <div className="text-center py-8">
                   <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Os resultados do torneio aparecerão após a importação dos dados do torneio</p>
+                  <p className="text-muted-foreground">Os participantes do torneio aparecerão após a importação dos dados do torneio</p>
                 </div>
               ) : (
                 <div className="rounded-md border">
@@ -560,8 +564,6 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                       <TableRow>
                         <TableHead>Posição</TableHead>
                         <TableHead>Jogador</TableHead>
-                        <TableHead>Pontos</TableHead>
-                        <TableHead>Histórico</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -576,10 +578,6 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                             </Badge>
                           </TableCell>
                           <TableCell>{participant.userName}</TableCell>
-                          <TableCell>{participant.points}</TableCell>
-                          <TableCell>
-                            {participant.wins}-{participant.losses}-{participant.draws}
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
