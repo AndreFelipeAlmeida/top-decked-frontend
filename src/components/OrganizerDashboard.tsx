@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Button } from './ui/button.tsx';
@@ -6,7 +6,7 @@ import { Calendar, Users, Trophy, Plus, Upload, TrendingUp, FileText } from 'luc
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TournamentImport } from './TournamentImport.tsx';
 import { tournamentStore } from '../data/store.ts';
-
+import { useMemo } from 'react';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -14,39 +14,170 @@ interface OrganizerDashboardProps {
   onNavigate: (page: Page, data?: any) => void;
 }
 
-const monthlyData = [
-  { month: 'Jan', tournaments: 8, participants: 245 },
-  { month: 'Fev', tournaments: 12, participants: 380 },
-  { month: 'Mar', tournaments: 10, participants: 320 },
-  { month: 'Abr', tournaments: 15, participants: 450 },
-  { month: 'Mai', tournaments: 18, participants: 520 },
-  { month: 'Jun', tournaments: 22, participants: 680 },
-];
-
-const formatData = [
-  { name: 'Modern', value: 35, color: '#2d1b69' },
-  { name: 'Standard', value: 25, color: '#6366f1' },
-  { name: 'Commander', value: 20, color: '#8b5cf6' },
-  { name: 'Legacy', value: 15, color: '#ffd700' },
-  { name: 'Draft', value: 5, color: '#06b6d4' },
-];
-
-const upcomingTournaments = [
-  { id: 1, name: 'Modern Semanal', date: '2024-12-20', participants: 28, maxParticipants: 32, status: 'open' },
-  { id: 2, name: 'Confronto Standard', date: '2024-12-22', participants: 24, maxParticipants: 24, status: 'closed' },
-  { id: 3, name: 'Noite de Commander', date: '2024-12-25', participants: 8, maxParticipants: 16, status: 'open' },
-  { id: 4, name: 'Torneio Legacy', date: '2024-12-28', participants: 12, maxParticipants: 20, status: 'open' },
-];
-
-const recentTournaments = [
-  { id: 1, name: 'Friday Night Magic', date: '2024-12-15', participants: 32, status: 'closed', winner: 'Alex Chen' },
-  { id: 2, name: 'Standard Semanal', date: '2024-12-12', participants: 24, status: 'closed', winner: 'Sarah Johnson' },
-  { id: 3, name: 'Modern Masters', date: '2024-12-10', participants: 48, status: 'closed', winner: 'Mike Rodriguez' },
-];
-
 export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const currentUser = tournamentStore.getCurrentUser(); // Fetch current user from store
+  const currentUser = tournamentStore.getCurrentUser();
+
+const [torneiosAtivos, setTorneiosAtivos] = useState(0);
+const [torneiosFinalizados, setTorneiosFinalizados] = useState(0);
+const [totalParticipantes, setTotalParticipantes] = useState(0);
+const [mediaParticipantes, setMediaParticipantes] = useState(0);
+const [torneiosFuturos, setTorneiosFuturos] = useState<any[]>([]);
+const [torneiosUltimaSemana, setTorneiosUltimaSemana] = useState(0);
+const [torneiosFinalizadosMes, setTorneiosFinalizadosMes] = useState(0);
+const [participantesSemana, setParticipantesSemana] = useState(0);
+const [torneiosSemana, setTorneiosSemana] = useState(0);
+const [monthlyData, setMonthlyData] = useState<{ month: string; tournaments: number; participants: number }[]>([]);
+const [data, setData] = useState<any[]>([]);
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1'];
+
+const formatData = useMemo(() => {
+  if (data.length === 0) {
+    return [{ name: 'Sem dados', value: 1, color: '#ccc' }];
+  }
+
+  const counts: Record<string, number> = {};
+  data.forEach((t) => {
+    counts[t.formato] = (counts[t.formato] || 0) + 1;
+  });
+
+  return Object.entries(counts).map(([name, value], index) => ({
+    name,
+    value,
+    color: COLORS[index % COLORS.length],
+  }));
+}, [data]);
+const [lastWeekTournaments, setLastWeekTournaments] = useState<any[]>([]);
+
+const ultimos3Concluidos = data
+  .filter(torneio => torneio.finalizado)
+  .sort((a, b) => new Date(b.dataTorneio).getTime() - new Date(a.dataTorneio).getTime())
+  .slice(0, 3);
+
+useEffect(() => {
+  async function fetchOrganizerTournaments() {
+    const token = localStorage.getItem('accessToken');
+    try {
+      const organizerResponse = await fetch(
+        'http://localhost:8000/lojas/torneios/loja',
+        {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }
+      );
+
+      if (!organizerResponse.ok) throw new Error('Erro ao buscar torneios');
+
+      const data = await organizerResponse.json();
+      setData(data)
+      const hoje = new Date();
+      const umaSemanaAtras = new Date();
+      const mesAtual = hoje.getMonth(); // 0-11
+      const anoAtual = hoje.getFullYear();
+      umaSemanaAtras.setDate(hoje.getDate() - 7);
+
+      // Quantidade de torneios ativos e finalizados
+      const ativos = data.filter((t: any) => t.finalizado === false).length;
+      const finalizados = data.filter((t: any) => t.finalizado === true).length;
+
+      // Total de participantes
+      const participantes = data.reduce(
+        (acc: number, torneio: any) => acc + (torneio.jogadores?.length || 0),
+        0
+      );
+
+      // Média de participantes por torneio
+      const media = data.length > 0 ? (participantes / data.length).toFixed(2) : 0;
+
+      // Torneios com datas futuras
+      const hj = new Date();
+      hj.setHours(0, 0, 0, 0); // zera horas, minutos, segundos, ms
+
+      const futuros = data.filter((t: any) => {
+        const tData = new Date(t.data_inicio);
+        tData.setHours(0, 0, 0, 0); // zera também a hora do torneio
+        return tData > hoje;
+      });
+      
+      console.log(futuros)
+      console.log("teste")
+      // Torneios da última semana
+      const ultimaSemana = data.filter(
+        (t: any) => {
+          const dataT = new Date(t.data_inicio);
+          return dataT >= umaSemanaAtras && dataT <= hoje;
+        }
+      ).length;
+
+      const finalizadosMes = data.filter((t: any) => {
+        if (!t.finalizado) return false;
+        const dataTorneio = new Date(t.data_inicio);
+        return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
+      }).length;
+
+      const primeiroDiaSemana = new Date(hoje);
+      primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay()); // domingo
+      primeiroDiaSemana.setHours(0, 0, 0, 0);
+
+      const ultimoDiaSemana = new Date(primeiroDiaSemana);
+      ultimoDiaSemana.setDate(primeiroDiaSemana.getDate() + 6); // sábado
+      ultimoDiaSemana.setHours(23, 59, 59, 999);
+
+      // Filtra torneios desta semana
+      const torneiosEstaSemana = data.filter((t: any) => {
+        const dataTorneio = new Date(t.data_inicio);
+        return dataTorneio >= primeiroDiaSemana && dataTorneio <= ultimoDiaSemana;
+      });
+      
+      // Soma participantes
+      const totalParticipantes = torneiosEstaSemana.reduce((acc: number, t: any) => {
+        return acc + (t.jogadores?.length || 0);
+      }, 0);
+
+      // Processa os dados por mês
+      const monthly = Array.from({ length: 12 }, (_, i) => {
+        const month = i + 1;
+        const monthTournaments = data.filter((tournament: any) => {
+          const date = new Date(tournament.data_inicio);
+          return date.getMonth() + 1 === month;
+        });
+
+        const totalParticipants = monthTournaments.reduce((acc, t: any) => acc + (t.jogadores?.length || 0), 0);
+
+        return {
+          month: new Date(0, i).toLocaleString('pt-BR', { month: 'short' }),
+          tournaments: monthTournaments.length,
+          participants: totalParticipants,
+        };
+      });
+
+      const today = new Date();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
+
+      const lastWeek = data.filter((tournament: any) => {
+        const tournamentDate = new Date(tournament.data_inicio);
+        return tournamentDate >= sevenDaysAgo && tournamentDate <= today;
+      });
+
+      setLastWeekTournaments(lastWeek);
+      setMonthlyData(monthly);
+      setTorneiosSemana(torneiosEstaSemana.length);
+      setParticipantesSemana(totalParticipantes);
+      setTorneiosFinalizadosMes(finalizadosMes);
+      setTorneiosAtivos(ativos);
+      setTorneiosFinalizados(finalizados);
+      setTotalParticipantes(participantes);
+      setMediaParticipantes(media);
+      setTorneiosFuturos(futuros);
+      setTorneiosUltimaSemana(ultimaSemana);
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  fetchOrganizerTournaments();
+}, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -92,9 +223,9 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-2xl font-bold">{torneiosAtivos}</div>
             <p className="text-xs text-muted-foreground">
-              2 esta semana
+              {torneiosSemana} esta semana
             </p>
           </CardContent>
         </Card>
@@ -105,9 +236,9 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">72</div>
+            <div className="text-2xl font-bold">{totalParticipantes}</div>
             <p className="text-xs text-muted-foreground">
-              +12 em relação à semana passada
+              +{participantesSemana} em relação à semana passada
             </p>
           </CardContent>
         </Card>
@@ -118,9 +249,9 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">85</div>
+            <div className="text-2xl font-bold">{torneiosFinalizados}</div>
             <p className="text-xs text-muted-foreground">
-              Este mês
+            este mês
             </p>
           </CardContent>
         </Card>
@@ -131,9 +262,9 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">31</div>
+            <div className="text-2xl font-bold">{mediaParticipantes}</div>
             <p className="text-xs text-muted-foreground">
-              jogadores por evento
+              jogadores por torneio
             </p>
           </CardContent>
         </Card>
@@ -197,25 +328,25 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {upcomingTournaments.map((tournament) => (
+            {torneiosFuturos.map((tournament) => (
               <div key={tournament.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{tournament.name}</h3>
-                    <p className="text-sm text-muted-foreground">{tournament.date}</p>
+                    <h3 className="font-semibold">{tournament.nome}</h3>
+                    <p className="text-sm text-muted-foreground">{tournament.data}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{tournament.participants}/{tournament.maxParticipants}</span>
+                      <span className="text-sm">{tournament.jogadores.length}/{tournament.vagas}</span>
                     </div>
                     <Badge 
-                      className={tournament.status === 'closed' ? 'bg-gray-100 text-black' : 'bg-purple-100 text-purple-800'}
+                      className={tournament.finalizado ? 'bg-gray-100 text-black' : 'bg-purple-100 text-purple-800'}
                     >
                       {tournament.status === 'closed' ? 'Fechado' : 'Aberto'}
                     </Badge>
@@ -242,32 +373,34 @@ export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentTournaments.map((tournament) => (
-              <div key={tournament.id} className="flex items-center justify-between p-4 border rounded-lg">
-                {/* Coluna da esquerda */}
-                <div className="flex items-center gap-4 min-w-0">
-                  <Trophy className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                  <div className="min-w-0">
-                    <h3 className="font-semibold truncate">{tournament.name}</h3>
-                    <p className="text-sm text-muted-foreground">{tournament.date}</p>
-                  </div>
-                </div>
-
-                {/* Coluna da direita */}
-                <div className="flex flex-col items-end gap-1 text-right">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{tournament.participants} jogadores</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Vencedor: {tournament.winner}</p>
+            {ultimos3Concluidos.map((tournament) => (
+            <div
+              key={tournament.id}
+              className="flex items-center justify-between p-4 border rounded-lg"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <Trophy className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="font-semibold truncate">{tournament.nome}</h3>
+                  <p className="text-sm text-muted-foreground"></p>
                 </div>
               </div>
-            ))}
+
+              <div className="flex flex-col items-end gap-1 text-right">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {tournament.jogadores?.length || 0} jogadores
+                  </span>
+                </div>
+              </div>
+            </div>
+              ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Dialog for importing tournament data */}
+      {/* Importar Torneio */}
       {currentUser && (
         <TournamentImport
           isOpen={isImportModalOpen}

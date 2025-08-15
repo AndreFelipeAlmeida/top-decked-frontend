@@ -155,6 +155,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
     });
     return monthData;
   });
+  console.log(yearlyProgressionData)
   const totalPoints = yearlyProgressionData.reduce((acc, item) => acc + (item.points || 0), 0);
   const getMetricLabel = (metric: string) => {
     switch (metric) {
