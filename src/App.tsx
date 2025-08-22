@@ -9,11 +9,11 @@ import { TournamentDetails } from './components/TournamentDetails.tsx';
 import { TournamentList } from './components/TournamentList.tsx';
 import { TournamentEdit } from './components/TournamentEdit.tsx';
 import { PlayerRules } from './components/PlayerRules.tsx';
+import { PlayerProfile } from './components/PlayerProfile.tsx';
 import { Toaster } from './components/ui/sonner.tsx';
 import { tournamentStore, User } from './data/store.ts';
 
-
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'PlayerProfile';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
@@ -102,6 +102,13 @@ export default function App() {
       case 'player-rules':
         return (
           <PlayerRules
+            onNavigate={handleNavigate}
+            currentUser={currentUser}
+          />
+        );
+      case 'PlayerProfile':
+        return (
+          <PlayerProfile
             onNavigate={handleNavigate}
             currentUser={currentUser}
           />
