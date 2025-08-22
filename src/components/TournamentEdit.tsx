@@ -601,7 +601,7 @@ export function TournamentEdit({
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome do Torneio *</Label>
+                <Label htmlFor="name">Nome do Torneio <span className="text-red-500">*</span></Label>
                 <Input
                   id="name"
                   placeholder="Friday Night Magic"
@@ -616,7 +616,7 @@ export function TournamentEdit({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="format">Formato *</Label>
+                <Label htmlFor="format">Formato <span className="text-red-500">*</span></Label>
                 <Select
                   value={formData.format}
                   onValueChange={(value) =>
@@ -653,7 +653,7 @@ export function TournamentEdit({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="date">Data *</Label>
+                <Label htmlFor="date">Data <span className="text-red-500">*</span></Label>
                 <Input
                   id="date"
                   type="date"
@@ -702,7 +702,7 @@ export function TournamentEdit({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="structure">
-                  Estrutura do Torneio *
+                  Estrutura do Torneio <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={formData.structure}

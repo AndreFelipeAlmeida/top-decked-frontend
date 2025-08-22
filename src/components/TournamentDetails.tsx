@@ -289,7 +289,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                   <Button 
                     variant="outline"
                     onClick={() => onNavigate('tournament-edit', { tournamentId: tournament.id })}
-                    className="flex items-center space-x-2 bg-white border-gray-300 text-gray-900 hover:bg-yellow-400 hover:text-gray-900 hover:border-gray-300"
+                    className="flex items-center space-x-2 bg-white border-gray-300 text-gray-900 hover:bg-purple-500 hover:text-gray-900 hover:border-gray-300"
                   >
                     <span>Editar</span>
                   </Button>

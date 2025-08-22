@@ -196,9 +196,9 @@ export function RankingScreen({ onNavigate, currentUser}: RankingScreenProps) {
 
       <Tabs defaultValue="global" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="global">Rankings Globais</TabsTrigger>
-          <TabsTrigger value="organizer">Por Loja</TabsTrigger>
-          <TabsTrigger value="highlights">Destaques do Mês</TabsTrigger>
+          <TabsTrigger value="global" className="data-[state=active]:bg-purple-600">Rankings Globais</TabsTrigger>
+          <TabsTrigger value="organizer" className="data-[state=active]:bg-purple-600">Por Loja</TabsTrigger>
+          <TabsTrigger value="highlights" className="data-[state=active]:bg-purple-600">Destaques do Mês</TabsTrigger>
         </TabsList>
 
         <TabsContent value="global" className="space-y-6">

@@ -256,12 +256,12 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
 
       <Tabs defaultValue={currentUser?.type === 'player' ? 'all' : 'my-tournaments'} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all">Todos os Torneios</TabsTrigger>
-          <TabsTrigger value="my-tournaments">
+          <TabsTrigger value="all" className="data-[state=active]:bg-purple-600">Todos os Torneios</TabsTrigger>
+          <TabsTrigger value="my-tournaments" className="data-[state=active]:bg-purple-600">
             {currentUser?.type === 'player' ? 'Meus Torneios' : 'Meus Torneios'}
-          </TabsTrigger>
+          </TabsTrigger >
           {currentUser?.type === 'player' && (
-            <TabsTrigger value="available">Disponíveis para Inscrição</TabsTrigger>
+            <TabsTrigger value="available" className="data-[state=active]:bg-purple-600">Disponíveis para Inscrição</TabsTrigger>
           )}
         </TabsList>
 
