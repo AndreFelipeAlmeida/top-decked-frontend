@@ -9,20 +9,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Trophy, Medal, Crown, Search, Filter, Users, Star, ArrowLeft, Plus } from 'lucide-react';
 import { tournamentStore, User } from '../data/store.ts';
 
-
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 interface RankingScreenProps {
   onNavigate: (page: Page, data?: any) => void;
   currentUser: User | null;
 }
 
-export function RankingScreen({ onNavigate, currentUser}: RankingScreenProps) {
+export function RankingScreen({ onNavigate, currentUser }: RankingScreenProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrganizer, setSelectedOrganizer] = useState('all');
   const [globalRankings, setGlobalRankings] = useState<User[]>([]);
   const [organizerRankings, setOrganizerRankings] = useState<any[]>([]);
   const [organizers, setOrganizers] = useState<User[]>([]);
+  const isOrganizer = currentUser?.type === 'organizer';
 
   useEffect(() => {
     // Get global rankings
@@ -74,11 +74,23 @@ export function RankingScreen({ onNavigate, currentUser}: RankingScreenProps) {
     const stats = isOrganizerRanking ? player.organizerStats : player.stats;
     const rank = index + 1;
 
+    const handlePlayerClick = () => {
+      if (isOrganizer) {
+        onNavigate('player-profile', { playerId: player.id });
+      } else if (currentUser?.id === player.id) {
+        onNavigate('player-profile');
+      }
+    };
+
     return (
       <div 
         key={player.id} 
-        className="flex items-center justify-between p-4 border rounded-lg hover:bg-secondary/50 cursor-pointer"
-        onClick={(e) => e.preventDefault()}
+        className={`flex items-center justify-between p-4 border rounded-lg ${
+          (isOrganizer || currentUser?.id === player.id) 
+            ? 'hover:bg-secondary/50 cursor-pointer' 
+            : 'cursor-default'
+        }`}
+        onClick={handlePlayerClick}
       >
         <div className="flex items-center space-x-4">
           <div className="w-12 text-center">
@@ -100,7 +112,7 @@ export function RankingScreen({ onNavigate, currentUser}: RankingScreenProps) {
           </div>
           <div className="text-center">
             <div className="font-bold">{stats?.winRate || 0}%</div>
-            <div className="text-sm text-muted-foreground">Taxa de Vitória</div>
+            <div className="text-sm text-muted-foreground">Taxa de Vitórias</div>
           </div>
           <div className="text-center">
             <div className="font-bold">{stats?.tournaments || 0}</div>

@@ -5,7 +5,7 @@ import { Trophy, Calendar, BarChart3, User, CreditCard, LogOut, List } from 'luc
 import { User as UserType } from '../data/store.ts';
 
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 interface HeaderProps {
   userType: UserType['type'] | null;
@@ -86,11 +86,11 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
           
           <Button
             variant="ghost"
-            onClick={(e) => e.preventDefault()}
+            onClick={() => onNavigate(userType === 'player' ? 'player-profile' : 'organizer-profile')}
             className="flex items-center space-x-2"
           >
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">{currentUser?.name || 'Perfil'}</span>
+            <span className="hidden sm:inline">{userType === 'player' ? currentUser?.name : 'Downtown Comics'}</span>
           </Button>
           
           <Button
