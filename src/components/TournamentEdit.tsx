@@ -1,70 +1,20 @@
-import React, { useState, useEffect } from "react";
-import {Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card.tsx";
+import React, { useCallback, useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card.tsx";
 import { Button } from "./ui/button.tsx";
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
 import { Textarea } from "./ui/textarea.tsx";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select.tsx";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "./ui/command.tsx";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./ui/popover.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select.tsx";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover.tsx";
 import { Checkbox } from "./ui/checkbox.tsx";
 import { Alert, AlertDescription } from "./ui/alert.tsx";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "./ui/tabs.tsx";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui/table.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs.tsx";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table.tsx";
 import { Badge } from "./ui/badge.tsx";
-import {
-  Trophy,
-  ArrowLeft,
-  CheckCircle,
-  Plus,
-  Check,
-  Trash2,
-  Users,
-  Settings,
-  ChevronsUpDown,
-} from "lucide-react";
+import { Trophy, ArrowLeft, CheckCircle, Plus, Check, Trash2, Users, Settings, ChevronsUpDown } from "lucide-react";
 import { cn } from "./ui/utils.ts";
-import {
-  tournamentStore,
-  User,
-  Tournament,
-  PlayerRule,
-  TournamentParticipant,
-} from "../data/store.ts";
+import { tournamentStore, User, Tournament, PlayerRule, TournamentParticipant } from "../data/store.ts";
 import { toast } from "sonner";
 
 
@@ -89,8 +39,7 @@ export function TournamentEdit({
   currentUser,
   tournamentId,
 }: TournamentEditProps) {
-  const [tournament, setTournament] =
-    useState<Tournament | null>(null);
+  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -110,72 +59,108 @@ export function TournamentEdit({
   const [isLoading, setIsLoading] = useState(false);
 
   // Player Rules state
-  const [defaultRuleId, setDefaultRuleId] =
-    useState<string>("");
-  const [additionalRuleId, setAdditionalRuleId] =
-    useState<string>("");
-  const [selectedPlayerId, setSelectedPlayerId] =
-    useState<string>("");
-  const [playerRuleAssignments, setPlayerRuleAssignments] =
-    useState<PlayerRuleAssignment[]>([]);
-  const [applyAdditionalRules, setApplyAdditionalRules] =
-    useState<boolean>(false);
+  const [defaultRuleId, setDefaultRuleId] = useState<string>("");
+  const [additionalRuleId, setAdditionalRuleId] = useState<string>("");
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
+  const [playerRuleAssignments, setPlayerRuleAssignments] = useState<PlayerRuleAssignment[]>([]);
+  const [applyAdditionalRules, setApplyAdditionalRules] = useState<boolean>(false);
 
-  const [availableRules, setAvailableRules] = useState<
-    PlayerRule[]
-  >([]);
-  const [availablePlayers, setAvailablePlayers] = useState<
-    User[]
-  >([]);
+  const [availableRules, setAvailableRules] = useState<PlayerRule[]>([]);
+  const [availablePlayers, setAvailablePlayers] = useState<User[]>([]);
 
   // Popover states for searchable dropdowns
-  const [rulePopoverOpen, setRulePopoverOpen] =
-    useState<boolean>(false);
-  const [playerPopoverOpen, setPlayerPopoverOpen] =
-    useState<boolean>(false);
+  const [rulePopoverOpen, setRulePopoverOpen] = useState<boolean>(false);
+  const [playerPopoverOpen, setPlayerPopoverOpen] = useState<boolean>(false);
 
   // Inline editing state - all participants editable by default
-  const [editingScores, setEditingScores] = useState<
-    Record<string, string>
-  >({});
+  const [editingScores, setEditingScores] = useState<Record<string, string>>({});
 
   // Mock tournament results - in real app this would come from the tournament data
-  const [mockTournamentResults, setMockTournamentResults] =
-    useState<TournamentParticipant[]>([
-      {
-        id: "part-1",
-        userId: "player-1",
-        userName: "Alex Chen",
-        registeredAt: "2024-12-18T10:00:00Z",
-        points: 12,
-        wins: 4,
-        losses: 1,
-        draws: 0,
-        currentStanding: 1,
-      },
-      {
-        id: "part-2",
-        userId: "player-2",
-        userName: "Mike Rodriguez",
-        registeredAt: "2024-12-18T11:30:00Z",
-        points: 9,
-        wins: 3,
-        losses: 2,
-        draws: 0,
-        currentStanding: 2,
-      },
-      {
-        id: "part-3",
-        userId: "player-3",
-        userName: "Emma Davis",
-        registeredAt: "2024-12-18T12:00:00Z",
-        points: 6,
-        wins: 2,
-        losses: 3,
-        draws: 0,
-        currentStanding: 3,
-      },
-    ]);
+  const [mockTournamentResults] = useState<TournamentParticipant[]>([
+    {
+      id: "part-1",
+      userId: "player-1",
+      userName: "Alex Chen",
+      registeredAt: "2024-12-18T10:00:00Z",
+      points: 12,
+      wins: 4,
+      losses: 1,
+      draws: 0,
+      currentStanding: 1,
+    },
+    {
+      id: "part-2",
+      userId: "player-2",
+      userName: "Mike Rodriguez",
+      registeredAt: "2024-12-18T11:30:00Z",
+      points: 9,
+      wins: 3,
+      losses: 2,
+      draws: 0,
+      currentStanding: 2,
+    },
+    {
+      id: "part-3",
+      userId: "player-3",
+      userName: "Emma Davis",
+      registeredAt: "2024-12-18T12:00:00Z",
+      points: 6,
+      wins: 2,
+      losses: 3,
+      draws: 0,
+      currentStanding: 3,
+    },
+  ]);
+
+  const calculatePlayerPoints = useCallback((
+      participant: TournamentParticipant,
+      forTournamentResults: boolean = false,
+    ) => {
+      if (
+        !participant ||
+        participant.wins == null ||
+        participant.losses == null
+      ) {
+        return participant?.points || 0;
+      }
+
+      const defaultRule = availableRules.find(
+        (rule) => rule.id === defaultRuleId,
+      );
+
+      const playerAssignment = playerRuleAssignments.find(
+        (assignment) => assignment.playerId === participant.userId,
+      );
+
+      const rule = playerAssignment
+        ? availableRules.find((r) => r.id === playerAssignment.ruleId)
+        : defaultRule;
+
+      if (!rule || rule.pointsForWin == null || rule.pointsForLoss == null) {
+        return participant.points || 0;
+      }
+
+      if (
+        forTournamentResults &&
+        playerAssignment &&
+        !applyAdditionalRules
+      ) {
+        return participant.points || 0;
+      }
+
+      const calculatedPoints =
+        participant.wins * rule.pointsForWin +
+        participant.losses * rule.pointsForLoss;
+
+      return isNaN(calculatedPoints)
+        ? participant.points || 0
+        : calculatedPoints;
+    }, [
+      availableRules,
+      defaultRuleId,
+      playerRuleAssignments,
+      applyAdditionalRules
+  ]);
 
   // Initialize editing scores when results load
   useEffect(() => {
@@ -192,9 +177,9 @@ export function TournamentEdit({
     applyAdditionalRules,
     playerRuleAssignments,
     defaultRuleId,
+    calculatePlayerPoints,
   ]);
 
-  // Mock monthly results aggregated
   const mockMonthlyResults = [
     {
       playerId: "player-1",
@@ -221,12 +206,8 @@ export function TournamentEdit({
 
   useEffect(() => {
     if (tournamentId && currentUser?.type === "organizer") {
-      const foundTournament =
-        tournamentStore.getTournamentById(tournamentId);
-      if (
-        foundTournament &&
-        foundTournament.organizerId === currentUser.id
-      ) {
+      const foundTournament = tournamentStore.getTournamentById(tournamentId);
+      if (foundTournament && foundTournament.organizerId === currentUser.id) {
         setTournament(foundTournament);
         setFormData({
           name: foundTournament.name,
@@ -241,16 +222,12 @@ export function TournamentEdit({
         });
 
         // Load available player rules
-        const rules = tournamentStore.getPlayerRulesByOrganizer(
-          currentUser.id,
-        );
+        const rules = tournamentStore.getPlayerRulesByOrganizer(currentUser.id);
         setAvailableRules(rules);
 
         // Set default rule to the first "Normal Player" rule or first available rule
         const defaultRule =
-          rules.find(
-            (rule) => rule.typeName === "Normal Player",
-          ) || rules[0];
+          rules.find((rule) => rule.typeName === "Normal Player") || rules[0];
         if (defaultRule) {
           setDefaultRuleId(defaultRule.id);
         }
@@ -281,18 +258,17 @@ export function TournamentEdit({
       currentUser
     ) {
       try {
-        const updatedTournament =
-          tournamentStore.updateTournament(tournament.id, {
-            name: formData.name,
-            date: formData.date,
-            time: formData.time,
-            format: formData.format,
-            description: formData.description,
-            prizes: formData.prizes,
-            entryFee: formData.entryFee,
-            structure: formData.structure,
-            rounds: parseInt(formData.rounds) || 5,
-          });
+        const updatedTournament = tournamentStore.updateTournament(tournament.id, {
+          name: formData.name,
+          date: formData.date,
+          time: formData.time,
+          format: formData.format,
+          description: formData.description,
+          prizes: formData.prizes,
+          entryFee: formData.entryFee,
+          structure: formData.structure,
+          rounds: parseInt(formData.rounds) || 5,
+        });
 
         if (updatedTournament) {
           setMessage({
@@ -336,19 +312,14 @@ export function TournamentEdit({
       return;
     }
 
-    const rule = availableRules.find(
-      (r) => r.id === additionalRuleId,
-    );
-    const player = availablePlayers.find(
-      (p) => p.id === selectedPlayerId,
-    );
+    const rule = availableRules.find((r) => r.id === additionalRuleId);
+    const player = availablePlayers.find((p) => p.id === selectedPlayerId);
 
     if (!rule || !player) {
       toast.error("Seleção de regra ou jogador inválida");
       return;
     }
 
-    // Check if player already has a rule assigned
     const existingAssignment = playerRuleAssignments.find(
       (assignment) => assignment.playerId === selectedPlayerId,
     );
@@ -365,10 +336,7 @@ export function TournamentEdit({
       ruleName: rule.typeName,
     };
 
-    setPlayerRuleAssignments([
-      ...playerRuleAssignments,
-      newAssignment,
-    ]);
+    setPlayerRuleAssignments([...playerRuleAssignments, newAssignment]);
     setAdditionalRuleId("");
     setSelectedPlayerId("");
     setRulePopoverOpen(false);
@@ -378,146 +346,43 @@ export function TournamentEdit({
 
   const handleRemovePlayerRule = (assignmentId: string) => {
     setPlayerRuleAssignments(
-      playerRuleAssignments.filter(
-        (assignment) => assignment.id !== assignmentId,
-      ),
+      playerRuleAssignments.filter((assignment) => assignment.id !== assignmentId),
     );
     toast.success("Regra de jogador removida");
   };
 
-  // Calculate points based on rules for a player
-  const calculatePlayerPoints = (
-    participant: TournamentParticipant,
-    forTournamentResults: boolean = false,
-  ) => {
-    // Safety check for participant data
-    if (
-      !participant ||
-      participant.wins == null ||
-      participant.losses == null
-    ) {
-      return participant?.points || 0;
-    }
-
-    const defaultRule = availableRules.find(
-      (rule) => rule.id === defaultRuleId,
-    );
-
-    // Find if player has a specific rule assigned
-    const playerAssignment = playerRuleAssignments.find(
-      (assignment) =>
-        assignment.playerId === participant.userId,
-    );
-
-    // Use specific rule if exists, otherwise use default rule
-    const rule = playerAssignment
-      ? availableRules.find(
-          (r) => r.id === playerAssignment.ruleId,
-        )
-      : defaultRule;
-
-    if (
-      !rule ||
-      rule.pointsForWin == null ||
-      rule.pointsForLoss == null
-    ) {
-      return participant.points || 0;
-    }
-
-    // For tournament results, only apply additional rules if checkbox is checked
-    if (
-      forTournamentResults &&
-      playerAssignment &&
-      !applyAdditionalRules
-    ) {
-      return participant.points || 0;
-    }
-
-    // Calculate new points based on rule (draws don't get points in this system)
-    const calculatedPoints =
-      participant.wins * rule.pointsForWin +
-      participant.losses * rule.pointsForLoss;
-
-    // Ensure we return a valid number
-    return isNaN(calculatedPoints)
-      ? participant.points || 0
-      : calculatedPoints;
-  };
-
-  // Calculate points for monthly results (always apply additional rules)
   const calculateMonthlyPlayerPoints = (
     playerId: string,
     originalPoints: number,
   ) => {
-    // Ensure we have a valid number to work with
     if (isNaN(originalPoints) || originalPoints == null) {
       return 0;
     }
 
-    const defaultRule = availableRules.find(
-      (rule) => rule.id === defaultRuleId,
-    );
+    const defaultRule = availableRules.find((rule) => rule.id === defaultRuleId);
 
-    // Find if player has a specific rule assigned
     const playerAssignment = playerRuleAssignments.find(
       (assignment) => assignment.playerId === playerId,
     );
 
-    // Use specific rule if exists, otherwise use default rule
     const rule = playerAssignment
-      ? availableRules.find(
-          (r) => r.id === playerAssignment.ruleId,
-        )
+      ? availableRules.find((r) => r.id === playerAssignment.ruleId)
       : defaultRule;
 
     if (!rule) return originalPoints;
 
-    // For monthly results, we apply a bonus/multiplier based on the rule difference
-    const bonusPoints = playerAssignment ? 5 : 0; // Simple bonus for having specific rule
+    const bonusPoints = playerAssignment ? 5 : 0;
 
     return originalPoints + bonusPoints;
   };
 
-  // Inline editing functions
-  const updateEditingScore = (
-    participantId: string,
-    value: string,
-  ) => {
+  const updateEditingScore = (participantId: string, value: string) => {
     setEditingScores((prev) => ({
       ...prev,
       [participantId]: value,
     }));
   };
 
-  const adjustScore = (
-    participantId: string,
-    delta: number,
-  ) => {
-    const currentScore = parseInt(
-      editingScores[participantId] || "0",
-    );
-    const newScore = Math.max(0, currentScore + delta);
-    updateEditingScore(participantId, newScore.toString());
-  };
-
-  const confirmEdit = (participantId: string) => {
-    const score = parseInt(editingScores[participantId]);
-    if (isNaN(score)) {
-      toast.error("Por favor, insira uma pontuação válida");
-      return;
-    }
-
-    // Update the participant's score
-    setMockTournamentResults((prev) =>
-      prev.map((p) =>
-        p.id === participantId ? { ...p, points: score } : p,
-      ),
-    );
-
-    toast.success("Pontuação atualizada com sucesso");
-  };
-
-  // Get position badge styling
   const getPositionBadgeStyle = (position: number) => {
     switch (position) {
       case 1:
@@ -531,7 +396,6 @@ export function TournamentEdit({
     }
   };
 
-  // Check if tournament exists and user is authorized
   if (
     !tournament ||
     !currentUser ||
