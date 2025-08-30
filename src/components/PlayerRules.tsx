@@ -14,8 +14,7 @@ import { toast } from 'sonner';
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
 interface PlayerRulesProps {
-  onNavigate: (page: Page) => void;
-  currentUser: any;
+  onNavigate: (page: Page, data?: any) => void;
 }
 
 interface PlayerRuleFormData {
