@@ -3,9 +3,14 @@ export interface User {
   name: string;
   email: string;
   type: 'player' | 'organizer';
+  phone?: string;
   store?: string;
   dateOfBirth?: string;
   avatar?: string;
+  gameIds?: Array<{
+    game: string;
+    id: string;
+  }>;
   stats?: {
     totalPoints: number;
     wins: number;
