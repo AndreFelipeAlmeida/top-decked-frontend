@@ -94,7 +94,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
     return {
         id: backendData.id,
         name: backendData.nome,
-        organizerId: backendData.loja_id,
+        organizerId: backendData.loja_id.toString(),
         organizerName: backendData.loja?.nome || "Organizador não informado",
         date: backendData.data_inicio,
         time: "Horário não informado",
@@ -110,7 +110,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
         currentRound: backendData.rodadas?.length || 0,
         participants: backendData.jogadores.map(p => ({
             id: p.jogador_id.toString(),
-            userId: p.jogador_id,
+            userId: p.jogador_id.toString(),
             userName: p.nome || 'Nome indisponível',
             registeredAt: new Date().toISOString(),
             points: p.ponto,

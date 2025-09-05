@@ -97,6 +97,14 @@ export interface PlayerRule {
   createdAt: string;
 }
 
+export interface PlayerRuleAssignment {
+  id: string;
+  playerId: string;
+  playerName: string;
+  ruleId: string;
+  ruleName: string;
+}
+
 // Mock Users
 export const mockUsers: User[] = [
   {

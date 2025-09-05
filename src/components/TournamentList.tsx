@@ -8,9 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Calendar, Users, Trophy, MapPin, Search, Filter, Plus, ArrowLeft } from 'lucide-react';
 import { User, Tournament } from '../data/store.ts';
 
-// -------------------------------------------------------------
-// Interfaces do Backend para o mapeamento
-// -------------------------------------------------------------
 interface JogadorTorneioLinkPublico {
   jogador_id: number; 
   torneio_id: string;
@@ -27,7 +24,6 @@ interface LojaPublico {
     id: number;
     nome: string;
     email: string;
-    // outros campos da loja
 }
 
 interface BackendTournament {
@@ -61,14 +57,11 @@ interface TournamentListProps {
   currentUser: User | null;
 }
 
-// -------------------------------------------------------------
-// Função de Mapeamento Corrigida
-// -------------------------------------------------------------
 const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
   return backendData.map(t => ({
-    id: t.id.toString(), // Garante que o ID do torneio é uma string
+    id: t.id.toString(),
     name: t.nome,
-    organizerId: t.loja_id,
+    organizerId: t.loja_id.toString(),
     organizerName: t.loja?.nome || "Organizador não informado",
     date: t.data_inicio,
     time: "Horário não informado",
@@ -80,11 +73,11 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
     entryFee: `$${t.taxa}`,
     structure: t.estrutura || '',
     rounds: t.rodadas?.length || 0,
-    status: t.finalizado ? 'closed' : 'open',
+    status: t.finalizado ? 'open' : 'closed',
     currentRound: t.rodadas?.length || 0,
     participants: t.jogadores.map(p => ({ 
       id: p.jogador_id.toString(), 
-      userId: p.jogador_id,
+      userId: p.jogador_id.toString(),
       userName: "Nome não disponível",
       registeredAt: new Date().toISOString(),
       points: p.ponto,
@@ -116,7 +109,6 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
       }
 
       try {
-        // 1. Buscar todos os torneios
         const allResponse = await fetch('http://localhost:8000/lojas/torneios/', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -127,7 +119,6 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
         const mappedAllTournaments = mapBackendToFrontend(allData);
         setAllTournaments(mappedAllTournaments);
 
-        // 2. Buscar os torneios específicos do usuário logado
         if (currentUser) {
           if (currentUser.type === 'player') {
             try {

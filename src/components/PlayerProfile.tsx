@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Switch } from './ui/switch.tsx';
 import { Input } from './ui/input.tsx';
@@ -7,8 +7,7 @@ import { Separator } from './ui/separator.tsx';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog.tsx';
 import { Button } from './ui/button.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar.tsx';
-import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Plus, X, Camera, Eye, Shield, Loader2 } from 'lucide-react';
-import { tournamentStore } from '../data/store.ts';
+import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loader2 } from 'lucide-react';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
@@ -41,7 +40,6 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
   const [securityEditMode, setSecurityEditMode] = useState(false);
   const [notifications, setNotifications] = useState({ email: true });
   
-  // Changed to a single message state for clarity
   const [profileMessage, setProfileMessage] = useState<{ text: string, type: 'success' | 'error' | null }>({ text: '', type: null });
   const [securityMessage, setSecurityMessage] = useState<{ text: string, type: 'success' | 'error' | null }>({ text: '', type: null });
 
@@ -52,7 +50,6 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
   const canEdit = isOwnProfile;
   const showSettings = isOwnProfile;
 
-  // Helper function to clear messages after a delay
   const clearProfileMessage = () => {
     setTimeout(() => setProfileMessage({ text: '', type: null }), 5000);
   };
@@ -149,13 +146,11 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
         throw new Error('Erro ao excluir a conta.');
       }
   
-      // Exclui o token do localStorage
       localStorage.removeItem('accessToken');
   
       setSecurityMessage({ text: "Conta excluída com sucesso!", type: 'success' });
       clearSecurityMessage();
   
-      // Chama onLogout imediatamente para atualizar o estado de autenticação
       onLogout();
     } catch (err) {
       console.error(err);

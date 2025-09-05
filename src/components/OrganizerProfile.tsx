@@ -8,7 +8,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from './ui/button.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar.tsx';
 import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loader2 } from 'lucide-react';
-import { tournamentStore, User } from '../data/store.ts';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
@@ -322,7 +321,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
     };
     reader.readAsDataURL(file);
 
-    // --- REMOVIDO: Chamada de API para upload da foto ---
+    // --- Chamada de API para upload da foto ---
     // const token = localStorage.getItem("accessToken");
     // if (!token) {
     //   setProfileMessage({ text: "Token de autenticação não encontrado.", type: "error" });
@@ -357,9 +356,6 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
     //   setProfileMessage({ text: "Falha ao atualizar a foto.", type: "error" });
     //   clearProfileMessage();
     // }
-    // --- FIM DA REMOÇÃO ---
-
-    // Mensagem local para indicar que a imagem foi selecionada (opcional)
     setProfileMessage({ text: "Imagem selecionada. O upload para o servidor está desativado.", type: "success" });
     clearProfileMessage();
   };

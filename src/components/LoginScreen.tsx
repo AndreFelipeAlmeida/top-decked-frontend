@@ -163,7 +163,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         return;
       }
   
-      // Agora faz login automático usando o email e senha cadastrados
       const loginForm = new URLSearchParams();
       loginForm.append('username', registerData.email);
       loginForm.append('password', registerData.password);
@@ -181,7 +180,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         return;
       }
   
-      // Salva token e busca perfil
       localStorage.setItem('accessToken', loginData.access_token);
       const userProfileResponse = await fetch('http://localhost:8000/login/profile', {
         method: 'GET',
