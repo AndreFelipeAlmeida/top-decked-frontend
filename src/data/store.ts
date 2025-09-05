@@ -1,11 +1,18 @@
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   type: 'player' | 'organizer';
+  phone?: string;
   store?: string;
   dateOfBirth?: string;
   avatar?: string;
+  address?: string;
+  website?: string;
+  gameIds?: Array<{
+    game: string;
+    id: string;
+  }>;
   stats?: {
     totalPoints: number;
     wins: number;
@@ -20,7 +27,7 @@ export interface User {
 export interface Tournament {
   id: string;
   name: string;
-  organizerId: number;
+  organizerId: string;
   organizerName: string;
   date: string;
   time: string;
@@ -43,7 +50,7 @@ export interface Tournament {
 
 export interface TournamentParticipant {
   id: string;
-  userId: number;
+  userId: string;
   userName: string;
   registeredAt: string;
   points: number;
@@ -54,54 +61,46 @@ export interface TournamentParticipant {
 }
 
 export interface Match {
-  id: number;
-  tournamentId: number;
+  id: string;
+  tournamentId: string;
   round: number;
   table: number;
-  player1Id: number;
+  player1Id: string;
   player1Name: string;
-  player2Id: number;
+  player2Id: string;
   player2Name: string;
   player1Score: number;
   player2Score: number;
-  winnerId?: number;
+  winnerId?: string;
   winnerName?: string;
   status: 'pending' | 'in-progress' | 'completed';
 }
 
-export interface PlayerRuleAssignment {
-  id: string;
-  playerId: string;
-  playerName: string;
-  ruleId: string;
-  ruleName: string;
-}
-
 export interface BracketMatch {
-  id: number;
+  id: string;
   round: number;
   matchNumber: number;
-  player1?: { id: number; name: string };
-  player2?: { id: number; name: string };
-  winner?: { id: number; name: string };
+  player1?: { id: string; name: string };
+  player2?: { id: string; name: string };
+  winner?: { id: string; name: string };
   score?: string;
 }
 
 export interface PlayerRule {
-  id: number;
+  id: string;
   typeName: string;
   pointsForWin: number;
   pointsForLoss: number;
   pointsGivenToOpponent: number;
   pointsLostByOpponent: number;
-  organizerId: number;
+  organizerId: string;
   createdAt: string;
 }
 
 // Mock Users
 export const mockUsers: User[] = [
   {
-    id: 1,
+    id: 'player-1',
     name: 'Alex Chen',
     email: 'alex.chen@example.com',
     type: 'player',
@@ -118,7 +117,7 @@ export const mockUsers: User[] = [
     }
   },
   {
-    id: 2,
+    id: 'organizer-1',
     name: 'Sarah Johnson',
     email: 'sarah.johnson@gamestore.com',
     type: 'organizer',
@@ -129,12 +128,12 @@ export const mockUsers: User[] = [
       losses: 0,
       draws: 0,
       winRate: 0,
-      tournaments: 85,
+      tournaments: 85, // tournaments organized
       rank: 0
     }
   },
   {
-    id: 3,
+    id: 'player-2',
     name: 'Mike Rodriguez',
     email: 'mike.rodriguez@example.com',
     type: 'player',
@@ -150,7 +149,7 @@ export const mockUsers: User[] = [
     }
   },
   {
-    id: 4,
+    id: 'player-3',
     name: 'Emma Davis',
     email: 'emma.davis@example.com',
     type: 'player',
@@ -170,9 +169,9 @@ export const mockUsers: User[] = [
 // Mock Tournaments
 export const mockTournaments: Tournament[] = [
   {
-    id: "1",
+    id: 'tournament-1',
     name: 'Weekly Modern Championship',
-    organizerId: 2,
+    organizerId: 'organizer-1',
     organizerName: 'Sarah Johnson',
     date: '2024-12-25',
     time: '18:00',
@@ -188,8 +187,8 @@ export const mockTournaments: Tournament[] = [
     currentRound: 0,
     participants: [
       {
-        id: '1',
-        userId: 1,
+        id: 'part-1',
+        userId: 'player-1',
         userName: 'Alex Chen',
         registeredAt: '2024-12-18T10:00:00Z',
         points: 0,
@@ -199,8 +198,8 @@ export const mockTournaments: Tournament[] = [
         currentStanding: 1
       },
       {
-        id: '2',
-        userId: 3,
+        id: 'part-2',
+        userId: 'player-2',
         userName: 'Mike Rodriguez',
         registeredAt: '2024-12-18T11:30:00Z',
         points: 0,
@@ -215,9 +214,9 @@ export const mockTournaments: Tournament[] = [
     hasImportedResults: false
   },
   {
-    id: "2",
+    id: 'tournament-2',
     name: 'Standard Showdown',
-    organizerId: 2,
+    organizerId: 'organizer-1',
     organizerName: 'Sarah Johnson',
     date: '2024-12-22',
     time: '14:00',
@@ -237,9 +236,9 @@ export const mockTournaments: Tournament[] = [
     hasImportedResults: false
   },
   {
-    id: "3",
+    id: 'tournament-3',
     name: 'Friday Night Magic',
-    organizerId: 2,
+    organizerId: 'organizer-1',
     organizerName: 'Sarah Johnson',
     date: '2024-12-15',
     time: '19:00',
@@ -255,8 +254,8 @@ export const mockTournaments: Tournament[] = [
     currentRound: 4,
     participants: [
       {
-        id: '3',
-        userId: 1,
+        id: 'part-3',
+        userId: 'player-1',
         userName: 'Alex Chen',
         registeredAt: '2024-12-14T10:00:00Z',
         points: 12,
@@ -266,8 +265,8 @@ export const mockTournaments: Tournament[] = [
         currentStanding: 1
       },
       {
-        id: '4',
-        userId: 3,
+        id: 'part-4',
+        userId: 'player-2',
         userName: 'Mike Rodriguez',
         registeredAt: '2024-12-14T11:00:00Z',
         points: 9,
@@ -277,8 +276,8 @@ export const mockTournaments: Tournament[] = [
         currentStanding: 2
       },
       {
-        id: '5',
-        userId: 4,
+        id: 'part-5',
+        userId: 'player-3',
         userName: 'Emma Davis',
         registeredAt: '2024-12-14T12:00:00Z',
         points: 6,
@@ -290,29 +289,29 @@ export const mockTournaments: Tournament[] = [
     ],
     matches: [
       {
-        id: 1,
-        tournamentId: 3,
+        id: 'match-1',
+        tournamentId: 'tournament-3',
         round: 1,
         table: 1,
-        player1Id: 1,
+        player1Id: 'player-1',
         player1Name: 'Alex Chen',
-        player2Id: 3,
+        player2Id: 'player-2',
         player2Name: 'Mike Rodriguez',
         player1Score: 2,
         player2Score: 1,
-        winnerId: 1,
+        winnerId: 'player-1',
         winnerName: 'Alex Chen',
         status: 'completed'
       }
     ],
     bracket: [
       {
-        id: 1,
+        id: 'bracket-1',
         round: 1,
         matchNumber: 1,
-        player1: { id: 1, name: 'Alex Chen' },
-        player2: { id: 3, name: 'Mike Rodriguez' },
-        winner: { id: 1, name: 'Alex Chen' },
+        player1: { id: 'player-1', name: 'Alex Chen' },
+        player2: { id: 'player-2', name: 'Mike Rodriguez' },
+        winner: { id: 'player-1', name: 'Alex Chen' },
         score: '2-1'
       }
     ],
@@ -321,39 +320,41 @@ export const mockTournaments: Tournament[] = [
   }
 ];
 
+// Mock Player Rules
 export const mockPlayerRules: PlayerRule[] = [
   {
-    id: 1,
+    id: 'rule-1',
     typeName: 'Normal Player',
     pointsForWin: 3,
     pointsForLoss: 0,
     pointsGivenToOpponent: 0,
     pointsLostByOpponent: 0,
-    organizerId: 2,
+    organizerId: 'organizer-1',
     createdAt: '2024-12-01T09:00:00Z'
   },
   {
-    id: 2,
+    id: 'rule-2',
     typeName: 'Team Rocket',
     pointsForWin: 3,
     pointsForLoss: 0,
     pointsGivenToOpponent: 0,
     pointsLostByOpponent: 0.5,
-    organizerId: 2,
+    organizerId: 'organizer-1',
     createdAt: '2024-12-01T10:00:00Z'
   },
   {
-    id: 3,
+    id: 'rule-3',
     typeName: 'Lucky Player',
     pointsForWin: 4,
     pointsForLoss: 1,
     pointsGivenToOpponent: 0.5,
     pointsLostByOpponent: 0,
-    organizerId: 2,
+    organizerId: 'organizer-1',
     createdAt: '2024-12-01T11:00:00Z'
   }
 ];
 
+// Store class for managing state
 class TournamentStore {
   private users: User[] = [...mockUsers];
   private tournaments: Tournament[] = [...mockTournaments];
@@ -369,7 +370,7 @@ class TournamentStore {
     return this.currentUser;
   }
 
-  getUserById(id: number): User | undefined {
+  getUserById(id: string): User | undefined {
     return this.users.find(user => user.id === id);
   }
 
@@ -379,13 +380,13 @@ class TournamentStore {
 
   authenticateUser(email: string, password: string): User | null {
     const user = this.users.find(u => u.email === email);
-    return user || null;
+    return user || null; // In real app, would verify password
   }
 
   registerUser(userData: Omit<User, 'id' | 'stats'>): User {
     const newUser: User = {
       ...userData,
-      id: Date.now(),
+      id: `user-${Date.now()}`,
       stats: {
         totalPoints: 0,
         wins: 0,
@@ -400,6 +401,7 @@ class TournamentStore {
     return newUser;
   }
 
+  // Tournament management
   getAllTournaments(): Tournament[] {
     return this.tournaments;
   }
@@ -408,11 +410,11 @@ class TournamentStore {
     return this.tournaments.find(t => t.id === id);
   }
 
-  getTournamentsByOrganizer(organizerId: number): Tournament[] {
+  getTournamentsByOrganizer(organizerId: string): Tournament[] {
     return this.tournaments.filter(t => t.organizerId === organizerId);
   }
 
-  getTournamentsByPlayer(playerId: number): Tournament[] {
+  getTournamentsByPlayer(playerId: string): Tournament[] {
     return this.tournaments.filter(t => 
       t.participants.some(p => p.userId === playerId)
     );
@@ -421,7 +423,7 @@ class TournamentStore {
   createTournament(tournamentData: Omit<Tournament, 'id' | 'participants' | 'matches' | 'createdAt' | 'status' | 'currentRound' | 'hasImportedResults'>): Tournament {
     const newTournament: Tournament = {
       ...tournamentData,
-      id: Date.now().toString(),
+      id: `tournament-${Date.now()}`,
       status: 'open',
       currentRound: 0,
       participants: [],
@@ -433,7 +435,7 @@ class TournamentStore {
     return newTournament;
   }
 
-  registerPlayerForTournament(tournamentId: string, playerId: number): boolean {
+  registerPlayerForTournament(tournamentId: string, playerId: string): boolean {
     const tournament = this.getTournamentById(tournamentId);
     const player = this.getUserById(playerId);
     
@@ -447,7 +449,7 @@ class TournamentStore {
     }
 
     const participant: TournamentParticipant = {
-      id: Date.now().toString(),
+      id: `participant-${Date.now()}`,
       userId: playerId,
       userName: player.name,
       registeredAt: new Date().toISOString(),
@@ -462,7 +464,7 @@ class TournamentStore {
     return true;
   }
 
-  unregisterPlayerFromTournament(tournamentId: string, playerId: number): boolean {
+  unregisterPlayerFromTournament(tournamentId: string, playerId: string): boolean {
     const tournament = this.getTournamentById(tournamentId);
     if (!tournament) return false;
 
@@ -481,10 +483,11 @@ class TournamentStore {
     return true;
   }
 
-  updateTournament(tournamentId: string, updates: Partial<Pick<Tournament, 'name' | 'date' | 'time' | 'format' | 'description' | 'prizes' | 'maxParticipants' | 'entryFee' | 'structure' | 'rounds'>>): Tournament | null { // Alterado de string para number
+  updateTournament(tournamentId: string, updates: Partial<Pick<Tournament, 'name' | 'date' | 'time' | 'format' | 'description' | 'prizes' | 'maxParticipants' | 'entryFee' | 'structure' | 'rounds'>>): Tournament | null {
     const tournament = this.getTournamentById(tournamentId);
     if (!tournament) return null;
 
+    // Apply updates
     Object.keys(updates).forEach(key => {
       const typedKey = key as keyof typeof updates;
       if (updates[typedKey] !== undefined) {
@@ -503,16 +506,18 @@ class TournamentStore {
     return true;
   }
 
+  // Rankings
   getPlayerRankings(): User[] {
     return this.users
       .filter(u => u.type === 'player' && u.stats)
       .sort((a, b) => (b.stats?.totalPoints || 0) - (a.stats?.totalPoints || 0));
   }
 
-  getRankingsByOrganizer(organizerId: number): User[] {
+  getRankingsByOrganizer(organizerId: string): User[] {
     const organizerTournaments = this.getTournamentsByOrganizer(organizerId);
-    const playerStats = new Map<number, { points: number; tournaments: number; wins: number; losses: number; draws: number }>(); // Alterado de string para number
+    const playerStats = new Map<string, { points: number; tournaments: number; wins: number; losses: number; draws: number }>();
 
+    // Calculate stats for players who participated in this organizer's tournaments
     organizerTournaments.forEach(tournament => {
       tournament.participants.forEach(participant => {
         const existing = playerStats.get(participant.userId) || { points: 0, tournaments: 0, wins: 0, losses: 0, draws: 0 };
@@ -525,6 +530,7 @@ class TournamentStore {
       });
     });
 
+    // Create ranking list
     const rankings: (User & { organizerStats: any })[] = [];
     playerStats.forEach((stats, userId) => {
       const user = this.getUserById(userId);
@@ -539,25 +545,26 @@ class TournamentStore {
     return rankings.sort((a, b) => b.organizerStats.points - a.organizerStats.points);
   }
 
-  getPlayerRulesByOrganizer(organizerId: number): PlayerRule[] {
+  // Player Rules management
+  getPlayerRulesByOrganizer(organizerId: string): PlayerRule[] {
     return this.playerRules.filter(rule => rule.organizerId === organizerId);
   }
 
-  getPlayerRuleById(ruleId: number): PlayerRule | undefined {
+  getPlayerRuleById(ruleId: string): PlayerRule | undefined {
     return this.playerRules.find(rule => rule.id === ruleId);
   }
 
   createPlayerRule(ruleData: Omit<PlayerRule, 'id' | 'createdAt'>): PlayerRule {
     const newRule: PlayerRule = {
       ...ruleData,
-      id: Date.now(),
+      id: `rule-${Date.now()}`,
       createdAt: new Date().toISOString()
     };
     this.playerRules.push(newRule);
     return newRule;
   }
 
-  updatePlayerRule(ruleId: number, updates: Partial<Omit<PlayerRule, 'id' | 'organizerId' | 'createdAt'>>): PlayerRule | null {
+  updatePlayerRule(ruleId: string, updates: Partial<Omit<PlayerRule, 'id' | 'organizerId' | 'createdAt'>>): PlayerRule | null {
     const rule = this.getPlayerRuleById(ruleId);
     if (!rule) return null;
 
@@ -571,7 +578,7 @@ class TournamentStore {
     return rule;
   }
 
-  deletePlayerRule(ruleId: number): boolean {
+  deletePlayerRule(ruleId: string): boolean {
     const ruleIndex = this.playerRules.findIndex(rule => rule.id === ruleId);
     if (ruleIndex === -1) return false;
 
