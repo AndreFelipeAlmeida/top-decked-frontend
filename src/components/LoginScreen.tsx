@@ -8,8 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Trophy, Eye, EyeOff, Users, Calendar } from 'lucide-react';
-import { User } from '../data/store.ts'
-
+import { User } from '../data/store.ts';
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
@@ -17,17 +16,20 @@ interface LoginScreenProps {
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [activeTab, setActiveTab] = useState('login');
-  const [loginData, setLoginData] = useState({ 
-    email: '', 
-    password: '', 
-    accountType: 'player' as 'player' | 'organizer' 
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: '',
+    accountType: 'player' as 'player' | 'organizer',
   });
-  const [registerData, setRegisterData] = useState({ 
+  const [registerData, setRegisterData] = useState({
     name: '',
-    email: '', 
-    password: '', 
+    email: '',
+    password: '',
     userType: 'player' as 'player' | 'organizer',
-    storeAddress: ''
+    storeAddress: '',
+    telefone: '',
+    data_nascimento: '',
+    site: '',
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +57,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
       if (response.ok) {
         localStorage.setItem('accessToken', data.access_token);
-        
+
         const userProfileResponse = await fetch('http://localhost:8000/login/profile', {
           method: 'GET',
           headers: {
@@ -70,7 +72,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           if (userType !== loginData.accountType) {
             setMessage({
               type: 'error',
-              text: `Este e-mail está registrado como um ${userProfile.tipo}, mas você selecionou ${loginData.accountType === 'player' ? 'jogador':'loja'}. Por favor, verifique o tipo de sua conta.`
+              text: `Este e-mail está registrado como um ${userProfile.tipo}, mas você selecionou ${
+                loginData.accountType === 'player' ? 'jogador' : 'loja'
+              }. Por favor, verifique o tipo de sua conta.`,
             });
             localStorage.removeItem('accessToken');
           } else {
@@ -103,29 +107,35 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
-
-    const requiredFields = ['name', 'email', 'password'];
+  
+    let requiredFields = ['name', 'email', 'password'];
     if (registerData.userType === 'organizer') {
-      requiredFields.push('storeAddress');
+      requiredFields = [...requiredFields, 'storeAddress', 'site'];
+    } else {
+      requiredFields = [...requiredFields, 'telefone', 'data_nascimento'];
     }
-
-    const isValid = requiredFields.every(field => registerData[field as keyof typeof registerData]?.trim());
-
+  
+    const isValid = requiredFields.every(
+      (field) => registerData[field as keyof typeof registerData]?.trim()
+    );
+  
     if (!isValid) {
-      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios' });
+      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos.' });
       setIsLoading(false);
       return;
     }
   
     let endpoint = '';
     let payload = {};
-
+  
     if (registerData.userType === 'player') {
       endpoint = 'http://localhost:8000/jogadores/';
       payload = {
         nome: registerData.name,
         email: registerData.email,
         senha: registerData.password,
+        telefone: registerData.telefone,
+        data_nascimento: registerData.data_nascimento,
       };
     } else if (registerData.userType === 'organizer') {
       endpoint = 'http://localhost:8000/lojas/';
@@ -134,67 +144,105 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         email: registerData.email,
         senha: registerData.password,
         endereco: registerData.storeAddress,
+        site: registerData.site,
       };
     }
   
     try {
+      // Cria o usuário
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-
+  
       const data = await response.json();
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Cadastro bem-sucedido!' });
-        setTimeout(() => {
-          onLogin({
-            email: data.email,
-            name: data.nome,
-            type: registerData.userType === 'organizer' ? 'organizer' : 'player',
-            id: data.id,
-          });
-        }, 500);
-      } else {
+  
+      if (!response.ok) {
         setMessage({ type: 'error', text: data.detail || 'Erro no cadastro. Por favor, tente novamente.' });
+        return;
       }
+  
+      // Agora faz login automático usando o email e senha cadastrados
+      const loginForm = new URLSearchParams();
+      loginForm.append('username', registerData.email);
+      loginForm.append('password', registerData.password);
+  
+      const loginResponse = await fetch('http://localhost:8000/login/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: loginForm.toString(),
+      });
+  
+      const loginData = await loginResponse.json();
+  
+      if (!loginResponse.ok) {
+        setMessage({ type: 'error', text: 'Cadastro realizado, mas falha ao logar automaticamente.' });
+        return;
+      }
+  
+      // Salva token e busca perfil
+      localStorage.setItem('accessToken', loginData.access_token);
+      const userProfileResponse = await fetch('http://localhost:8000/login/profile', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${loginData.access_token}` },
+      });
+  
+      if (!userProfileResponse.ok) {
+        setMessage({ type: 'error', text: 'Cadastro realizado, mas falha ao buscar perfil do usuário.' });
+        return;
+      }
+  
+      const userProfile = await userProfileResponse.json();
+      const userType = userProfile.tipo === 'loja' ? 'organizer' : 'player';
+  
+      setMessage({ type: 'success', text: 'Cadastro e login bem-sucedidos!' });
+      setTimeout(() => {
+        onLogin({
+          email: userProfile.email,
+          name: userProfile.nome,
+          type: userType,
+          id: userProfile.usuario_id,
+        });
+      }, 500);
+  
     } catch (error) {
       console.error('Erro de cadastro:', error);
       setMessage({ type: 'error', text: 'Falha na conexão com o servidor. Tente novamente mais tarde.' });
     } finally {
       setIsLoading(false);
     }
-  };
+  };    
 
   const handleAccountTypeSelect = (accountType: 'player' | 'organizer') => {
-    setRegisterData(prev => ({
+    setRegisterData((prev) => ({
       ...prev,
       userType: accountType,
       name: '',
       email: '',
       password: '',
-      storeAddress: ''
+      storeAddress: '',
+      telefone: '',
+      data_nascimento: '',
+      site: '',
     }));
   };
 
   const accountTemplates = [
-    { 
-      type: 'player' as const, 
-      name: 'Conta de Jogador', 
+    {
+      type: 'player' as const,
+      name: 'Conta de Jogador',
       description: 'Acompanhe seu progresso e classificações',
       icon: Users,
-      details: 'Participe de torneios, veja classificações, acompanhe estatísticas'
+      details: 'Participe de torneios, veja classificações, acompanhe estatísticas',
     },
-    { 
-      type: 'organizer' as const, 
-      name: 'Conta de Loja', 
+    {
+      type: 'organizer' as const,
+      name: 'Conta de Loja',
       description: 'Gerencie torneios com facilidade',
       icon: Calendar,
-      details: 'Crie torneios, gerencie eventos, veja análises'
-    }
+      details: 'Crie torneios, gerencie eventos, veja análises',
+    },
   ];
 
   return (
@@ -205,9 +253,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <Trophy className="h-16 w-16 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-primary">Bem-vindo ao TopDecked</h1>
-          <p className="text-muted-foreground mt-2">
-            A plataforma definitiva para gerenciamento de torneios TCG
-          </p>
+          <p className="text-muted-foreground mt-2">A plataforma definitiva para gerenciamento de torneios TCG</p>
         </div>
 
         {activeTab === 'register' && (
@@ -221,12 +267,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 const IconComponent = template.icon;
                 const isSelected = registerData.userType === template.type;
                 return (
-                  <div 
+                  <div
                     key={template.type}
                     className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all ${
-                      isSelected 
-                        ? 'bg-primary/10 border-primary shadow-sm' 
-                        : 'bg-white hover:bg-secondary/50 hover:shadow-sm'
+                      isSelected ? 'bg-primary/10 border-primary shadow-sm' : 'bg-white hover:bg-secondary/50 hover:shadow-sm'
                     }`}
                     onClick={() => handleAccountTypeSelect(template.type)}
                   >
@@ -255,17 +299,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Cadastro</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="login">
             <Card>
               <CardHeader>
                 <CardTitle>Login</CardTitle>
-                <CardDescription>
-                  Insira suas credenciais para acessar sua conta
-                </CardDescription>
+                <CardDescription>Insira suas credenciais para acessar sua conta</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4" noValidate>
                   <div className="space-y-2">
                     <Label htmlFor="email">E-mail</Label>
                     <Input
@@ -299,14 +341,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="accountType">Tipo de Conta</Label>
                     <Select
                       value={loginData.accountType}
-                      onValueChange={(value: 'player' | 'organizer') => 
-                        setLoginData({ ...loginData, accountType: value })
-                      }
+                      onValueChange={(value: 'player' | 'organizer') => setLoginData({ ...loginData, accountType: value })}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Selecione o tipo de conta" />
@@ -317,13 +357,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {message && (
                     <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
                       <AlertDescription>{message.text}</AlertDescription>
                     </Alert>
                   )}
-                  
+
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Entrando...' : 'Entrar'}
                   </Button>
@@ -331,36 +371,35 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="register">
             <Card>
               <CardHeader>
                 <CardTitle>Cadastro</CardTitle>
                 {registerData.userType && (
                   <CardDescription>
-                    Criando conta de <Badge variant="outline" className="ml-1">{registerData.userType === 'player' ? 'Jogador' : 'Loja'}</Badge>
+                    Criando conta de{' '}
+                    <Badge variant="outline" className="ml-1">
+                      {registerData.userType === 'player' ? 'Jogador' : 'Loja'}
+                    </Badge>
                   </CardDescription>
                 )}
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleRegister} className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-4" noValidate>
                   <div className="space-y-2">
                     <Label htmlFor="name">
                       {registerData.userType === 'organizer' ? 'Nome da Loja' : 'Nome Completo'}
                     </Label>
                     <Input
                       id="name"
-                      placeholder={
-                        registerData.userType === 'organizer' 
-                          ? "Insira o nome da sua loja" 
-                          : "Insira seu nome completo"
-                      }
+                      placeholder={registerData.userType === 'organizer' ? 'Insira o nome da sua loja' : 'Insira seu nome completo'}
                       value={registerData.name}
                       onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="register-email">E-mail</Label>
                     <Input
@@ -372,17 +411,17 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Senha</Label>
                     <div className="relative">
-                      < Input
-                      id="register-password"
-                      type="password"
-                      placeholder="Crie uma senha"
-                      value={registerData.password}
-                      onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
-                      required
+                      <Input
+                        id="register-password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Crie uma senha"
+                        value={registerData.password}
+                        onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })}
+                        required
                       />
                       <Button
                         type="button"
@@ -395,14 +434,12 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="userType">Tipo de Conta</Label>
                     <Select
                       value={registerData.userType}
-                      onValueChange={(value: 'player' | 'organizer') => 
-                        setRegisterData({ ...registerData, userType: value })
-                      }
+                      onValueChange={(value: 'player' | 'organizer') => setRegisterData({ ...registerData, userType: value })}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -413,26 +450,78 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  {registerData.userType === 'organizer' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="storeAddress">Endereço da Loja</Label>
-                      <Input
-                        id="storeAddress"
-                        placeholder="Insira o endereço da sua loja"
-                        value={registerData.storeAddress}
-                        onChange={(e) => setRegisterData({ ...registerData, storeAddress: e.target.value })}
-                        required
-                      />
-                    </div>
+
+                  {registerData.userType === 'player' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="telefone">Telefone</Label>
+                        <Input
+                          id="telefone"
+                          type="tel"
+                          placeholder="Ex: 9912345678"
+                          value={registerData.telefone}
+                          onChange={(e) => setRegisterData({ ...registerData, telefone: e.target.value })}
+                          maxLength={11}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                        <Input
+                          id="data_nascimento"
+                          type="date"
+                          value={registerData.data_nascimento}
+                          onChange={(e) => setRegisterData({ ...registerData, data_nascimento: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </>
                   )}
-                  
+
+                  {registerData.userType === 'organizer' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="storeAddress">Endereço da Loja</Label>
+                        <Input
+                          id="storeAddress"
+                          placeholder="Insira o endereço da sua loja"
+                          value={registerData.storeAddress}
+                          onChange={(e) => setRegisterData({ ...registerData, storeAddress: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="site">Site</Label>
+                        <Input
+                          id="site"
+                          type="url"
+                          placeholder="Ex: www.minhaloja.com.br"
+                          value={registerData.site}
+                          onChange={(e) => setRegisterData({ ...registerData, site: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="telefone">Telefone</Label>
+                        <Input
+                          id="telefone"
+                          type="tel"
+                          placeholder="Ex: 9912345678"
+                          value={registerData.telefone}
+                          onChange={(e) => setRegisterData({ ...registerData, telefone: e.target.value })}
+                          maxLength={11}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+
                   {message && (
                     <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
                       <AlertDescription>{message.text}</AlertDescription>
                     </Alert>
                   )}
-                  
+
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Criando Conta...' : 'Cadastrar'}
                   </Button>
