@@ -9,17 +9,21 @@ import { TournamentDetails } from './components/TournamentDetails.tsx';
 import { TournamentList } from './components/TournamentList.tsx';
 import { TournamentEdit } from './components/TournamentEdit.tsx';
 import { PlayerRules } from './components/PlayerRules.tsx';
+import { PlayerProfile } from './components/PlayerProfile.tsx';
+import { OrganizerProfile } from './components/OrganizerProfile.tsx';
 import { Toaster } from './components/ui/sonner.tsx';
 import { tournamentStore, User } from './data/store.ts';
 
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+  const [viewedPlayerId, setViewedPlayerId] = useState<string | null>(null);
+  const [viewedOrganizerId, setViewedOrganizerId] = useState<string | null>(null);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -34,6 +38,8 @@ export default function App() {
     setIsAuthenticated(false);
     setCurrentPage('login');
     setSelectedTournamentId(null);
+    setViewedPlayerId(null);
+    setViewedOrganizerId(null);
   };
 
   const handleNavigateToTournament = (tournamentId: string) => {
@@ -44,6 +50,16 @@ export default function App() {
   const handleNavigate = (page: Page, data?: any) => {
     if ((page === 'tournament-details' || page === 'tournament-edit') && data?.tournamentId) {
       setSelectedTournamentId(data.tournamentId);
+    }
+    if (page === 'player-profile' && data?.playerId) {
+      setViewedPlayerId(data.playerId);
+    } else if (page === 'player-profile' && !data?.playerId) {
+      setViewedPlayerId(null);
+    }
+    if (page === 'organizer-profile' && data?.organizerId) {
+      setViewedOrganizerId(data.organizerId);
+    } else if (page === 'organizer-profile' && !data?.organizerId) {
+      setViewedOrganizerId(null);
     }
     setCurrentPage(page);
   };
@@ -75,6 +91,24 @@ export default function App() {
         );
       case 'ranking':
         return <RankingScreen onNavigate={handleNavigate} currentUser={currentUser} />;
+      case 'player-profile':
+        return (
+          <PlayerProfile 
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+            currentUser={currentUser}
+            viewedPlayerId={viewedPlayerId}
+          />
+        );
+      case 'organizer-profile':
+        return (
+          <OrganizerProfile 
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+            currentUser={currentUser}
+            viewedOrganizerId={viewedOrganizerId}
+          />
+        );
       case 'tournament-details':
         return (
           <TournamentDetails
