@@ -33,7 +33,7 @@ interface BackendTournament {
   cidade: string | null;
   data_inicio: string;
   loja_id: number;
-  loja?: LojaPublico; // <-- Mudança: Agora o campo é 'loja'
+  loja?: LojaPublico;
   formato: string | null;
   taxa: number;
   premios: string | null;
@@ -61,7 +61,7 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
   return backendData.map(t => ({
     id: t.id.toString(),
     name: t.nome,
-    organizerId: t.loja_id.toString(),
+    organizerId: (t.loja_id ?? t.loja?.id)?.toString() || "0",
     organizerName: t.loja?.nome || "Organizador não informado",
     date: t.data_inicio,
     time: "Horário não informado",
@@ -239,7 +239,9 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center space-x-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{new Date(tournament.date).toLocaleDateString()}</span>
+              <span>{tournament.date
+              ? tournament.date.split("T")[0].split("-").reverse().join("/")
+              : ""}</span>
             </div>
             <div className="flex items-center space-x-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />

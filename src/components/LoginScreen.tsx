@@ -468,7 +468,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         <Input
                           id="data_nascimento"
                           type="date"
-                          value={registerData.data_nascimento}
+                          value={registerData.data_nascimento?.split("T")[0] || ""}
                           onChange={(e) => setRegisterData({ ...registerData, data_nascimento: e.target.value })}
                           required
                         />

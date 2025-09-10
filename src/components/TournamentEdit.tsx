@@ -85,7 +85,6 @@ interface PlayerRuleAssignment {
   ruleName: string;
 }
 
-// Adicione a interface para o resultado mensal que o backend irá retornar
 interface MonthlyStats {
     mes: string;
     ano: number;
@@ -140,25 +139,20 @@ export function TournamentEdit({
     User[]
   >([]);
 
-  // Popover states for searchable dropdowns
   const [rulePopoverOpen, setRulePopoverOpen] =
     useState<boolean>(false);
   const [playerPopoverOpen, setPlayerPopoverOpen] =
     useState<boolean>(false);
 
-  // Inline editing state - all participants editable by default
   const [editingScores, setEditingScores] = useState<
     Record<string, string>
   >({});
 
-  // Mock tournament results - in real app this would come from the tournament data
   const [mockTournamentResults, setMockTournamentResults] =
-    useState<TournamentParticipant[]>([]); // Initialize with an empty array
+    useState<TournamentParticipant[]>([]);
 
-  // Estado para os resultados mensais
   const [monthlyResults, setMonthlyResults] = useState<MonthlyStats[]>([]);
 
-  // Função para buscar os resultados mensais
   const fetchMonthlyResults = async (players: User[], token: string) => {
     try {
       const resultsPromises = players.map(async (player) => {
@@ -179,7 +173,7 @@ export function TournamentEdit({
         return {
             jogador_id: player.id,
             nome_jogador: player.name,
-            ...stats // Inclui as estatísticas do jogador
+            ...stats
         };
       });
 
@@ -200,7 +194,6 @@ export function TournamentEdit({
     }
 
     try {
-      // Ajuste para usar a rota GET do backend existente
       const tournamentResponse = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -210,7 +203,6 @@ export function TournamentEdit({
       if (tournamentResponse.ok) {
         const tournamentData = await tournamentResponse.json();
         
-        // Atualiza os dados básicos do torneio
         setTournament(tournamentData);
         setFormData({
             name: tournamentData.nome,
@@ -224,38 +216,32 @@ export function TournamentEdit({
             rounds: tournamentData.n_rodadas?.toString() || "",
         });
 
-        // Verifica se há jogadores para definir se há resultados importados
         const hasImportedResults = tournamentData.jogadores && tournamentData.jogadores.length > 0;
         setTournament(prev => prev ? { ...prev, hasImportedResults: hasImportedResults } : prev);
 
-        // Preenche a lista de jogadores a partir dos dados do torneio
         const playersFromBackend = tournamentData.jogadores.map((player: any) => ({
           id: player.jogador_id.toString(),
           name: player.nome,
-          email: '', // Sem e-mail na sua API, deixamos vazio
+          email: '',
           type: 'player', 
         }));
         setAvailablePlayers(playersFromBackend);
         
-        // Chama a nova função para buscar os resultados mensais
         fetchMonthlyResults(playersFromBackend, token);
 
 
-        // Preenche a tabela de resultados com os dados do torneio
         const resultsFromBackend = tournamentData.jogadores.map((player: any) => ({
           id: `part-${player.jogador_id}`,
           userId: player.jogador_id.toString(),
           userName: player.nome,
-          registeredAt: "", // Não disponível nos dados, deixamos vazio
+          registeredAt: "",
           points: player.pontuacao,
-          wins: 0, // Esses campos precisam ser calculados ou retornados pela sua API
+          wins: 0,
           losses: 0,
           draws: 0,
-          currentStanding: 0, // A posição deve ser calculada
+          currentStanding: 0,
         }));
         
-        // A lógica para calcular a posição dos jogadores (currentStanding)
-        // pode ser feita aqui no frontend, ordenando por pontuação.
         const sortedResults = resultsFromBackend.sort((a: any, b: any) => b.points - a.points);
         const finalResults = sortedResults.map((result: any, index: number) => ({
           ...result,
@@ -264,19 +250,15 @@ export function TournamentEdit({
 
         setMockTournamentResults(finalResults);
 
-        // Atualiza o estado de edição de pontuação
         const initialScores: Record<string, string> = {};
         finalResults.forEach((participant: any) => {
           initialScores[participant.id] = participant.points.toString();
         });
         setEditingScores(initialScores);
-        
-        // Carrega a regra básica do torneio, se houver
         if (tournamentData.regra_basica_id) {
           setDefaultRuleId(tournamentData.regra_basica_id.toString());
         }
 
-        // Busca e carrega as regras de jogador
         const rulesResponse = await fetch('http://localhost:8000/lojas/tipoJogador/', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -290,7 +272,6 @@ export function TournamentEdit({
             pointsForLoss: rule.pt_derrota,
           })));
 
-          // Define a regra padrão a partir da lista
           const defaultRule = rulesData.find((rule: any) => rule.nome === "Normal Player") || rulesData[0];
           if (defaultRule) {
             setDefaultRuleId(defaultRule.id.toString());
@@ -348,7 +329,6 @@ export function TournamentEdit({
       return;
     }
 
-    // Mapeia as regras adicionais para o formato de dicionário
     const regrasAdicionaisDict: { [key: string]: number } = {};
     playerRuleAssignments.forEach(assignment => {
       regrasAdicionaisDict[assignment.playerId] = parseInt(assignment.ruleId, 10);
@@ -389,7 +369,7 @@ export function TournamentEdit({
           onNavigate("tournament-details", {
             tournamentId: tournamentId,
           });
-        }, 1500); // Aguarda 1.5 segundos antes de navegar
+        }, 1500);
       } else {
         const errorData = await response.json();
         console.error('Erro de validação do backend:', errorData.detail);
@@ -425,7 +405,6 @@ export function TournamentEdit({
       return;
     }
 
-    // Check if player already has a rule assigned
     const existingAssignment = playerRuleAssignments.find(
       (assignment) => assignment.playerId === selectedPlayerId,
     );
@@ -462,12 +441,10 @@ export function TournamentEdit({
     toast.success("Regra de jogador removida");
   };
 
-  // Calculate points based on rules for a player
   const calculatePlayerPoints = (
     participant: TournamentParticipant,
     forTournamentResults: boolean = false,
   ) => {
-    // Safety check for participant data
     if (
       !participant ||
       participant.wins == null ||
@@ -480,13 +457,11 @@ export function TournamentEdit({
       (rule) => rule.id === defaultRuleId,
     );
 
-    // Find if player has a specific rule assigned
     const playerAssignment = playerRuleAssignments.find(
       (assignment) =>
         assignment.playerId === participant.userId,
     );
 
-    // Use specific rule if exists, otherwise use default rule
     const rule = playerAssignment
       ? availableRules.find(
           (r) => r.id === playerAssignment.ruleId,
@@ -501,7 +476,6 @@ export function TournamentEdit({
       return participant.points || 0;
     }
 
-    // For tournament results, only apply additional rules if checkbox is checked
     if (
       forTournamentResults &&
       playerAssignment &&
@@ -510,23 +484,19 @@ export function TournamentEdit({
       return participant.points || 0;
     }
 
-    // Calculate new points based on rule (draws don't get points in this system)
     const calculatedPoints =
       participant.wins * rule.pointsForWin +
       participant.losses * rule.pointsForLoss;
 
-    // Ensure we return a valid number
     return isNaN(calculatedPoints)
       ? participant.points || 0
       : calculatedPoints;
   };
 
-  // Calculate points for monthly results (always apply additional rules)
   const calculateMonthlyPlayerPoints = (
     playerId: string,
     originalPoints: number,
   ) => {
-    // Ensure we have a valid number to work with
     if (isNaN(originalPoints) || originalPoints == null) {
       return 0;
     }
@@ -535,12 +505,10 @@ export function TournamentEdit({
       (rule) => rule.id === defaultRuleId,
     );
 
-    // Find if player has a specific rule assigned
     const playerAssignment = playerRuleAssignments.find(
       (assignment) => assignment.playerId === playerId,
     );
 
-    // Use specific rule if exists, otherwise use default rule
     const rule = playerAssignment
       ? availableRules.find(
           (r) => r.id === playerAssignment.ruleId,
@@ -549,13 +517,11 @@ export function TournamentEdit({
 
     if (!rule) return originalPoints;
 
-    // For monthly results, we apply a bonus/multiplier based on the rule difference
-    const bonusPoints = playerAssignment ? 5 : 0; // Simple bonus for having specific rule
+    const bonusPoints = playerAssignment ? 5 : 0;
 
     return originalPoints + bonusPoints;
   };
 
-  // Inline editing functions
   const updateEditingScore = (
     participantId: string,
     value: string,
@@ -584,7 +550,6 @@ export function TournamentEdit({
       return;
     }
 
-    // Update the participant's score
     setMockTournamentResults((prev) =>
       prev.map((p) =>
         p.id === participantId ? { ...p, points: score } : p,
@@ -594,7 +559,6 @@ export function TournamentEdit({
     toast.success("Pontuação atualizada com sucesso");
   };
 
-  // Get position badge styling
   const getPositionBadgeStyle = (position: number) => {
     switch (position) {
       case 1:
@@ -608,7 +572,6 @@ export function TournamentEdit({
     }
   };
 
-  // Check if tournament exists and user is authorized
   if (
     !hasAccess ||
     !tournament ||
@@ -734,7 +697,7 @@ export function TournamentEdit({
                 <Input
                   id="date"
                   type="date"
-                  value={formData.date}
+                  value={formData.date?.split("T")[0] || ""}
                   onChange={(e) =>
                     setFormData({
                       ...formData,

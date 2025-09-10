@@ -94,7 +94,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
     return {
         id: backendData.id,
         name: backendData.nome,
-        organizerId: backendData.loja_id.toString(),
+        organizerId: (backendData.loja_id ?? backendData.loja?.id)?.toString() || "0",
         organizerName: backendData.loja?.nome || "Organizador não informado",
         date: backendData.data_inicio,
         time: "Horário não informado",
@@ -404,7 +404,9 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
             <div className="flex items-center space-x-3">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
-                <div className="font-medium">{new Date(tournament.date).toLocaleDateString()}</div>
+                <div className="font-medium">{tournament.date
+                ? tournament.date.split("T")[0].split("-").reverse().join("/")
+                : ""}</div>
                 <div className="text-sm text-muted-foreground">{tournament.time}</div>
               </div>
             </div>

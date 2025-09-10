@@ -161,7 +161,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Label htmlFor="name">Nome do Torneio *</Label>
                 <Input
                   id="name"
-                  placeholder="Friday Night Magic"
+                  placeholder="Digite o nome do torneio"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
@@ -192,7 +192,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Input
                   id="date"
                   type="date"
-                  value={formData.date}
+                  value={formData.date?.split("T")[0] || ""}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   required
                 />
@@ -213,7 +213,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Label htmlFor="city">Cidade</Label>
                 <Input
                   id="city"
-                  placeholder="São Paulo"
+                  placeholder="Digite a cidade do torneio"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 />
@@ -222,7 +222,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Label htmlFor="state">Estado</Label>
                 <Input
                   id="state"
-                  placeholder="SP"
+                  placeholder="Digite o estado do torneio"
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                 />
@@ -235,7 +235,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Input
                   id="maxParticipants"
                   type="number"
-                  placeholder="32"
+                  placeholder="0"
                   value={formData.maxParticipants}
                   onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
                 />
@@ -245,7 +245,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Input
                   id="entryFee"
                   type="number"
-                  placeholder="15.00"
+                  placeholder="00.00"
                   value={formData.entryFee}
                   onChange={(e) => setFormData({ ...formData, entryFee: e.target.value })}
                 />
@@ -302,7 +302,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Input
                   id="rounds"
                   type="number"
-                  placeholder="5"
+                  placeholder="0"
                   value={formData.rounds}
                   onChange={(e) => setFormData({ ...formData, rounds: e.target.value })}
                 />
@@ -313,7 +313,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
               <Input
                 id="roundTime"
                 type="number"
-                placeholder="30"
+                placeholder="0"
                 value={formData.roundTime}
                 onChange={(e) => setFormData({ ...formData, roundTime: e.target.value })}
               />

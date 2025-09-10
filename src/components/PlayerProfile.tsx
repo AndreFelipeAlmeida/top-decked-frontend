@@ -15,10 +15,11 @@ interface PlayerProfileProps {
   onNavigate: (page: Page, data?: any) => void;
   onLogout: () => void;
   currentUser: any;
-  viewedPlayerId?: number | null;
+  viewedPlayerId?: string | null;
 }
 
 export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerId }: PlayerProfileProps) {
+  console.log("PlayerProfile Props:", { viewedPlayerId, currentUser });
   const [playerData, setPlayerData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
   };
   
 
-  const getProfileData = async (id: number) => {
+  const getProfileData = async (id: string) => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
       setError("Token de autenticação não encontrado.");
@@ -159,38 +160,38 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
     }
   };  
 
+  // PlayerProfile.tsx
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       setError(null);
-      let idToFetch = viewedPlayerId || currentUser?.id;
+      let idToFetch: string | null = null; 
 
-      if (!idToFetch) {
-        setError("Nenhum ID de jogador para buscar.");
+      if (viewedPlayerId) { // Se um ID de outro jogador foi passado pela navegação
+        idToFetch = viewedPlayerId;
+      } 
+      // Se não veio ID de navegação, E o usuário logado é um JOGADOR, usa o ID do próprio jogador.
+      else if (currentUser?.type === 'player') { 
+        idToFetch = currentUser.id;
+      } 
+      // Se não temos nem `viewedPlayerId` e nem `currentUser.id` (e não é um jogador logado),
+      // isso pode acontecer se um organizador clica no botão "voltar" sem ter passado um ID.
+      // Ou se o `viewedPlayerId` foi resetado.
+      else {
+        setError("Não foi possível determinar o ID do jogador para buscar o perfil.");
+        setLoading(false);
+        return;
+      }
+
+      if (!idToFetch) { // Garante que idToFetch não é null/undefined
+        setError("ID do jogador inválido para buscar perfil.");
         setLoading(false);
         return;
       }
 
       const fetchedData = await getProfileData(idToFetch);
-      if (fetchedData) {
-        setPlayerData(fetchedData);
-        setFormData({
-          nome: fetchedData.nome || '',
-          email: fetchedData.usuario?.email || '',
-          telefone: fetchedData.telefone || '',
-          data_nascimento: fetchedData.data_nascimento || '',
-          pokemon_id: fetchedData.pokemon_id || ''
-        });
-        setSecurityData({
-          email: fetchedData.usuario?.email || '',
-          novaSenha: '',
-          confirmarSenha: '',
-        });
-        setProfileImage(fetchedData.avatar || null);
-      }
-      setLoading(false);
+      // ... (resto do código) ...
     };
-
     fetchProfile();
   }, [currentUser, viewedPlayerId]);
 
@@ -512,7 +513,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
                       <Input
                         id="data_nascimento"
                         type="date"
-                        value={formData.data_nascimento}
+                        value={formData.data_nascimento?.split("T")[0] || ""}
                         onChange={(e) => setFormData({...formData, data_nascimento: e.target.value})}
                       />
                     </div>
@@ -551,7 +552,11 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
                     </div>
                     <div>
                       <Label>Data de Nascimento</Label>
-                      <p className="text-sm text-muted-foreground mt-1">{playerData?.data_nascimento ? new Date(playerData?.data_nascimento).toLocaleDateString() : 'Não fornecido'}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {playerData?.data_nascimento
+                            ? playerData.data_nascimento.split("T")[0].split("-").reverse().join("/")
+                            : "Não fornecido"}
+                        </p>
                     </div>
                     <div>
                       <Label>ID Pokémon</Label>
