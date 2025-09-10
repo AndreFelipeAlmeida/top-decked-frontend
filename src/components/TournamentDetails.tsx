@@ -9,7 +9,7 @@ import { Tournament, User, PlayerRule, PlayerRuleAssignment } from '../data/stor
 import { TournamentImport } from './TournamentImport.tsx';
 import { toast } from 'sonner';
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 interface TournamentDetailsProps {
   onNavigate: (page: Page, data?: any) => void;
@@ -353,7 +353,18 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                   {getStatusText(tournament.status)}
                 </Badge>
               </div>
-              <p className="text-muted-foreground">Organizado por {tournament.organizerName}</p>
+              <p className="text-muted-foreground">
+                Organizado por {currentUser?.type === 'player' ? (
+                  <button 
+                    onClick={() => onNavigate('organizer-profile', { organizerId: tournament.organizerId })}
+                    className="text-primary hover:underline font-medium cursor-pointer"
+                  >
+                    {tournament.organizerName}
+                  </button>
+                ) : (
+                  <span>{tournament.organizerName}</span>
+                )}
+              </p>
             </div>
             <div className="flex space-x-2">
             {isPlayer && (
