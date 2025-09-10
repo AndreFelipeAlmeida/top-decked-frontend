@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { CheckCircle, XCircle, Minus, Search, Filter } from 'lucide-react';
 
 interface MatchHistoryProps {
-  matchHistory: any[]; // Espera a lista de históricos de partidas
+  matchHistory: any[];
 }
 
 export function MatchHistory({ matchHistory }: MatchHistoryProps) {
@@ -16,13 +16,9 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
   const [resultFilter, setResultFilter] = useState('all');
   const [storeFilter, setStoreFilter] = useState('all');
 
-  // Extrair lojas únicas dos dados de matchHistory
-  // Assumindo que cada item em matchHistory tem uma propriedade 'store'
   const uniqueStores = Array.from(new Set(matchHistory.map(match => match.store)));
 
-  // Filtra matches baseados nos termos e filtros
   const filteredMatches = matchHistory.filter(match => {
-    // Ajustes para lidar com possiveis valores nulos ou indefinidos
     const matchesSearch = searchTerm === '' || (match.opponent && match.opponent.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesDate = dateFilter === '' || (match.date === dateFilter);
     const matchesResult = resultFilter === 'all' || (match.result && match.result.toLowerCase() === resultFilter);
@@ -57,20 +53,12 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
     }
   };
 
-  // Adaptação para mostrar resultado da partida com base nos campos que o backend retorna
   const formatMatchResult = (match: any) => {
     if (match.result?.toLowerCase() === 'draw') {
       return 'Empate';
     }
-    // Verificando se winner e loser existem, caso contrário, pode ser um 'bye' ou outra situação
-    const winnerName = match.winner ? match.winner : 'Ninguém'; // Precisa do nome do jogador aqui, não apenas ID.
-    const loserName = match.loser ? match.loser : 'Ninguém'; // Precisa do nome do jogador aqui, não apenas ID.
-
-    // Se você tiver os nomes dos jogadores em `matchHistory` ou puder buscá-los:
-    // return `${winnerName} venceu ${loserName}`;
-
-    // Se o backend não retorna os nomes diretamente para matchHistory,
-    // podemos apenas retornar o resultado e o oponente.
+    const winnerName = match.winner ? match.winner : 'Ninguém';
+    const loserName = match.loser ? match.loser : 'Ninguém';
     if (match.result?.toLowerCase() === 'win') {
         return `Vitória contra ${match.opponent || 'Desconhecido'}`;
     } else if (match.result?.toLowerCase() === 'loss') {
@@ -173,7 +161,7 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
               <TableBody>
                 {filteredMatches.length > 0 ? (
                   filteredMatches.map((match) => (
-                    <TableRow key={match.id}> {/* Usando match.id como key */}
+                    <TableRow key={match.id}>
                       <TableCell className="font-medium">
                         {match.date}
                       </TableCell>

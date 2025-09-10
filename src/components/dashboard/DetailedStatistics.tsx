@@ -4,14 +4,13 @@ import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table.tsx';
-import { CheckCircle, XCircle, Minus } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 interface DetailedStatisticsProps {
   yearlyProgressionData: any[];
   availableYears: string[];
-  frequentOpponentsData: any[]; // Prop para os dados reais dos oponentes
-  performanceByFormatData: any[]; // Prop para os dados do gráfico de formato
+  frequentOpponentsData: any[];
+  performanceByFormatData: any[];
 }
 
 const COLORS = ['#2d1b69', '#ffd700', '#8b5cf6', '#06b6d4', '#10b981'];

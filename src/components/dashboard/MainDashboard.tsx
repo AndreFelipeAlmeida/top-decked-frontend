@@ -4,27 +4,27 @@ import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
 import { Progress } from '../ui/progress.tsx';
 import { Trophy, TrendingUp, Calendar, Target, Medal, Users, BarChart3 } from 'lucide-react';
-import { User } from '../../data/store.ts';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 interface MainDashboardProps {
   onNavigate: (page: Page, data?: any) => void;
   onNavigateToTournament: (tournamentId: string) => void;
-  playerStats: any; // Dados das estatísticas do jogador
-  recentTournaments: any[]; // Dados dos torneios recentes
+  playerStats: any;
+  recentTournaments: any[];
+  // Nova prop para as estatísticas de colocação
+  placementStats: {
+    firstPlace: number;
+    secondPlace: number;
+    topFour: number;
+    topEight: number;
+  };
 }
 
-export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats, recentTournaments }: MainDashboardProps) {
-
-  // Remova a verificação inicial para não renderizar nada.
-  // if (!playerStats) {
-  //   return null; 
-  // }
+export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats, recentTournaments, placementStats }: MainDashboardProps) {
 
   const stats = playerStats || {};
 
-  // Helper function to get ranking badge styles
   const getRankingBadgeStyles = (placement: number) => {
     switch (placement) {
       case 1:
@@ -50,7 +50,6 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
     }
   };
 
-  // Use dados padrão caso playerStats não exista
   const winRate = stats.taxa_vitoria || 0;
   const gamesPlayed = (stats.vitorias || 0) + (stats.derrotas || 0) + (stats.empates || 0);
 
@@ -84,13 +83,13 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pontos Totais</CardTitle>
+            <CardTitle className="text-sm font-medium">Partidas Jogadas</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pontos_totais || 0}</div>
+            <div className="text-2xl font-bold">{gamesPlayed}</div>
             <p className="text-xs text-muted-foreground">
-              Total de pontos
+              Total de partidas
             </p>
           </CardContent>
         </Card>
@@ -108,6 +107,52 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
           </CardContent>
         </Card>
       </div>
+
+      {/* Placement Statistics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Classificações em Torneios</CardTitle>
+          <CardDescription>Suas posições finais nos torneios</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="text-center p-4 border rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <Trophy className="h-6 w-6 text-yellow-500" />
+              </div>
+              <h3 className="font-semibold text-lg">1º Lugar</h3>
+              <p className="text-3xl font-bold text-primary">{placementStats.firstPlace}</p>
+              <p className="text-sm text-muted-foreground">Campeão</p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <Medal className="h-6 w-6 text-gray-400" />
+              </div>
+              <h3 className="font-semibold text-lg">2º Lugar</h3>
+              <p className="text-3xl font-bold text-primary">{placementStats.secondPlace}</p>
+              <p className="text-sm text-muted-foreground">Vice-campeão</p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <Medal className="h-6 w-6 text-amber-600" />
+              </div>
+              <h3 className="font-semibold text-lg">TOP 4</h3>
+              <p className="text-3xl font-bold text-primary">{placementStats.topFour}</p>
+              <p className="text-sm text-muted-foreground">Semifinalista</p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <Medal className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg flex items-center justify-center space-x-2">
+                <span>TOP 8</span>
+              </h3>
+              <p className="text-3xl font-bold text-primary">{placementStats.topEight}</p>
+              <p className="text-sm text-muted-foreground">Quartas de Final</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Tournaments */}
       <Card>

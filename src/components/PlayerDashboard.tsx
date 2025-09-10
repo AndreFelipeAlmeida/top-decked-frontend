@@ -21,8 +21,16 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [yearlyProgressionData, setYearlyProgressionData] = useState<any[]>([]);
   const [availableYears, setAvailableYears] = useState<string[]>([]);
-  const [performanceByFormatData, setPerformanceByFormatData] = useState<any[]>([]); // Renomeado para clareza
-  const [frequentOpponentsData, setFrequentOpponentsData] = useState<any[]>([]); // Novo estado para oponentes
+  const [performanceByFormatData, setPerformanceByFormatData] = useState<any[]>([]);
+  const [frequentOpponentsData, setFrequentOpponentsData] = useState<any[]>([]);
+  
+  // Novo estado para as estatísticas de colocação
+  const [placementStats, setPlacementStats] = useState({
+    firstPlace: 0,
+    secondPlace: 0,
+    topFour: 0,
+    topEight: 0
+  });
 
   useEffect(() => {
     async function fetchData() {
@@ -47,18 +55,48 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
 
         setPlayerStats(statsData);
 
-        const formattedRecentTournaments = statsData.historico.slice(0, 4).map((item: any) => ({
+        // Calcular as estatísticas de colocação
+        let firstPlaceCount = 0;
+        let secondPlaceCount = 0;
+        let topFourCount = 0;
+        let topEightCount = 0;
+        
+        if (statsData.historico) {
+          statsData.historico.forEach((item: any) => {
+            if (item.colocacao === 1) {
+              firstPlaceCount++;
+            }
+            if (item.colocacao === 2) {
+              secondPlaceCount++;
+            }
+            if (item.colocacao <= 4) {
+              topFourCount++;
+            }
+            if (item.colocacao <= 8) {
+              topEightCount++;
+            }
+          });
+        }
+        
+        setPlacementStats({
+          firstPlace: firstPlaceCount,
+          secondPlace: secondPlaceCount,
+          topFour: topFourCount,
+          topEight: topEightCount,
+        });
+
+        const formattedRecentTournaments = statsData.historico?.slice(0, 4).map((item: any) => ({
           id: item.id,
           name: item.nome,
           date: new Date(item.data_inicio).toLocaleDateString('pt-BR'),
           placement: item.colocacao,
           participants: item.participantes,
           points: item.pontuacao,
-        }));
+        })) || [];
         setRecentTournaments(formattedRecentTournaments);
 
-        setYearlyProgressionData(statsData.estatisticas_anuais);
-        const uniqueYears = Array.from(new Set<number>(statsData.estatisticas_anuais.map((d: any) => d.ano)))
+        setYearlyProgressionData(statsData.estatisticas_anuais || []);
+        const uniqueYears = Array.from(new Set<number>((statsData.estatisticas_anuais || []).map((d: any) => d.ano)))
           .sort((a, b) => b - a)
           .map(y => y.toString());
         setAvailableYears(uniqueYears);
@@ -69,7 +107,6 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         });
         if (!performanceRes.ok) throw new Error('Erro ao buscar desempenho por formatos');
         const performanceApiData = await performanceRes.json();
-        // O `radarData` agora se chama `performanceByFormatData` e será passado com o nome correto.
         setPerformanceByFormatData(performanceApiData);
 
         // Fetch dados para oponentes frequentes e histórico de partidas
@@ -79,14 +116,8 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         if (!opponentsRes.ok) throw new Error('Erro ao buscar histórico de partidas');
         const opponentsData = await opponentsRes.json();
 
-        // O 'historyData' que você estava usando já são os dados de oponentes
         setFrequentOpponentsData(opponentsData);
 
-        // AQUI: Reformatamos 'opponentsData' para a tabela de histórico de partidas se necessário
-        // (Sua lógica de formatação de 'historyData' está comentada, mas a função retorna o que precisamos)
-        // Se a sua rota '/jogadores/historico' retorna apenas a lista de oponentes,
-        // você precisará de um endpoint separado para a tabela 'matchHistory' ou ajustar o backend para retornar ambos.
-        // Vamos assumir que 'historico' pode ser usado para ambos (oponentes e histórico de partidas)
         const formattedMatchHistory = opponentsData.map((item: any) => ({
           id: item.id,
           opponent: item.nome,
@@ -143,6 +174,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             onNavigateToTournament={onNavigateToTournament}
             playerStats={playerStats}
             recentTournaments={recentTournaments}
+            placementStats={placementStats} // Passando as novas estatísticas
           />
         </TabsContent>
 
@@ -150,8 +182,8 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
           <DetailedStatistics
             yearlyProgressionData={yearlyProgressionData}
             availableYears={availableYears}
-            frequentOpponentsData={frequentOpponentsData} // Prop alterada para o nome correto
-            performanceByFormatData={performanceByFormatData} // Nova prop para o gráfico de formato
+            frequentOpponentsData={frequentOpponentsData}
+            performanceByFormatData={performanceByFormatData}
           />
         </TabsContent>
 
