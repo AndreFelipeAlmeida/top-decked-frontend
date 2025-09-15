@@ -4,7 +4,9 @@
 
 1.  **Clone o repositório:**
 
-2.  **Instale as dependências:**
+2. **Preencha o .env**
+
+3.  **Instale as dependências:**
     ```bash
     npm install
     ```

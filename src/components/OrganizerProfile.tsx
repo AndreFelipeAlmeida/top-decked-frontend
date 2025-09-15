@@ -9,6 +9,8 @@ import { Button } from './ui/button.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar.tsx';
 import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loader2 } from 'lucide-react';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 interface OrganizerProfileProps {
@@ -65,7 +67,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
       return null;
     }
     try {
-      const response = await fetch(`http://localhost:8000/lojas/${id}`, {
+      const response = await fetch(`${API_URL}/lojas/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
@@ -90,7 +92,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
       return;
     }
     try {
-      const response = await fetch('http://localhost:8000/lojas/', {
+      const response = await fetch(`${API_URL}/lojas/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +138,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/lojas/${currentUser.id}`, {
+      const response = await fetch(`${API_URL}/lojas/${currentUser.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -333,7 +335,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
     //   const formData = new FormData();
     //   formData.append("file", file);
 
-    //   const response = await fetch("http://localhost:8000/lojas/upload_foto", {
+    //   const response = await fetch(`${API_URL}/lojas/upload_foto`, {
     //     method: "POST",
     //     headers: {
     //       Authorization: `Bearer ${token}`,
@@ -403,7 +405,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                   <AvatarImage
                     src={
                       organizerData?.usuario?.foto
-                        ? `http://localhost:8000/uploads/${organizerData.usuario.foto}`
+                        ? `${API_URL}/uploads/${organizerData.usuario.foto}`
                         : profileImage
                     }
                     alt={organizerData?.nome}

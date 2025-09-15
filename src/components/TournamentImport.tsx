@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 interface TournamentImportProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -79,10 +81,10 @@ export function TournamentImport({ isOpen, onOpenChange, onNavigate, targetTourn
     let tournamentIdToNavigate = '';
 
     if (importType === 'new') {
-      apiUrl = 'http://localhost:8000/lojas/torneios/importar';
+      apiUrl = `${API_URL}/lojas/torneios/importar`;
       successMessage = 'Torneio importado com sucesso!';
     } else {
-      apiUrl = `http://localhost:8000/lojas/torneios/${selectedTournamentId}/importar`;
+      apiUrl = `${API_URL}/lojas/torneios/${selectedTournamentId}/importar`;
       successMessage = 'Dados importados para o torneio existente!';
       tournamentIdToNavigate = selectedTournamentId;
     }

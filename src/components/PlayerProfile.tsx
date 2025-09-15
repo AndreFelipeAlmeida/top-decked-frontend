@@ -11,6 +11,8 @@ import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loa
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 interface PlayerProfileProps {
   onNavigate: (page: Page, data?: any) => void;
   onLogout: () => void;
@@ -67,7 +69,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
       return null;
     }
     try {
-      const response = await fetch(`http://localhost:8000/jogadores/${id}`, {
+      const response = await fetch(`${API_URL}/jogadores/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
@@ -92,7 +94,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
       return;
     }
     try {
-      const response = await fetch('http://localhost:8000/jogadores/', {
+      const response = await fetch(`${API_URL}/jogadores/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +139,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
       return;
     }
     try {
-      const response = await fetch(`http://localhost:8000/jogadores/${currentUser.id}`, {
+      const response = await fetch(`${API_URL}/jogadores/${currentUser.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -335,7 +337,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
       const formData = new FormData();
       formData.append("file", file);
   
-      const response = await fetch("http://localhost:8000/jogadores/upload_foto", {
+      const response = await fetch(`${API_URL}/jogadores/upload_foto`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -403,7 +405,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
                   <AvatarImage
                     src={
                       playerData?.usuario?.foto
-                        ? `http://localhost:8000/uploads/${playerData.usuario.foto}`
+                        ? `${API_URL}/uploads/${playerData.usuario.foto}`
                         : profileImage
                     }
                     alt={playerData?.nome}

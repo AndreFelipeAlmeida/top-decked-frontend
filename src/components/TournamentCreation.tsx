@@ -11,6 +11,8 @@ import { User } from '../data/store.ts';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 interface TournamentCreationProps {
   onNavigate: (page: Page, data?: any) => void;
   currentUser: User | null;
@@ -84,7 +86,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
     };
     
     try {
-      const response = await fetch('http://localhost:8000/lojas/torneios/criar', {
+      const response = await fetch(`${API_URL}/lojas/torneios/criar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

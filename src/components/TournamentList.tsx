@@ -51,6 +51,8 @@ interface PlayerTournamentLink {
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 interface TournamentListProps {
   onNavigate: (page: Page, data?: any) => void;
   onNavigateToTournament: (tournamentId: string) => void;
@@ -109,7 +111,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
       }
 
       try {
-        const allResponse = await fetch('http://localhost:8000/lojas/torneios/', {
+        const allResponse = await fetch(`${API_URL}/lojas/torneios/`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!allResponse.ok) {
@@ -122,7 +124,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
         if (currentUser) {
           if (currentUser.type === 'player') {
             try {
-              const playerResponse = await fetch('http://localhost:8000/jogadores/torneios/inscritos', {
+              const playerResponse = await fetch(`${API_URL}/jogadores/torneios/inscritos`, {
                 headers: { 'Authorization': `Bearer ${token}` },
               });
               if (!playerResponse.ok) {
@@ -140,7 +142,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               console.error("Erro ao buscar torneios do jogador:", playerError.message);
             }
           } else if (currentUser.type === 'organizer') {
-            const organizerResponse = await fetch('http://localhost:8000/lojas/torneios/loja', {
+            const organizerResponse = await fetch(`${API_URL}/lojas/torneios/loja`, {
               headers: { 'Authorization': `Bearer ${token}` },
             });
             if (!organizerResponse.ok) {

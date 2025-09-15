@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Trophy, Medal, Crown, Search, Filter, Users, Star, ArrowLeft, Plus } from 'lucide-react';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
 interface RankingScreenProps {
@@ -37,7 +39,7 @@ export function RankingScreen({ onNavigate, currentUser }: RankingScreenProps) {
   useEffect(() => {
     const fetchRankings = async () => {
       try {
-        const response = await fetch('http://localhost:8000/ranking/lojas');
+        const response = await fetch(`${API_URL}/ranking/lojas`);
         if (!response.ok) {
           console.error('Erro ao buscar rankings:', response.status, response.statusText);
           return;

@@ -71,6 +71,8 @@ import { toast } from "sonner";
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 interface TournamentEditProps {
   onNavigate: (page: Page, data?: any) => void;
   currentUser: User | null;
@@ -156,7 +158,7 @@ export function TournamentEdit({
   const fetchMonthlyResults = async (players: User[], token: string) => {
     try {
       const resultsPromises = players.map(async (player) => {
-        const response = await fetch(`http://localhost:8000/jogadores/estatisticas`, {
+        const response = await fetch(`${API_URL}/jogadores/estatisticas`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -194,7 +196,7 @@ export function TournamentEdit({
     }
 
     try {
-      const tournamentResponse = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
+      const tournamentResponse = await fetch(`${API_URL}/lojas/torneios/${tournamentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -259,7 +261,7 @@ export function TournamentEdit({
           setDefaultRuleId(tournamentData.regra_basica_id.toString());
         }
 
-        const rulesResponse = await fetch('http://localhost:8000/lojas/tipoJogador/', {
+        const rulesResponse = await fetch(`${API_URL}/lojas/tipoJogador/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -350,7 +352,7 @@ export function TournamentEdit({
     Object.keys(requestBody).forEach(key => requestBody[key] === null && delete requestBody[key]);
 
     try {
-      const response = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
+      const response = await fetch(`${API_URL}/lojas/torneios/${tournamentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

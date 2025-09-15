@@ -6,6 +6,8 @@ import { DetailedStatistics } from './dashboard/DetailedStatistics.tsx';
 import { MatchHistory } from './dashboard/MatchHistory.tsx';
 import { User } from '../data/store.ts';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 interface PlayerDashboardProps {
@@ -47,7 +49,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
 
       try {
         // Fetch estatísticas gerais e histórico de torneios
-        const statsRes = await fetch(`http://localhost:8000/jogadores/estatisticas`, {
+        const statsRes = await fetch(`${API_URL}/jogadores/estatisticas`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!statsRes.ok) throw new Error('Erro ao buscar estatísticas');
@@ -102,7 +104,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         setAvailableYears(uniqueYears);
 
         // Fetch dados para o desempenho por formato (gráfico de pizza/radar)
-        const performanceRes = await fetch(`http://localhost:8000/ranking/desempenho`, {
+        const performanceRes = await fetch(`${API_URL}/ranking/desempenho`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!performanceRes.ok) throw new Error('Erro ao buscar desempenho por formatos');
@@ -110,7 +112,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         setPerformanceByFormatData(performanceApiData);
 
         // Fetch dados para oponentes frequentes e histórico de partidas
-        const opponentsRes = await fetch(`http://localhost:8000/jogadores/historico`, {
+        const opponentsRes = await fetch(`${API_URL}/jogadores/historico`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!opponentsRes.ok) throw new Error('Erro ao buscar histórico de partidas');

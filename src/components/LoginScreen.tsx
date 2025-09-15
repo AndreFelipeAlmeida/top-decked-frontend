@@ -10,6 +10,8 @@ import { Badge } from './ui/badge.tsx';
 import { Trophy, Eye, EyeOff, Users, Calendar } from 'lucide-react';
 import { User } from '../data/store.ts';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 interface LoginScreenProps {
   onLogin: (user: User) => void;
 }
@@ -45,7 +47,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     formData.append('password', loginData.password);
 
     try {
-      const response = await fetch('http://localhost:8000/login/token', {
+      const response = await fetch(`${API_URL}/login/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -58,7 +60,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       if (response.ok) {
         localStorage.setItem('accessToken', data.access_token);
 
-        const userProfileResponse = await fetch('http://localhost:8000/login/profile', {
+        const userProfileResponse = await fetch(`${API_URL}/login/profile`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${data.access_token}`,
@@ -129,7 +131,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     let payload = {};
   
     if (registerData.userType === 'player') {
-      endpoint = 'http://localhost:8000/jogadores/';
+      endpoint = `${API_URL}/jogadores/`;
       payload = {
         nome: registerData.name,
         email: registerData.email,
@@ -138,7 +140,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         data_nascimento: registerData.data_nascimento,
       };
     } else if (registerData.userType === 'organizer') {
-      endpoint = 'http://localhost:8000/lojas/';
+      endpoint = `${API_URL}/lojas/`;
       payload = {
         nome: registerData.name,
         email: registerData.email,
@@ -167,7 +169,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       loginForm.append('username', registerData.email);
       loginForm.append('password', registerData.password);
   
-      const loginResponse = await fetch('http://localhost:8000/login/token', {
+      const loginResponse = await fetch(`${API_URL}/login/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: loginForm.toString(),
@@ -181,7 +183,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       }
   
       localStorage.setItem('accessToken', loginData.access_token);
-      const userProfileResponse = await fetch('http://localhost:8000/login/profile', {
+      const userProfileResponse = await fetch(`${API_URL}/login/profile`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${loginData.access_token}` },
       });

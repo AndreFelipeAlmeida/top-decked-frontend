@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 interface TournamentDetailsProps {
   onNavigate: (page: Page, data?: any) => void;
   tournamentId: string | null;
@@ -145,7 +147,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/lojas/torneios/${tournamentId}`, {
+      const response = await fetch(`${API_URL}/lojas/torneios/${tournamentId}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -217,7 +219,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
 
     try {
         const token = localStorage.getItem('accessToken');
-        const response = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}/inscricao`, {
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/inscricao`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -245,7 +247,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
 
     try {
         const token = localStorage.getItem('accessToken');
-        const response = await fetch(`http://localhost:8000/lojas/torneios/${tournament.id}/inscricao`, {
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/inscricao`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`,

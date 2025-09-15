@@ -9,6 +9,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
+const API_URL = process.env.BACKEND_API_URL;
+
 // Adicionadas interfaces do backend
 interface TipoJogadorPublico {
   id: number;
@@ -92,7 +94,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/lojas/tipoJogador/', {
+      const response = await fetch(`${API_URL}/lojas/tipoJogador/`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -176,7 +178,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
     try {
       if (editingRule) {
         // Lógica de atualização (PUT)
-        const response = await fetch(`http://localhost:8000/lojas/tipoJogador/${editingRule.id}`, {
+        const response = await fetch(`${API_URL}/lojas/tipoJogador/${editingRule.id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -196,7 +198,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
         }
       } else {
         // Lógica de criação (POST)
-        const response = await fetch('http://localhost:8000/lojas/tipoJogador/', {
+        const response = await fetch(`${API_URL}/lojas/tipoJogador/`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -229,7 +231,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/lojas/tipoJogador/${ruleId}`, {
+      const response = await fetch(`${API_URL}/lojas/tipoJogador/${ruleId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
