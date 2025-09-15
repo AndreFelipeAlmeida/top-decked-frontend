@@ -20,7 +20,7 @@ interface TipoJogadorPublico {
   pt_oponente_ganha: number;
   pt_oponente_empate: number;
   loja: number;
-  tcg: string; // Adicionado o campo tcg
+  tcg: string;
 }
 
 interface PlayerRule {
@@ -32,7 +32,7 @@ interface PlayerRule {
   pointsGivenToOpponent: number;
   pointsLostByOpponent: number;
   pointsGivenToOpponentOnDraw: number;
-  tcg: string; // Adicionado o campo tcg
+  tcg: string;
 }
 
 interface PlayerRuleFormData {
@@ -43,7 +43,7 @@ interface PlayerRuleFormData {
   pt_oponente_ganha: number;
   pt_oponente_perde: number;
   pt_oponente_empate: number;
-  tcg: string; // Adicionado o campo tcg
+  tcg: string;
 }
 
 const mapBackendToFrontendRule = (backendRule: TipoJogadorPublico): PlayerRule => {
@@ -82,8 +82,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
     tcg: ''
   });
 
-  // Substitua `tournamentStore.getCurrentUser()` pela sua lógica real de autenticação.
-  const currentUser = { id: 1, type: 'organizer' }; // Exemplo, deve vir do seu contexto
+  const currentUser = { id: 1, type: 'organizer' };
 
   const fetchRules = async () => {
     const token = localStorage.getItem('accessToken');
@@ -104,13 +103,14 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
       if (response.ok) {
         const data: TipoJogadorPublico[] = await response.json();
         setPlayerRules(data.map(mapBackendToFrontendRule));
+      } else if (response.status === 404) {
+        setPlayerRules([]);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Falha ao buscar as regras de jogador.');
       }
     } catch (error) {
       console.error('Erro ao buscar regras:', error);
-      toast.error((error as Error).message);
     }
   };
 
@@ -189,7 +189,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
           toast.success('Regra do jogador atualizada com sucesso');
           setIsFormOpen(false);
           resetForm();
-          fetchRules(); // Recarrega a lista
+          fetchRules();
         } else {
           const errorData = await response.json();
           throw new Error(errorData.detail || 'Falha ao atualizar a regra do jogador');
@@ -209,7 +209,7 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
           toast.success('Regra do jogador criada com sucesso');
           setIsFormOpen(false);
           resetForm();
-          fetchRules(); // Recarrega a lista
+          fetchRules();
         } else {
           const errorData = await response.json();
           throw new Error(errorData.detail || 'Falha ao criar a regra do jogador');
@@ -238,7 +238,15 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
 
       if (response.ok) {
         toast.success('Regra do jogador excluída com sucesso');
-        fetchRules(); // Recarrega a lista
+        try {
+          console.log("Chamando fetchRules() após exclusão bem-sucedida...");
+          await fetchRules();
+          console.log("fetchRules() concluído.");
+        } catch (reloadError) {
+          console.error("Falha ao recarregar a lista de regras após a exclusão:", reloadError);
+          toast.error("Falha ao recarregar a lista após exclusão.");
+        }
+      
       } else {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Falha ao excluir a regra do jogador');
