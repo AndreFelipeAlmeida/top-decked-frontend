@@ -11,7 +11,7 @@ import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loa
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
-const API_URL = process.env.BACKEND_API_URL;
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 interface PlayerProfileProps {
   onNavigate: (page: Page, data?: any) => void;

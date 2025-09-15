@@ -9,7 +9,7 @@ import { Button } from './ui/button.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar.tsx';
 import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loader2 } from 'lucide-react';
 
-const API_URL = process.env.BACKEND_API_URL;
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 

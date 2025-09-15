@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = process.env.BACKEND_API_URL;
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 // Adicionadas interfaces do backend
 interface TipoJogadorPublico {

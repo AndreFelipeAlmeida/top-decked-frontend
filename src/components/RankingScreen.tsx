@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Trophy, Medal, Crown, Search, Filter, Users, Star, ArrowLeft, Plus } from 'lucide-react';
 
-const API_URL = process.env.BACKEND_API_URL;
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 

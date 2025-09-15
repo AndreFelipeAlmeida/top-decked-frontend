@@ -71,7 +71,7 @@ import { toast } from "sonner";
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
-const API_URL = process.env.BACKEND_API_URL;
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 interface TournamentEditProps {
   onNavigate: (page: Page, data?: any) => void;

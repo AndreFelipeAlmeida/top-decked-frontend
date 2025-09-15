@@ -10,7 +10,7 @@ import { Badge } from './ui/badge.tsx';
 import { Trophy, Eye, EyeOff, Users, Calendar } from 'lucide-react';
 import { User } from '../data/store.ts';
 
-const API_URL = process.env.BACKEND_API_URL;
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;

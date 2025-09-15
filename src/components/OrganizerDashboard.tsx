@@ -30,7 +30,7 @@ const [torneiosSemana, setTorneiosSemana] = useState(0);
 const [monthlyData, setMonthlyData] = useState<{ month: string; tournaments: number; participants: number }[]>([]);
 const [data, setData] = useState<any[]>([]);
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1'];
-const API_URL = process.env.BACKEND_API_URL;
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 const formatData = useMemo(() => {
   if (data.length === 0) {
