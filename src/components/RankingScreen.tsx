@@ -40,6 +40,7 @@ export function RankingScreen({ onNavigate, currentUser }: RankingScreenProps) {
     const fetchRankings = async () => {
       try {
         const response = await fetch(`${API_URL}/ranking/lojas`);
+        console.log(response)
         if (!response.ok) {
           console.error('Erro ao buscar rankings:', response.status, response.statusText);
           return;

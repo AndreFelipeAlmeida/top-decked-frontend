@@ -47,6 +47,7 @@ export interface Tournament {
   bracket?: BracketMatch[];
   createdAt: string;
   hasImportedResults?: boolean;
+  ruleId: number;
 }
 
 export interface TournamentParticipant {

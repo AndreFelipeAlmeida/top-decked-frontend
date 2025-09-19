@@ -83,6 +83,7 @@ interface BackendTournament {
   finalizado: boolean;
   jogadores: JogadorTorneioLinkPublico[];
   rodadas: RodadaBase[];
+  regra_basica_id: number;
   regras_adicionais: TorneioRegraAdicionalPublico[];
 }
 
@@ -137,6 +138,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
       bracket: [],
       createdAt: new Date().toISOString(),
       hasImportedResults: !!backendData.rodadas?.length,
+      ruleId: backendData.regra_basica_id
   };
 };
 
@@ -173,7 +175,6 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
 
       const backendData: BackendTournament = await response.json();
       const mappedTournament = mapBackendToFrontend(backendData);
-
       const mappedRules: PlayerRuleAssignment[] = backendData.regras_adicionais?.flatMap(rule => 
         rule.jogadores.map(player => ({
           id: `${rule.tipo_jogador.id}-${player.id}`,
@@ -199,20 +200,47 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         }));
       setTournamentResults(mappedResults);
 
-      const availableRulesFromBackend = backendData.regras_adicionais?.map(rule => ({
-        id: rule.tipo_jogador.id.toString(),
-        typeName: rule.tipo_jogador.nome,
-        pointsForWin: rule.tipo_jogador.pt_vitoria,
-        pointsForLoss: rule.tipo_jogador.pt_derrota,
-        pointsForDraw: rule.tipo_jogador.pt_empate,
-        pointsGivenToOpponent: rule.tipo_jogador.pt_oponente_ganha,
-        pointsLostByOpponent: rule.tipo_jogador.pt_oponente_perde,
-        pointsGivenToOpponentOnDraw: rule.tipo_jogador.pt_oponente_empate,
-        tcg: rule.tipo_jogador.tcg,
-        organizerId: rule.tipo_jogador.loja.toString(),
+
+try {
+  const response2 = await fetch(`${API_URL}/lojas/tipoJogador/`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+
+  if (response2.status === 404) {
+    // 404 esperado → não tem tipos de jogador cadastrados
+    console.warn("Nenhum tipo de jogador encontrado.");
+    setAvailableRules([]);
+  } else if (!response2.ok) {
+    // outro erro que não seja 404
+    const errorData = await response2.json();
+    throw new Error(errorData.detail || "Erro ao buscar tipos de jogador.");
+  } else {
+    const backendData2 = (await response2.json()) as TipoJogadorPublico[];
+    if (!Array.isArray(backendData2)) {
+      console.warn("Resposta inesperada da API:", backendData2);
+      setAvailableRules([]);
+    } else {
+      const availableRulesFromBackend = backendData2.map(rule => ({
+        id: rule.id.toString(),
+        typeName: rule.nome,
+        pointsForWin: rule.pt_vitoria,
+        pointsForLoss: rule.pt_derrota,
+        pointsForDraw: rule.pt_empate,
+        pointsGivenToOpponent: rule.pt_oponente_ganha,
+        pointsLostByOpponent: rule.pt_oponente_perde,
+        pointsGivenToOpponentOnDraw: rule.pt_oponente_empate,
+        tcg: rule.tcg,
         createdAt: new Date().toISOString()
-      })) || [];
+      }));
       setAvailableRules(availableRulesFromBackend);
+    }
+  }
+} catch (err) {
+  console.error("Erro ao buscar tipos de jogador:", err);
+  setAvailableRules([]);
+}
+
+
       
       setTournament(mappedTournament);
     } catch (error) {
@@ -526,26 +554,36 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {!tournament.hasImportedResults ? (
+              {(tournament.ruleId === null) ? (
                 <div className="text-center py-8">
                   <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">As regras de jogador aparecerão após a importação dos resultados do torneio</p>
+                  <p className="text-muted-foreground">As regras de jogador aparecerão após a edição do torneio</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                   <div>
                     <h4 className="font-medium mb-3">Regra Padrão</h4>
-                    <Card className="p-4 bg-muted/50">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium">Jogador Normal</span>
-                          <div className="text-sm text-muted-foreground">
-                            Vitória: 3pts, Derrota: 0pts, Empate: 1pt
-                          </div>
-                        </div>
-                        <Badge variant="secondary">Aplicado a todos os jogadores por padrão</Badge>
-                      </div>
-                    </Card>
+                          {(() => {
+                            const selectedRule = availableRules.find(
+                              (rule) => Number(rule.id) === Number(tournament.ruleId)
+                            );
+                            console.log(availableRules)
+                            return (
+                              <Card className="p-4 bg-muted/50">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <span className="font-medium">{selectedRule.typeName}</span>
+                                    <div className="text-sm text-muted-foreground">
+                                      Vitória: {selectedRule.pointsForWin} pts,{" "}
+                                      Derrota: {selectedRule.pointsForLoss} pts,{" "}
+                                      Empate: {selectedRule.pointsForDraw} pts
+                                    </div>
+                                  </div>
+                                  <Badge variant="secondary">Aplicado a todos os jogadores por padrão</Badge>
+                                </div>
+                              </Card>
+                            );
+                          })()}
                   </div>
                   <div>
                     <h4 className="font-medium mb-3">Regras Específicas de Jogador</h4>
