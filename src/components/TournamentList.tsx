@@ -60,41 +60,52 @@ interface TournamentListProps {
 }
 
 const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
+  if (!backendData || !Array.isArray(backendData)) {
+      console.error("Dados de backend inválidos. Esperado um array.");
+      return [];
+  }
+
   return backendData.map(t => {
     let status: 'open' | 'in-progress' | 'finished';
-    if (t.finalizado) {
+    
+    const finalizado = t.finalizado ?? false;
+    const rodadas = t.rodadas ?? [];
+
+    if (finalizado) {
       status = 'finished';
-    } else if (t.rodadas && t.rodadas.length > 0) {
+    } else if (rodadas.length > 0) {
       status = 'in-progress';
     } else {
       status = 'open';
     }
 
     return {
-      id: t.id.toString(),
-      name: t.nome,
+      id: t.id ? t.id.toString() : "",
+      organizerUserId: t.loja_id?.toString() || "0",
+      ruleId: 0, 
+      name: t.nome || "Torneio sem nome",
       organizerId: (t.loja_id ?? t.loja?.id)?.toString() || "0",
       organizerName: t.loja?.nome || "Organizador não informado",
-      date: t.data_inicio,
+      date: t.data_inicio || new Date().toISOString(),
       time: "Horário não informado",
       format: t.formato || 'Formato não informado',
       store: t.cidade || 'Local não informado',
       description: t.descricao || '',
       prizes: t.premios || '',
-      maxParticipants: t.vagas,
-      entryFee: `$${t.taxa}`,
+      maxParticipants: t.vagas ?? 0,
+      entryFee: `$${t.taxa ?? 0}`,
       structure: t.estrutura || '',
       rounds: t.rodadas?.length || 0,
-      status: status, // Status agora tem 3 estados
+      status: status,
       currentRound: t.rodadas?.length || 0,
-      participants: t.jogadores.map(p => ({ 
-        id: p.jogador_id.toString(), 
-        userId: p.jogador_id.toString(),
+      participants: t.jogadores?.map(p => ({ 
+        id: p.jogador_id?.toString() || "", 
+        userId: p.jogador_id?.toString() || "",
         userName: "Nome não disponível",
         registeredAt: new Date().toISOString(),
-        points: p.ponto,
+        points: p.ponto ?? 0,
         wins: 0, losses: 0, draws: 0, currentStanding: 0
-      })),
+      })) || [],
       matches: [],
       bracket: [],
       createdAt: new Date().toISOString(),
