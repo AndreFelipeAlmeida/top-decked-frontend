@@ -110,19 +110,19 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
     setMessage(null);
   
-    let requiredFields = ['name', 'email', 'password'];
+    let requiredFields: (keyof typeof registerData)[] = ['name', 'email', 'password'];
     if (registerData.userType === 'organizer') {
-      requiredFields = [...requiredFields, 'storeAddress', 'site'];
+      requiredFields = [...requiredFields, 'storeAddress', 'telefone'];
     } else {
       requiredFields = [...requiredFields, 'telefone', 'data_nascimento'];
     }
   
     const isValid = requiredFields.every(
-      (field) => registerData[field as keyof typeof registerData]?.trim()
+      (field) => registerData[field]?.trim()
     );
   
     if (!isValid) {
-      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos.' });
+      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
       setIsLoading(false);
       return;
     }
@@ -147,6 +147,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         senha: registerData.password,
         endereco: registerData.storeAddress,
         site: registerData.site,
+        telefone: registerData.telefone,
       };
     }
   
@@ -491,14 +492,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="site">Site</Label>
+                        <Label htmlFor="site">Site (opcional)</Label>
                         <Input
                           id="site"
                           type="url"
                           placeholder="Ex: www.minhaloja.com.br"
                           value={registerData.site}
                           onChange={(e) => setRegisterData({ ...registerData, site: e.target.value })}
-                          required
                         />
                       </div>
                       <div className="space-y-2">

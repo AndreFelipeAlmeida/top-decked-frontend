@@ -246,11 +246,6 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
       clearProfileMessage();
       return;
     }
-    if (!formData.site) {
-      setProfileMessage({ text: "O campo de Site é obrigatório.", type: 'error' });
-      clearProfileMessage();
-      return;
-    }
 
     const changes: any = {};
     const original = organizerData;
