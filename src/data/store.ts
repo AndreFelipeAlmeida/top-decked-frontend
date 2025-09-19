@@ -29,6 +29,7 @@ export interface Tournament {
   name: string;
   organizerId: string;
   organizerName: string;
+  organizerUserId: string;
   date: string;
   time: string;
   format: string;

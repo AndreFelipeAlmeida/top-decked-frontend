@@ -23,6 +23,11 @@ interface LojaPublico {
     id: number;
     nome: string;
     email: string;
+    usuario: UsuarioPublico;
+}
+
+interface UsuarioPublico {
+    id: number;
 }
 
 interface JogadorPublico {
@@ -106,6 +111,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
       id: backendData.id,
       name: backendData.nome,
       organizerId: (backendData.loja_id ?? backendData.loja?.id)?.toString() || "0",
+      organizerUserId: (backendData.loja?.usuario?.id)?.toString() || "0",
       organizerName: backendData.loja?.nome || "Organizador não informado",
       date: backendData.data_inicio,
       time: "Horário não informado",
@@ -209,7 +215,6 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
       setAvailableRules(availableRulesFromBackend);
       
       setTournament(mappedTournament);
-    
     } catch (error) {
       console.error("Erro ao buscar detalhes do torneio:", error);
       toast.error((error as Error).message);
@@ -344,7 +349,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
     );
   }
 
-  const isOrganizer = currentUser?.type === 'organizer';
+  const isTournamentCreator = currentUser?.id.toString() === tournament.organizerUserId.toString();
   const isPlayer = currentUser?.type === 'player';
   
   const hasSpecificRules = playerRuleAssignments.length > 0;
@@ -408,7 +413,9 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                   )}
                 </>
               )}
-              {isOrganizer && (
+            {console.log(currentUser?.id)}
+            {console.log(tournament.organizerUserId)}
+              {isTournamentCreator &&  (
                 <>
                   <Button 
                     variant="outline"
