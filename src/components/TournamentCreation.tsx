@@ -58,17 +58,28 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
     }
 
     const { name, date, format, structure, maxParticipants, entryFee, rounds, roundTime } = formData;
+
     if (!name || !date || !format || !structure) {
       setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
       setIsLoading(false);
       return;
     }
 
-    // Convertendo valores para os tipos corretos e usando os nomes de campos corretos
     const parsedVagas = maxParticipants ? parseInt(maxParticipants, 10) : 0;
     const parsedTaxa = entryFee ? parseFloat(entryFee.replace(',', '.')) : 0.00;
     const parsedRodadas = rounds ? parseInt(rounds, 10) : 0;
     const parsedTempoRodada = roundTime ? parseInt(roundTime, 10) : 30;
+
+    if (parsedTaxa < 0) {
+      setMessage({ type: 'error', text: 'A taxa de inscrição não pode ser negativa.' });
+      setIsLoading(false);
+      return;
+    }
+    if (parsedVagas < 0 || parsedRodadas < 0 || parsedTempoRodada < 0) {
+      setMessage({ type: 'error', text: 'Os campos de vagas, rodadas e tempo de rodada não podem ser negativos.' });
+      setIsLoading(false);
+      return;
+    }
 
     const payload = {
       nome: formData.name,
@@ -239,7 +250,12 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                   type="number"
                   placeholder="0"
                   value={formData.maxParticipants}
-                  onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
+                      setFormData({ ...formData, maxParticipants: value });
+                    }
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -247,9 +263,14 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 <Input
                   id="entryFee"
                   type="number"
-                  placeholder="00.00"
+                  placeholder="0.00"
                   value={formData.entryFee}
-                  onChange={(e) => setFormData({ ...formData, entryFee: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
+                      setFormData({ ...formData, entryFee: value });
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -294,8 +315,6 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Swiss">Suíço</SelectItem>
-                    <SelectItem value="Single Elimination">Eliminação Simples</SelectItem>
-                    <SelectItem value="Double Elimination">Eliminação Dupla</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -306,7 +325,12 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                   type="number"
                   placeholder="0"
                   value={formData.rounds}
-                  onChange={(e) => setFormData({ ...formData, rounds: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
+                      setFormData({ ...formData, rounds: value });
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -317,7 +341,12 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 type="number"
                 placeholder="0"
                 value={formData.roundTime}
-                onChange={(e) => setFormData({ ...formData, roundTime: e.target.value })}
+                onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
+                      setFormData({ ...formData, roundTime: value });
+                    }
+                  }}
               />
             </div>
           </CardContent>
