@@ -19,12 +19,12 @@ export function DetailedStatistics({ yearlyProgressionData, availableYears, freq
   const [selectedMetric, setSelectedMetric] = useState('points');
   const [selectedYears, setSelectedYears] = useState(['2024', '2025']);
 
-  const filteredData = yearlyProgressionData.filter(d => selectedYears.includes(d.year.toString()));
+  const filteredData = yearlyProgressionData.filter(d => selectedYears.includes(d.year?.toString()));
 
   const chartData = Array.from(new Set(filteredData.map((d: any) => d.month))).map((month: any) => {
     const monthData: any = { month };
     selectedYears.forEach(year => {
-      const yearData = filteredData.find(d => d.month === month && d.year.toString() === year);
+      const yearData = filteredData.find(d => d.month === month && d.year?.toString() === year);
       if (yearData) {
         monthData[`${selectedMetric}_${year}`] = yearData[selectedMetric as keyof typeof yearData];
       }
