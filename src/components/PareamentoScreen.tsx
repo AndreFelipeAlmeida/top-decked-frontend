@@ -558,6 +558,8 @@ const handleMatchResult = (matchId: string, winnerId: string) => {
             throw new Error(errorData.detail || 'Falha ao iniciar o torneio.');
         }
 
+        onNavigate("tournament-details", tournament.id);
+
         fetchTournamentData();
     } catch (err: any) {
         console.error("Erro ao iniciar o torneio:", err.message);

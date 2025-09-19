@@ -39,7 +39,7 @@ interface BackendTournament {
   premios: string | null;
   estrutura: string | null;
   vagas: number;
-  finalizado: boolean;
+  status: 'ABERTO' | 'EM_ANDAMENTO' | 'FINALIZADO';
   jogadores: JogadorTorneioLinkPublico[];
   rodadas: RodadaBase[];
   regras_adicionais: any[];
@@ -66,18 +66,14 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
   }
 
   return backendData.map(t => {
-    let status: 'open' | 'in-progress' | 'finished';
-    
-    const finalizado = t.finalizado ?? false;
-    const rodadas = t.rodadas ?? [];
-
-    if (finalizado) {
-      status = 'finished';
-    } else if (rodadas.length > 0) {
-      status = 'in-progress';
-    } else {
-      status = 'open';
-    }
+      let status: 'open' | 'in-progress' | 'finished';
+      if (t.status === "FINALIZADO") {
+        status = 'finished';
+      } else if (t.status === "EM_ANDAMENTO") {
+        status = 'in-progress';
+      } else {
+        status = 'open';
+      }
 
     return {
       id: t.id ? t.id.toString() : "",
