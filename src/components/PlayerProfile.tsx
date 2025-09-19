@@ -69,7 +69,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
       return null;
     }
     try {
-      const response = await fetch(`${API_URL}/jogadores/${id}`, {
+      const response = await fetch(`${API_URL}/jogadores/usuario/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
@@ -139,7 +139,7 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
       return;
     }
     try {
-      const response = await fetch(`${API_URL}/jogadores/${currentUser.id}`, {
+      const response = await fetch(`${API_URL}/jogadores/usuario/${currentUser.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -162,37 +162,40 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
     }
   };  
 
-  // PlayerProfile.tsx
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       setError(null);
-      let idToFetch: string | null = null; 
+      
+      const idToFetch = viewedPlayerId || currentUser?.id;
 
-      if (viewedPlayerId) { // Se um ID de outro jogador foi passado pela navegação
-        idToFetch = viewedPlayerId;
-      } 
-      // Se não veio ID de navegação, E o usuário logado é um JOGADOR, usa o ID do próprio jogador.
-      else if (currentUser?.type === 'player') { 
-        idToFetch = currentUser.id;
-      } 
-      // Se não temos nem `viewedPlayerId` e nem `currentUser.id` (e não é um jogador logado),
-      // isso pode acontecer se um organizador clica no botão "voltar" sem ter passado um ID.
-      // Ou se o `viewedPlayerId` foi resetado.
-      else {
-        setError("Não foi possível determinar o ID do jogador para buscar o perfil.");
-        setLoading(false);
-        return;
-      }
-
-      if (!idToFetch) { // Garante que idToFetch não é null/undefined
-        setError("ID do jogador inválido para buscar perfil.");
+      if (!idToFetch) {
+        setError("Não foi possível determinar o ID do perfil para buscar.");
         setLoading(false);
         return;
       }
 
       const fetchedData = await getProfileData(idToFetch);
-      // ... (resto do código) ...
+      
+      if (fetchedData) {
+        setPlayerData(fetchedData);
+        setFormData({
+          nome: fetchedData.nome,
+          email: fetchedData.usuario.email,
+          telefone: fetchedData.telefone || '',
+          data_nascimento: fetchedData.data_nascimento?.split("T")[0] || '',
+          pokemon_id: fetchedData.pokemon_id || ''
+        });
+        setSecurityData({
+          email: fetchedData.usuario.email,
+          novaSenha: '',
+          confirmarSenha: ''
+        });
+        setProfileImage(fetchedData.usuario.foto);
+      } else {
+        setError("Falha ao carregar os dados do perfil.");
+      }
+      setLoading(false);
     };
     fetchProfile();
   }, [currentUser, viewedPlayerId]);
