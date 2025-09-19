@@ -98,11 +98,11 @@ interface BackendTournament {
   premios: string | null;
   estrutura: string | null;
   vagas: number;
-  finalizado: boolean;
   jogadores: JogadorTorneioLinkPublico[];
   rodadas: RodadaBase[];
   regra_basica_id: number;
   regras_adicionais: TorneioRegraAdicionalPublico[];
+  status: 'ABERTO' | 'EM_ANDAMENTO' | 'FINALIZADO';
 }
 interface Resultado {
   id_rodada: string;
@@ -111,9 +111,9 @@ interface Resultado {
 
 const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
   let status: 'open' | 'in-progress' | 'finished';
-  if (backendData.finalizado) {
+  if (backendData.status === "FINALIZADO") {
     status = 'finished';
-  } else if (backendData.rodadas && backendData.rodadas.length > 0) {
+  } else if (backendData.status === "EM_ANDAMENTO") {
     status = 'in-progress';
   } else {
     status = 'open';
@@ -325,10 +325,10 @@ const fetchResults = async () => {
 
     // Monta o corpo da requisição
     const body = roundResults.map(item => ({
-      rodada_id: item.id_rodada,
-      vencedor_id: item.id_vencedor,
+      id_rodada: item.id_rodada,
+      id_vencedor: item.id_vencedor,
     }));
-
+    console.log(body)
     const response = await fetch(`${API_URL}/lojas/torneios/rodadas/finalizar`, {
       method: 'PUT', // ou POST se seu backend aceitar
       headers: {
@@ -553,7 +553,6 @@ const handleMatchResult = (matchId: string, winnerId: string) => {
                 'Content-Type': 'application/json',
             },
         });
-        
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Falha ao iniciar o torneio.');
@@ -797,8 +796,6 @@ const handleMatchResult = (matchId: string, winnerId: string) => {
   }
 
   const canManage = currentUser?.type === 'organizer' && currentUser.id.toString() === tournament.organizerUserId.toString();
-  console.log(tournament.organizerUserId)
-  console.log(currentUser?.id)
   if (!canManage) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -837,7 +834,7 @@ const handleMatchResult = (matchId: string, winnerId: string) => {
                 Round {tournament.currentRound} of {tournament.rounds}
               </p>
             </div>
-            <Badge variant="default">In Progress</Badge>
+            <Badge variant="default">{tournament.status}</Badge>
           </div>
         </CardHeader>
         <CardContent>

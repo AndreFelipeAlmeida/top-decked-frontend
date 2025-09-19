@@ -80,11 +80,11 @@ interface BackendTournament {
   premios: string | null;
   estrutura: string | null;
   vagas: number;
-  finalizado: boolean;
   jogadores: JogadorTorneioLinkPublico[];
   rodadas: RodadaBase[];
   regra_basica_id: number;
   regras_adicionais: TorneioRegraAdicionalPublico[];
+  status: 'ABERTO' | 'EM_ANDAMENTO' | 'FINALIZADO';
 }
 
 interface TournamentResult {
@@ -100,13 +100,14 @@ interface TournamentResult {
 
 const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
   let status: 'open' | 'in-progress' | 'finished';
-  if (backendData.finalizado) {
+  if (backendData.status === "FINALIZADO") {
     status = 'finished';
-  } else if (backendData.rodadas && backendData.rodadas.length > 0) {
+  } else if (backendData.status === "EM_ANDAMENTO") {
     status = 'in-progress';
   } else {
     status = 'open';
   }
+  
   
   return {
       id: backendData.id,
@@ -423,8 +424,8 @@ try {
       <div className="space-y-2">
         <div className="flex items-center space-x-4">
           <h1 className="text-3xl font-bold">{tournament.name}</h1>
-          <Badge className={getStatusColor(tournament.status as any)}>
-            {getStatusText(tournament.status as any)}
+          <Badge className={getStatusColor(tournament.status)}>
+            {getStatusText(tournament.status)}
           </Badge>
         </div>
         <p className="text-muted-foreground">
@@ -586,7 +587,7 @@ try {
                   <h4 className="font-semibold mb-2">Status Atual</h4>
                   <div className="space-y-1 text-sm">
                     <div>Rodada: <span className="font-medium">{tournament.currentRound}</span></div>
-                    <div>Status: <span className="font-medium">{getStatusText(tournament.status as any)}</span></div>
+                    <div>Status: <span className="font-medium">{getStatusText(tournament.status)}</span></div>
                   </div>
                 </div>
               </div>
