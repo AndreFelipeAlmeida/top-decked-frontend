@@ -395,128 +395,138 @@ try {
         </Button>
       </div>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center space-x-4">
-                <h1 className="text-3xl font-bold">{tournament.name}</h1>
-                <Badge className={getStatusColor(tournament.status as any)}>
-                  {getStatusText(tournament.status as any)}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">
-                Organizado por {currentUser?.type === 'player' ? (
-                  <button 
-                    onClick={() => onNavigate('organizer-profile', { organizerId: tournament.organizerId })}
-                    className="text-primary hover:underline font-medium cursor-pointer"
-                  >
-                    {tournament.organizerName}
-                  </button>
-                ) : (
-                  <span>{tournament.organizerName}</span>
-                )}
-              </p>
-            </div>
-            <div className="flex space-x-2">
-            {isPlayer && (
-                <>
-                  {isRegistered ? (
-                    <Button 
-                      variant="outline" 
-                      onClick={handleUnregistration} 
-                      className="flex items-center space-x-2"
-                    >
-                      <UserMinus className="h-4 w-4" />
-                      <span>Remover Inscrição</span>
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handleRegistration} 
-                      className="flex items-center space-x-2"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      <span>Inscrever-se</span>
-                    </Button>
-                  )}
-                </>
-              )}
-            {console.log(currentUser?.id)}
-            {console.log(tournament.organizerUserId)}
-              {isTournamentCreator &&  (
-                <>
-                  <Button 
-                    variant="outline"
-                    onClick={() => onNavigate('tournament-edit', { tournamentId: tournament.id })}
-                    className="flex items-center space-x-2 bg-white border-gray-300 text-gray-900 hover:bg-yellow-400 hover:text-gray-900 hover:border-gray-300"
-                  >
-                    <span>Editar</span>
-                  </Button>
-                  <Button 
-                    onClick={() => setImportDialogOpen(true)}
-                    className="flex items-center space-x-2"
-                    >
-                    <Upload className="h-4 w-4" />
-                    <span>Importar</span>
-                  </Button>
-                  </Button>
-                  {tournament.status === 'open' && (
-                      <Button 
-                        onClick={handleStartTournament}
-                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
-                      >
-                        <Trophy className="h-4 w-4" />
-                        <span>Start Tournament</span>
-                      </Button>
-                    )}
-                    {tournament.status === 'in-progress' && (
-                      <Button 
-                        onClick={handleContinueTournament}
-                        className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Trophy className="h-4 w-4" />
-                        <span>Continue Tournament</span>
-                      </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="flex items-center space-x-3">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">{tournament.date
+<Card className="mb-8">
+  <CardHeader>
+    <div className="flex items-start justify-between">
+      <div className="space-y-2">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-3xl font-bold">{tournament.name}</h1>
+          <Badge className={getStatusColor(tournament.status as any)}>
+            {getStatusText(tournament.status as any)}
+          </Badge>
+        </div>
+        <p className="text-muted-foreground">
+          Organizado por{" "}
+          {currentUser?.type === "player" ? (
+            <button
+              onClick={() =>
+                onNavigate("organizer-profile", { organizerId: tournament.organizerId })
+              }
+              className="text-primary hover:underline font-medium cursor-pointer"
+            >
+              {tournament.organizerName}
+            </button>
+          ) : (
+            <span>{tournament.organizerName}</span>
+          )}
+        </p>
+      </div>
+
+      <div className="flex space-x-2">
+        {isPlayer && (
+          <>
+            {isRegistered ? (
+              <Button
+                variant="outline"
+                onClick={handleUnregistration}
+                className="flex items-center space-x-2"
+              >
+                <UserMinus className="h-4 w-4" />
+                <span>Remover Inscrição</span>
+              </Button>
+            ) : (
+              <Button onClick={handleRegistration} className="flex items-center space-x-2">
+                <UserPlus className="h-4 w-4" />
+                <span>Inscrever-se</span>
+              </Button>
+            )}
+          </>
+        )}
+
+        {isTournamentCreator && (
+          <>
+            <Button
+              variant="outline"
+              onClick={() =>
+                onNavigate("tournament-edit", { tournamentId: tournament.id })
+              }
+              className="flex items-center space-x-2 bg-white border-gray-300 text-gray-900 hover:bg-yellow-400 hover:text-gray-900 hover:border-gray-300"
+            >
+              <span>Editar</span>
+            </Button>
+
+            <Button onClick={() => setImportDialogOpen(true)} className="flex items-center space-x-2">
+              <Upload className="h-4 w-4" />
+              <span>Importar</span>
+            </Button>
+
+            {tournament.status === "open" && (
+              <Button
+                onClick={handleStartTournament}
+                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+              >
+                <Trophy className="h-4 w-4" />
+                <span>Start Tournament</span>
+              </Button>
+            )}
+
+            {tournament.status === "in-progress" && (
+              <Button
+                onClick={handleContinueTournament}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <Trophy className="h-4 w-4" />
+                <span>Continue Tournament</span>
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  </CardHeader>
+
+    <CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex items-center space-x-3">
+          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">
+              {tournament.date
                 ? tournament.date.split("T")[0].split("-").reverse().join("/")
-                : ""}</div>
-                <div className="text-sm text-muted-foreground">{tournament.time}</div>
-              </div>
+                : ""}
             </div>
-            <div className="flex items-center space-x-3">
-              <MapPin className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">{tournament.store}</div>
-                <div className="text-sm text-muted-foreground">{tournament.format}</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">{tournament.participants.length}/{tournament.maxParticipants}</div>
-                <div className="text-sm text-muted-foreground">Participantes</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <DollarSign className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">{tournament.entryFee}</div>
-                <div className="text-sm text-muted-foreground">Taxa de Inscrição</div>
-              </div>
-            </div>
+            <div className="text-sm text-muted-foreground">{tournament.time}</div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <MapPin className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">{tournament.store}</div>
+            <div className="text-sm text-muted-foreground">{tournament.format}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">
+              {tournament.participants.length}/{tournament.maxParticipants}
+            </div>
+            <div className="text-sm text-muted-foreground">Participantes</div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <DollarSign className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">{tournament.entryFee}</div>
+            <div className="text-sm text-muted-foreground">Taxa de Inscrição</div>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
 
       <Tabs defaultValue="details" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
