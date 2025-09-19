@@ -104,7 +104,10 @@ interface BackendTournament {
   regra_basica_id: number;
   regras_adicionais: TorneioRegraAdicionalPublico[];
 }
-
+interface Resultado {
+  id_rodada: string;
+  id_vencedor: string;
+}
 
 const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
   let status: 'open' | 'in-progress' | 'finished';
@@ -316,6 +319,48 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
       setHasAccess(false);
     }
   };
+const fetchResults = async () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+
+    // Monta o corpo da requisição
+    const body = roundResults.map(item => ({
+      rodada_id: item.id_rodada,
+      vencedor_id: item.id_vencedor,
+    }));
+
+    const response = await fetch(`${API_URL}/lojas/torneios/rodadas/finalizar`, {
+      method: 'PUT', // ou POST se seu backend aceitar
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Falha ao enviar resultados.');
+    }
+
+    const data = await response.json();
+    toast.success('Resultados enviados com sucesso!');
+    return data;
+  } catch (err: any) {
+    console.error('Erro ao enviar resultados:', err.message);
+    toast.error(err.message || 'Falha ao enviar resultados.');
+  }
+}
+
+const fetchRound = async () => {
+  if (roundResults.length > 0) {
+    await fetchResults();
+  }
+
+  await fetchNextRound();
+
+  setRoundResults([]);
+};
 
   const fetchNextRound = async () => {
     if (!tournamentId) return;
@@ -347,28 +392,31 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
     const data = await response.json();
 
     // transforma { "2": [{},{}], "3": [{},{}] } em lista de matches
-    const matches: Match[] = Object.entries(data).map(([mesa, players]) => {
-      const [p1, p2] = players as any[];
+  const matches: Match[] = Object.entries(data).flatMap(([rodadaId, partidas]) => {
+    return (partidas as any[]).map(partida => {
+    const p1 = partida.jogador1 || {};
+    const p2 = partida.jogador2 || {};
 
     const vdeDefault = { vitorias: 0, derrotas: 0, empates: 0 };
 
-    const p1Vde = p1?.vde || vdeDefault;
-    const p2Vde = p2?.vde || vdeDefault;
-    
-      return {
-        id: `match-${mesa}`,
-        tableNumber: parseInt(mesa, 10),
-        player1Id: p1?.jogador_id || "",
-        player1Name: p1?.jogador_nome || "TBD",
-        player2Id: p2?.jogador_id || "bye",
-        player2Name: p2?.jogador_nome || "BYE",
-        status: false,
-        player1Score: 0,
-        player2Score: 0,
-        player1Vde: p1Vde,   // adiciona vde ao jogador 1
-        player2Vde: p2Vde,   // adiciona vde ao jogador 2
-      };
-    });
+    const p1Vde = p1?.vitorias !== undefined ? { vitorias: p1.vitorias, derrotas: p1.derrotas, empates: p1.empates } : vdeDefault;
+    const p2Vde = p2?.vitorias !== undefined ? { vitorias: p2.vitorias, derrotas: p2.derrotas, empates: p2.empates } : vdeDefault;
+
+    return {
+      id: rodadaId,                 // agora é o id da rodada
+      tableNumber: partida.mesa || 0,
+      player1Id: p1?.jogador_id || "",
+      player1Name: p1?.jogador_nome || "TBD",
+      player2Id: p2?.jogador_id || "bye",
+      player2Name: p2?.jogador_nome || "BYE",
+      status: false,
+      player1Score: 0,
+      player2Score: 0,
+      player1Vde: p1Vde,
+      player2Vde: p2Vde,
+    };
+  });
+});
 
     setCurrentMatches(matches);
     setHasPairingsGenerated(true);
@@ -450,20 +498,30 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
   };
 
 
-  const handleMatchResult = (matchId: string, winnerId: string, player1Score: number, player2Score: number) => {
-    const success = tournamentStore.updateMatchResult(matchId, winnerId, player1Score, player2Score);
-    
-    if (success) {
-      // Refresh current matches
-      if (tournament) {
-        const updatedMatches = tournamentStore.getCurrentRoundMatches(tournament.id);
-        setCurrentMatches(updatedMatches);
-      }
-      toast.success('Match result updated');
+// Estado para armazenar resultados locais
+const [roundResults, setRoundResults] = useState<{ id_rodada: string; id_vencedor: string }[]>([]);
+
+const handleMatchResult = (matchId: string, winnerId: string) => {
+  setRoundResults(prevResults => {
+    const existingIndex = prevResults.findIndex(r => r.id_rodada === matchId);
+
+    if (existingIndex !== -1) {
+      const updated = [...prevResults];
+      updated[existingIndex].id_vencedor = winnerId;
+      return updated;
     } else {
-      toast.error('Failed to update match result');
+      // Adiciona novo resultado
+      return [...prevResults, { id_rodada: matchId, id_vencedor: winnerId }];
     }
-  };
+  });
+
+  const updatedMatches = currentMatches.map(match =>
+    match.id === matchId ? { ...match, winnerId } : match
+  );
+  setCurrentMatches(updatedMatches);
+
+  toast.success('Match result updated');
+};
 
   const handleFinalizeRound = () => {
     if (!tournament) return;
@@ -485,16 +543,26 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
     }
   };
 
-  const handleEndTournament = () => {
-    if (!tournament) return;
+  const handleEndTournament = async () => {
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/finalizar`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Falha ao iniciar o torneio.');
+        }
 
-    const success = tournamentStore.endTournament(tournament.id);
-    
-    if (success) {
-      toast.success('Tournament completed!');
-      onNavigate('tournament-details', { tournamentId: tournament.id });
-    } else {
-      toast.error('Failed to end tournament');
+        fetchTournamentData();
+    } catch (err: any) {
+        console.error("Erro ao iniciar o torneio:", err.message);
+        toast.error(err.message || 'Falha ao iniciar o torneio.');
     }
   };
 
@@ -686,8 +754,7 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
                             key={`${match.id}-${match.winnerId || 'no-winner'}`}
                             value={match.winnerId || ''}
                             onValueChange={(winnerId) => {
-                              const scores = winnerId === match.player1Id ? [2, 0] : [0, 2];
-                              handleMatchResult(match.id, winnerId, scores[0], scores[1]);
+                              handleMatchResult(match.id, winnerId);
                             }}
                           >
                             <SelectTrigger className="w-48 h-12 text-base">
@@ -894,26 +961,14 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
       {/* Action Buttons */}
       <div className="flex space-x-4 mb-8">
         <Button
-          onClick={fetchNextRound}
-          disabled={hasPairingsGenerated}
+          onClick={
+            fetchRound
+            }
           className="flex items-center space-x-2"
         >
           <Users className="h-4 w-4" />
           <span>Generate Pairings</span>
         </Button>
-        
-        {allMatchesCompleted && (
-          <Button
-            onClick={handleFinalizeRound}
-            disabled={!allMatchesCompleted}
-            variant="secondary"
-            className="flex items-center space-x-2"
-          >
-            <CheckCircle className="h-4 w-4" />
-            <span>Finalize Round</span>
-          </Button>
-        )}
-
         <Button
           onClick={handleEndTournament}
           variant="destructive"
@@ -1054,7 +1109,7 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
                                 value={match.winnerId || ''}
                                 onValueChange={(winnerId) => {
                                   const scores = winnerId === match.player1Id ? [2, 0] : [0, 2];
-                                  handleMatchResult(match.id, winnerId, scores[0], scores[1]);
+                                  handleMatchResult(match.id, winnerId);
                                 }}
                               >
                                 <SelectTrigger className="w-40">

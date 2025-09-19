@@ -283,7 +283,29 @@ try {
     }
   };
 
-  const handleUnregistration = async () => {
+  const iniciarTorneio = async () => {
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/iniciar`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Falha ao iniciar o torneio.');
+        }
+
+        fetchTournamentDetails();
+    } catch (err: any) {
+        console.error("Erro ao iniciar o torneio:", err.message);
+        toast.error(err.message || 'Falha ao iniciar o torneio.');
+    }
+  }
+      const handleUnregistration = async () => {
     if (!tournament || !currentUser || currentUser.type !== 'player') return;
 
     try {
@@ -352,7 +374,7 @@ try {
   const getRulePointsDescription = (ruleId: string) => {
     const rule = availableRules.find(r => r.id === ruleId);
     if (!rule) return 'Regra não encontrada.';
-    return `Vitória: ${rule.pointsForWin}pts, Derrota: ${rule.pointsForLoss}pts, Empate: ${rule.pointsForDraw}pts`;
+    return `Vitória: ${rule?.pointsForWin}pts, Derrota: ${rule.pointsForLoss}pts, Empate: ${rule.pointsForDraw}pts`;
   };
 
   if (isLoading) {
@@ -462,7 +484,9 @@ try {
 
             {tournament.status === "open" && (
               <Button
-                onClick={() => onNavigate('pairings', { tournamentId: tournament.id })}
+                onClick={() =>
+                   {iniciarTorneio();
+                    onNavigate('pairings', { tournamentId: tournament.id })}}
                 className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
               >
                 <Trophy className="h-4 w-4" />
@@ -600,11 +624,11 @@ try {
                               <Card className="p-4 bg-muted/50">
                                 <div className="flex items-center justify-between">
                                   <div>
-                                    <span className="font-medium">{selectedRule.typeName}</span>
+                                    <span className="font-medium">{selectedRule?.typeName}</span>
                                     <div className="text-sm text-muted-foreground">
-                                      Vitória: {selectedRule.pointsForWin} pts,{" "}
-                                      Derrota: {selectedRule.pointsForLoss} pts,{" "}
-                                      Empate: {selectedRule.pointsForDraw} pts
+                                      Vitória: {selectedRule?.pointsForWin} pts,{" "}
+                                      Derrota: {selectedRule?.pointsForLoss} pts,{" "}
+                                      Empate: {selectedRule?.pointsForDraw} pts
                                     </div>
                                   </div>
                                   <Badge variant="secondary">Aplicado a todos os jogadores por padrão</Badge>
