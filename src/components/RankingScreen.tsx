@@ -151,20 +151,6 @@ export function RankingScreen({ onNavigate, currentUser }: RankingScreenProps) {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para o Painel
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Torneios</h1>
-            <p className="text-muted-foreground">
-              {currentUser?.type === 'player' ? 'Descubra e participe de torneios' : 'Gerencie seus torneios'}
-            </p>
-          </div>
-          {currentUser?.type === 'organizer' && (
-            <Button onClick={() => onNavigate('tournament-creation')} className="flex items-center space-x-2">
-              <Plus className="h-4 w-4" />
-              <span>Criar Torneio</span>
-            </Button>
-          )}
-        </div>
       </div>
 
       {/* Rankings Title */}
@@ -217,10 +203,9 @@ export function RankingScreen({ onNavigate, currentUser }: RankingScreenProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="global" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="global">Ranking Geral</TabsTrigger>
           <TabsTrigger value="organizer">Ranking Mensal</TabsTrigger>
-          <TabsTrigger value="highlights">Destaques do Mês</TabsTrigger>
         </TabsList>
 
         {/* Global Rankings */}
