@@ -60,7 +60,6 @@ import {
 } from "lucide-react";
 import { cn } from "./ui/utils.ts";
 import {
-  tournamentStore,
   User,
   Tournament,
   PlayerRule,
@@ -823,8 +822,7 @@ export function TournamentEdit({
           </CardContent>
         </Card>
 
-        {/* Player Rules Section - Only show if tournament has imported results */}
-        {tournament?.hasImportedResults && (
+        {(
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">

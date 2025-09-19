@@ -40,7 +40,7 @@ export interface Tournament {
   entryFee: string;
   structure: string;
   rounds: number;
-  status: "open" | "in-progress" | "finished";
+  status: "open" | "in-progress" | "finished" | "completed";
   currentRound: number;
   participants: TournamentParticipant[];
   matches: Match[];
@@ -60,22 +60,45 @@ export interface TournamentParticipant {
   losses: number;
   draws: number;
   currentStanding: number;
+  deckList?: DeckList;
+}
+
+export interface DeckList {
+  id: string;
+  name: string;
+  cards: DeckCard[];
+  totalCards: number;
+  createdAt: string;
+}
+
+export interface DeckCard {
+  id: string;
+  name: string;
+  quantity: number;
+  type: string;
+  manaCost?: string;
+}
+
+export interface VDE {
+  vitorias: number;
+  derrotas: number;
+  empates: number;
 }
 
 export interface Match {
   id: string;
-  tournamentId: string;
-  round: number;
-  table: number;
+  tableNumber: number;
   player1Id: string;
   player1Name: string;
   player2Id: string;
   player2Name: string;
   player1Score: number;
+  player1Vde: VDE;   // novo campo
   player2Score: number;
+  player2Vde: VDE;   // novo campo
+  status: boolean;
   winnerId?: string;
   winnerName?: string;
-  status: 'pending' | 'in-progress' | 'completed';
 }
 
 export interface BracketMatch {
@@ -507,6 +530,105 @@ class TournamentStore {
 
     return tournament;
   }
+
+  endTournament(tournamentId: string): boolean {
+    const tournament = this.getTournamentById(tournamentId);
+    if (!tournament || tournament.status !== 'in-progress') return false;
+
+    tournament.status = 'completed';
+    
+    // Calculate final standings
+    tournament.participants.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      return a.losses - b.losses;
+    });
+
+    tournament.participants.forEach((participant, index) => {
+      participant.currentStanding = index + 1;
+    });
+
+    return true;
+  }
+
+  getRoundMatches(tournamentId: string, round: number): Match[] {
+    const tournament = this.getTournamentById(tournamentId);
+    if (!tournament) return [];
+
+    return tournament.matches.filter(m => m.round === round);
+  }
+
+  getCurrentRoundMatches(tournamentId: string): Match[] {
+    const tournament = this.getTournamentById(tournamentId);
+    if (!tournament) return [];
+
+    return this.getRoundMatches(tournamentId, tournament.currentRound);
+  }
+
+
+  updateMatchResult(matchId: string, winnerId: string, player1Score: number, player2Score: number): boolean {
+    const tournament = this.tournaments.find(t => 
+      t.matches.some(m => m.id === matchId)
+    );
+    
+    if (!tournament) return false;
+
+    const match = tournament.matches.find(m => m.id === matchId);
+    if (!match || match.status === 'completed') return false;
+
+    match.player1Score = player1Score;
+    match.player2Score = player2Score;
+    match.winnerId = winnerId;
+    match.winnerName = winnerId === match.player1Id ? match.player1Name : match.player2Name;
+    match.status = 'completed';
+
+    return true;
+  }
+
+  finalizeRound(tournamentId: string): boolean {
+    const tournament = this.getTournamentById(tournamentId);
+    if (!tournament || tournament.status !== 'in-progress') return false;
+
+    const currentRoundMatches = tournament.matches.filter(
+      m => m.round === tournament.currentRound
+    );
+
+    // Check if all matches in current round are completed
+    const allMatchesCompleted = currentRoundMatches.every(m => m.status === 'completed');
+    if (!allMatchesCompleted) return false;
+
+    // Update participant statistics
+    currentRoundMatches.forEach(match => {
+      const player1 = tournament.participants.find(p => p.userId === match.player1Id);
+      const player2 = tournament.participants.find(p => p.userId === match.player2Id);
+
+      if (player1 && player2) {
+        if (match.winnerId === match.player1Id) {
+          player1.wins += 1;
+          player1.points += 3;
+          player2.losses += 1;
+        } else if (match.winnerId === match.player2Id) {
+          player2.wins += 1;
+          player2.points += 3;
+          player1.losses += 1;
+        } else {
+          // Draw case (if implemented)
+          player1.draws += 1;
+          player2.draws += 1;
+          player1.points += 1;
+          player2.points += 1;
+        }
+      }
+    });
+
+    // Move to next round if not final round
+    if (tournament.currentRound < tournament.rounds) {
+      tournament.currentRound += 1;
+    }
+
+    return true;
+  }
+
 
   markTournamentAsImported(tournamentId: string): boolean {
     const tournament = this.getTournamentById(tournamentId);

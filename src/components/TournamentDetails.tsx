@@ -455,10 +455,28 @@ try {
                   <Button 
                     onClick={() => setImportDialogOpen(true)}
                     className="flex items-center space-x-2"
-                  >
+                    >
                     <Upload className="h-4 w-4" />
                     <span>Importar</span>
                   </Button>
+                  </Button>
+                  {tournament.status === 'open' && (
+                      <Button 
+                        onClick={handleStartTournament}
+                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                      >
+                        <Trophy className="h-4 w-4" />
+                        <span>Start Tournament</span>
+                      </Button>
+                    )}
+                    {tournament.status === 'in-progress' && (
+                      <Button 
+                        onClick={handleContinueTournament}
+                        className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Trophy className="h-4 w-4" />
+                        <span>Continue Tournament</span>
+                      </Button>
                 </>
               )}
             </div>
