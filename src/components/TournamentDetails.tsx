@@ -93,36 +93,45 @@ interface TournamentResult {
 }
 
 const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
-    return {
-        id: backendData.id,
-        name: backendData.nome,
-        organizerId: (backendData.loja_id ?? backendData.loja?.id)?.toString() || "0",
-        organizerName: backendData.loja?.nome || "Organizador não informado",
-        date: backendData.data_inicio,
-        time: "Horário não informado",
-        format: backendData.formato || 'Formato não informado',
-        store: backendData.cidade || 'Local não informado',
-        description: backendData.descricao || '',
-        prizes: backendData.premios || '',
-        maxParticipants: backendData.vagas,
-        entryFee: `$${backendData.taxa}`,
-        structure: backendData.estrutura || '',
-        rounds: backendData.rodadas?.length || 0,
-        status: backendData.finalizado ? 'closed' : 'open',
-        currentRound: backendData.rodadas?.length || 0,
-        participants: backendData.jogadores.map(p => ({
-            id: p.jogador_id.toString(),
-            userId: p.jogador_id.toString(),
-            userName: p.nome || 'Nome indisponível',
-            registeredAt: new Date().toISOString(),
-            points: p.ponto,
-            wins: 0, losses: 0, draws: 0, currentStanding: 0
-        })),
-        matches: [],
-        bracket: [],
-        createdAt: new Date().toISOString(),
-        hasImportedResults: !!backendData.rodadas?.length,
-    };
+  let status: 'open' | 'in-progress' | 'finished';
+  if (backendData.finalizado) {
+    status = 'finished';
+  } else if (backendData.rodadas && backendData.rodadas.length > 0) {
+    status = 'in-progress';
+  } else {
+    status = 'open';
+  }
+  
+  return {
+      id: backendData.id,
+      name: backendData.nome,
+      organizerId: (backendData.loja_id ?? backendData.loja?.id)?.toString() || "0",
+      organizerName: backendData.loja?.nome || "Organizador não informado",
+      date: backendData.data_inicio,
+      time: "Horário não informado",
+      format: backendData.formato || 'Formato não informado',
+      store: backendData.cidade || 'Local não informado',
+      description: backendData.descricao || '',
+      prizes: backendData.premios || '',
+      maxParticipants: backendData.vagas,
+      entryFee: `$${backendData.taxa}`,
+      structure: backendData.estrutura || '',
+      rounds: backendData.rodadas?.length || 0,
+      status: status,
+      currentRound: backendData.rodadas?.length || 0,
+      participants: backendData.jogadores.map(p => ({
+          id: p.jogador_id.toString(),
+          userId: p.jogador_id.toString(),
+          userName: p.nome || 'Nome indisponível',
+          registeredAt: new Date().toISOString(),
+          points: p.ponto,
+          wins: 0, losses: 0, draws: 0, currentStanding: 0
+      })),
+      matches: [],
+      bracket: [],
+      createdAt: new Date().toISOString(),
+      hasImportedResults: !!backendData.rodadas?.length,
+  };
 };
 
 export function TournamentDetails({ onNavigate, tournamentId, currentUser }: TournamentDetailsProps) {
@@ -229,12 +238,11 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
 
         if (!response.ok) {
             const errorData = await response.json();
-            setIsRegistered(true)
             throw new Error(errorData.detail || 'Falha ao se inscrever.');
         }
         
+        setIsRegistered(true);
         toast.success('Inscrição para o torneio realizada com sucesso!');
-        setIsRegistered(true)
         fetchTournamentDetails();
     } catch (err: any) {
         console.error("Erro na inscrição:", err.message);
@@ -256,13 +264,12 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         });
         
         if (!response.ok) {
-            setIsRegistered(false)
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Falha ao remover a inscrição.');
         }
 
+        setIsRegistered(false);
         toast.success('Inscrição no torneio removida com sucesso.');
-        setIsRegistered(false)
         fetchTournamentDetails();
     } catch (err: any) {
         console.error("Erro ao remover inscrição:", err.message);
@@ -272,17 +279,27 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
 
   const getStatusColor = (status: Tournament['status']) => {
     switch (status) {
-      case 'closed': return 'bg-gray-100 text-black';
-      case 'open': return 'bg-purple-100 text-purple-800';
-      default: return 'outline';
+      case 'open':
+        return 'bg-purple-100 text-purple-800';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'finished':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: Tournament['status']) => {
     switch (status) {
-      case 'closed': return 'Fechado';
-      case 'open': return 'Aberto';
-      default: return 'Desconhecido';
+      case 'open':
+        return 'Aberto';
+      case 'in-progress':
+        return 'Em Andamento';
+      case 'finished':
+        return 'Finalizado';
+      default:
+        return 'Desconhecido';
     }
   };
 
@@ -351,8 +368,8 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
             <div className="space-y-2">
               <div className="flex items-center space-x-4">
                 <h1 className="text-3xl font-bold">{tournament.name}</h1>
-                <Badge className={getStatusColor(tournament.status)}>
-                  {getStatusText(tournament.status)}
+                <Badge className={getStatusColor(tournament.status as any)}>
+                  {getStatusText(tournament.status as any)}
                 </Badge>
               </div>
               <p className="text-muted-foreground">
@@ -482,7 +499,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                   <h4 className="font-semibold mb-2">Status Atual</h4>
                   <div className="space-y-1 text-sm">
                     <div>Rodada: <span className="font-medium">{tournament.currentRound}</span></div>
-                    <div>Status: <span className="font-medium">{getStatusText(tournament.status)}</span></div>
+                    <div>Status: <span className="font-medium">{getStatusText(tournament.status as any)}</span></div>
                   </div>
                 </div>
               </div>
@@ -563,7 +580,7 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
                 <span>Participantes do Torneio</span>
               </CardTitle>
               <CardDescription>
-                participação deste torneio
+                Participação deste torneio
               </CardDescription>
             </CardHeader>
             <CardContent>
