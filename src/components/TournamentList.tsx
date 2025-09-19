@@ -39,7 +39,7 @@ interface BackendTournament {
   premios: string | null;
   estrutura: string | null;
   vagas: number;
-  status: 'ABERTO' | 'EM_ANDAMENTO' | 'FINALIZADO';
+  status: boolean;
   jogadores: JogadorTorneioLinkPublico[];
   rodadas: RodadaBase[];
   regras_adicionais: any[];
