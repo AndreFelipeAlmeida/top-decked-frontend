@@ -39,7 +39,7 @@ export interface Tournament {
   entryFee: string;
   structure: string;
   rounds: number;
-  status: 'open' | 'closed';
+  status: "open" | "in-progress" | "finished";
   currentRound: number;
   participants: TournamentParticipant[];
   matches: Match[];
@@ -258,7 +258,7 @@ export const mockTournaments: Tournament[] = [
     entryFee: '$10',
     structure: 'Single Elimination',
     rounds: 4,
-    status: 'closed',
+    status: 'finished',
     currentRound: 4,
     participants: [
       {
