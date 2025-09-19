@@ -5,7 +5,7 @@ import { Trophy, Calendar, BarChart3, User, CreditCard, LogOut, List } from 'luc
 import { User as UserType } from '../data/store.ts';
 
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'subscription' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
 
 interface HeaderProps {
   userType: UserType['type'] | null;
@@ -68,9 +68,9 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
             
             {userType === 'organizer' && (
               <Button
-                variant="ghost"
-                onClick={(e) => e.preventDefault()}
-                className="flex items-center space-x-2"
+              variant={isActive('subscription') ? 'default' : 'ghost'}
+              onClick={() => onNavigate('subscription')}
+              className="flex items-center space-x-2"
               >
                 <CreditCard className="h-4 w-4" />
                 <span>Assinatura</span>
