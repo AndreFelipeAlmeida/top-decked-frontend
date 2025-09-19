@@ -193,44 +193,43 @@ export function TournamentEdit({
       setHasAccess(false);
       return;
     }
-
+  
     try {
       const tournamentResponse = await fetch(`${API_URL}/lojas/torneios/${tournamentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+  
       if (tournamentResponse.ok) {
         const tournamentData = await tournamentResponse.json();
-        
+  
         setTournament(tournamentData);
         setFormData({
-            name: tournamentData.nome,
-            date: tournamentData.data_inicio,
-            time: tournamentData.hora || "",
-            format: tournamentData.formato || "",
-            prizes: tournamentData.premio || "",
-            description: tournamentData.descricao || "",
-            entryFee: tournamentData.taxa?.toString() || "",
-            structure: "Swiss", 
-            rounds: tournamentData.n_rodadas?.toString() || "",
+          name: tournamentData.nome,
+          date: tournamentData.data_inicio,
+          time: tournamentData.hora || "",
+          format: tournamentData.formato || "",
+          prizes: tournamentData.premio || "",
+          description: tournamentData.descricao || "",
+          entryFee: tournamentData.taxa?.toString() || "",
+          structure: "Swiss",
+          rounds: tournamentData.n_rodadas?.toString() || "",
         });
-
+  
         const hasImportedResults = tournamentData.jogadores && tournamentData.jogadores.length > 0;
         setTournament(prev => prev ? { ...prev, hasImportedResults: hasImportedResults } : prev);
-
+  
         const playersFromBackend = tournamentData.jogadores.map((player: any) => ({
           id: player.jogador_id.toString(),
           name: player.nome,
           email: '',
-          type: 'player', 
+          type: 'player',
         }));
         setAvailablePlayers(playersFromBackend);
-        
+  
         fetchMonthlyResults(playersFromBackend, token);
-
-
+  
         const resultsFromBackend = tournamentData.jogadores.map((player: any) => ({
           id: `part-${player.jogador_id}`,
           userId: player.jogador_id.toString(),
@@ -242,15 +241,15 @@ export function TournamentEdit({
           draws: 0,
           currentStanding: 0,
         }));
-        
+  
         const sortedResults = resultsFromBackend.sort((a: any, b: any) => b.points - a.points);
         const finalResults = sortedResults.map((result: any, index: number) => ({
           ...result,
           currentStanding: index + 1,
         }));
-
+  
         setMockTournamentResults(finalResults);
-
+  
         const initialScores: Record<string, string> = {};
         finalResults.forEach((participant: any) => {
           initialScores[participant.id] = participant.points.toString();
@@ -259,11 +258,11 @@ export function TournamentEdit({
         if (tournamentData.regra_basica_id) {
           setDefaultRuleId(tournamentData.regra_basica_id.toString());
         }
-
+  
         const rulesResponse = await fetch(`${API_URL}/lojas/tipoJogador/`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
+  
         if (rulesResponse.ok) {
           const rulesData = await rulesResponse.json();
           setAvailableRules(rulesData.map((rule: any) => ({
@@ -272,16 +271,19 @@ export function TournamentEdit({
             pointsForWin: rule.pt_vitoria,
             pointsForLoss: rule.pt_derrota,
           })));
-
+  
           const defaultRule = rulesData.find((rule: any) => rule.nome === "Normal Player") || rulesData[0];
           if (defaultRule) {
             setDefaultRuleId(defaultRule.id.toString());
           }
+        } else if (rulesResponse.status === 404) {
+          setAvailableRules([]);
+          console.warn('Nenhum tipo de jogador encontrado. Usando lista vazia.');
         } else {
-          console.error('Erro ao buscar tipos de jogador.');
-          toast.error('Não foi possível carregar as regras de jogador.');
+          const errorData = await rulesResponse.json();
+          throw new Error(errorData.detail || 'Falha ao buscar as regras de jogador.');
         }
-        
+  
         setHasAccess(true);
       } else {
         setHasAccess(false);
