@@ -67,7 +67,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
       return null;
     }
     try {
-      const response = await fetch(`${API_URL}/lojas/${id}`, {
+      const response = await fetch(`${API_URL}/lojas/usuario/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) {
@@ -182,7 +182,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
           novaSenha: '',
           confirmarSenha: '',
         });
-        setProfileImage(fetchedData.avatar || null);
+        setProfileImage(fetchedData.usuario?.foto || null);
       }
       setLoading(false);
     };
@@ -323,43 +323,40 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
     };
     reader.readAsDataURL(file);
 
-    // --- Chamada de API para upload da foto ---
-    // const token = localStorage.getItem("accessToken");
-    // if (!token) {
-    //   setProfileMessage({ text: "Token de autenticação não encontrado.", type: "error" });
-    //   clearProfileMessage();
-    //   return;
-    // }
-
-    // try {
-    //   const formData = new FormData();
-    //   formData.append("file", file);
-
-    //   const response = await fetch(`${API_URL}/lojas/upload_foto`, {
-    //     method: "POST",
-    //     headers: {
-    //       Authorization: `Bearer ${token}`,
-    //     },
-    //     body: formData,
-    //   });
-
-    //   if (!response.ok) {
-    //     throw new Error("Erro ao enviar a foto.");
-    //   }
-
-    //   const updatedJogador = await response.json();
-
-    //   setOrganizerData(updatedJogador);
-
-    //   setProfileMessage({ text: "Foto atualizada com sucesso!", type: "success" });
-    //   clearProfileMessage();
-    // } catch (err) {
-    //   console.error(err);
-    //   setProfileMessage({ text: "Falha ao atualizar a foto.", type: "error" });
-    //   clearProfileMessage();
-    // }
-    setProfileMessage({ text: "Imagem selecionada. O upload para o servidor está desativado.", type: "success" });
-    clearProfileMessage();
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setProfileMessage({ text: "Token de autenticação não encontrado.", type: "error" });
+      clearProfileMessage();
+      return;
+    }
+  
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+  
+      const response = await fetch(`${API_URL}/lojas/upload_foto`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error("Erro ao enviar a foto.");
+      }
+  
+      const updatedloja = await response.json();
+  
+      setOrganizerData(updatedloja);
+  
+      setProfileMessage({ text: "Foto atualizada com sucesso!", type: "success" });
+      clearProfileMessage();
+    } catch (err) {
+      console.error(err);
+      setProfileMessage({ text: "Falha ao atualizar a foto.", type: "error" });
+      clearProfileMessage();
+    }
   };
 
   const triggerImageUpload = () => {
@@ -401,7 +398,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
           <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-8">
             <div className="relative">
               <Avatar className="h-32 w-32">
-                {profileImage ? (
+                {profileImage && (
                   <AvatarImage
                     src={
                       organizerData?.usuario?.foto
@@ -410,11 +407,10 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                     }
                     alt={organizerData?.nome}
                   />
-                ) : (
-                  <AvatarFallback className="text-2xl">
-                    {organizerData?.nome?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                  </AvatarFallback>
                 )}
+                <AvatarFallback className="text-2xl">
+                  {organizerData?.nome?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               {canEdit && (
                 <>
