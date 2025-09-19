@@ -60,36 +60,47 @@ interface TournamentListProps {
 }
 
 const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
-  return backendData.map(t => ({
-    id: t.id.toString(),
-    name: t.nome,
-    organizerId: (t.loja_id ?? t.loja?.id)?.toString() || "0",
-    organizerName: t.loja?.nome || "Organizador não informado",
-    date: t.data_inicio,
-    time: "Horário não informado",
-    format: t.formato || 'Formato não informado',
-    store: t.cidade || 'Local não informado',
-    description: t.descricao || '',
-    prizes: t.premios || '',
-    maxParticipants: t.vagas,
-    entryFee: `$${t.taxa}`,
-    structure: t.estrutura || '',
-    rounds: t.rodadas?.length || 0,
-    status: t.finalizado ? 'open' : 'closed',
-    currentRound: t.rodadas?.length || 0,
-    participants: t.jogadores.map(p => ({ 
-      id: p.jogador_id.toString(), 
-      userId: p.jogador_id.toString(),
-      userName: "Nome não disponível",
-      registeredAt: new Date().toISOString(),
-      points: p.ponto,
-      wins: 0, losses: 0, draws: 0, currentStanding: 0
-    })),
-    matches: [],
-    bracket: [],
-    createdAt: new Date().toISOString(),
-    hasImportedResults: false,
-  }));
+  return backendData.map(t => {
+    let status: 'open' | 'in-progress' | 'finished';
+    if (t.finalizado) {
+      status = 'finished';
+    } else if (t.rodadas && t.rodadas.length > 0) {
+      status = 'in-progress';
+    } else {
+      status = 'open';
+    }
+
+    return {
+      id: t.id.toString(),
+      name: t.nome,
+      organizerId: (t.loja_id ?? t.loja?.id)?.toString() || "0",
+      organizerName: t.loja?.nome || "Organizador não informado",
+      date: t.data_inicio,
+      time: "Horário não informado",
+      format: t.formato || 'Formato não informado',
+      store: t.cidade || 'Local não informado',
+      description: t.descricao || '',
+      prizes: t.premios || '',
+      maxParticipants: t.vagas,
+      entryFee: `$${t.taxa}`,
+      structure: t.estrutura || '',
+      rounds: t.rodadas?.length || 0,
+      status: status, // Status agora tem 3 estados
+      currentRound: t.rodadas?.length || 0,
+      participants: t.jogadores.map(p => ({ 
+        id: p.jogador_id.toString(), 
+        userId: p.jogador_id.toString(),
+        userName: "Nome não disponível",
+        registeredAt: new Date().toISOString(),
+        points: p.ponto,
+        wins: 0, losses: 0, draws: 0, currentStanding: 0
+      })),
+      matches: [],
+      bracket: [],
+      createdAt: new Date().toISOString(),
+      hasImportedResults: false,
+    };
+  });
 };
 
 export function TournamentList({ onNavigate, onNavigateToTournament, currentUser }: TournamentListProps) {
@@ -146,11 +157,15 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               headers: { 'Authorization': `Bearer ${token}` },
             });
             if (!organizerResponse.ok) {
-              throw new Error("Falha ao buscar torneios do organizador.");
+              if (organizerResponse.status !== 404) {
+                  throw new Error("Falha ao buscar torneios do organizador.");
+              }
+              setMyTournaments([]);
+            } else {
+              const specificData: BackendTournament[] = await organizerResponse.json();
+              const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
+              setMyTournaments(mappedOrganizerTournaments);
             }
-            const specificData: BackendTournament[] = await organizerResponse.json();
-            const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
-            setMyTournaments(mappedOrganizerTournaments);
           }
         }
       } catch (err: any) {
@@ -163,13 +178,30 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
     fetchTournaments();
   }, [currentUser]);
 
-  const getStatusStyle = (status: 'open' | 'closed') => {
-    const isOpen = status === 'open';
-    return isOpen ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-black';
+  const getStatusStyle = (status: 'open' | 'in-progress' | 'finished') => {
+    switch (status) {
+      case 'open':
+        return 'bg-purple-100 text-purple-800';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'finished':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-black';
+    }
   };
 
-  const getStatusText = (status: 'open' | 'closed') => {
-    return status === 'open' ? 'Aberto' : 'Fechado';
+  const getStatusText = (status: 'open' | 'in-progress' | 'finished') => {
+    switch (status) {
+      case 'open':
+        return 'Aberto';
+      case 'in-progress':
+        return 'Em Andamento';
+      case 'finished':
+        return 'Finalizado';
+      default:
+        return 'Desconhecido';
+    }
   };
 
   const filterTournaments = (tournaments: Tournament[]) => {
@@ -181,10 +213,12 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
       let matchesStatus = true;
       if (statusFilter === 'open') {
         matchesStatus = tournament.status === 'open';
+      } else if (statusFilter === 'in-progress') {
+        matchesStatus = tournament.status === 'in-progress';
       } else if (statusFilter === 'closed') {
-        matchesStatus = tournament.status === 'closed';
+        matchesStatus = tournament.status === 'finished';
       }
-      
+
       const matchesFormat = formatFilter === 'all' || (tournament.format && tournament.format.toLowerCase() === formatFilter.toLowerCase());
       
       return matchesSearch && matchesStatus && matchesFormat;
@@ -195,7 +229,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
   const filteredMyTournaments = filterTournaments(myTournaments);
 
   const availableFormats = ['all', ...Array.from(new Set(allTournaments.map(t => t.format)))];
-  const availableStatuses = ['all', 'open', 'closed'];
+  const availableStatuses = ['all', 'open', 'in-progress', 'finished'];
 
   if (isLoading) {
     return (
@@ -226,8 +260,8 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               <CardDescription>Organizado por {tournament.organizerName}</CardDescription>
             </div>
             <div className="flex flex-col items-end space-y-2">
-              <Badge className={getStatusStyle(tournament.status)}>
-                {getStatusText(tournament.status)}
+              <Badge className={getStatusStyle(tournament.status as any)}>
+                {getStatusText(tournament.status as any)}
               </Badge>
               {isRegistered && (
                 <Badge variant="outline" className="text-xs bg-green-50 text-green-800 border-green-200 hover:bg-green-50 hover:text-green-800 rounded-md">
@@ -341,7 +375,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
                 <SelectContent>
                   {availableStatuses.map(status => (
                     <SelectItem key={status} value={status}>
-                      {status === 'all' ? 'Todos os Status' : status === 'open' ? 'Abertos' : 'Fechados'}
+                      {status === 'all' ? 'Todos os Status' : status === 'open' ? 'Abertos' : status === 'in-progress' ? 'Em Andamento' : 'Finalizados'}
                     </SelectItem>
                   ))}
                 </SelectContent>
