@@ -9,7 +9,7 @@ import { Tournament, User, PlayerRule, PlayerRuleAssignment } from '../data/stor
 import { TournamentImport } from './TournamentImport.tsx';
 import { toast } from 'sonner';
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile'  | 'pairings';
 
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
@@ -462,7 +462,7 @@ try {
 
             {tournament.status === "open" && (
               <Button
-                onClick={handleStartTournament}
+                onClick={() => onNavigate('pairings', { tournamentId: tournament.id })}
                 className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
               >
                 <Trophy className="h-4 w-4" />
@@ -472,7 +472,7 @@ try {
 
             {tournament.status === "in-progress" && (
               <Button
-                onClick={handleContinueTournament}
+                onClick={() => onNavigate('pairings', { tournamentId: tournament.id })}
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
               >
                 <Trophy className="h-4 w-4" />

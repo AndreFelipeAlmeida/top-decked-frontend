@@ -19,10 +19,10 @@ import {
 import { Input } from "./ui/input.tsx";
 import { Label } from "./ui/label.tsx";
 import { ArrowLeft, Play, Pause, RotateCcw, Users, Trophy, Clock, CheckCircle, AlertTriangle, Maximize, Minimize, Edit2 } from 'lucide-react';
-import { tournamentStore, Tournament, Match, User, TournamentParticipant, PlayerRuleAssignment, PlayerRule } from '../data/store';
+import { tournamentStore, Tournament, Match, User, TournamentParticipant, PlayerRuleAssignment, PlayerRule } from '../data/store.ts';
 import { toast } from "sonner";
 
-type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'player-profile' | 'organizer-profile' | 'subscription' | 'tournament-details' | 'tournament-list' | 'tournament-edit';
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'player-profile' | 'organizer-profile' | 'subscription' | 'tournament-details' | 'tournament-list' | 'tournament-edit'  | 'pairings';
 
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
@@ -31,6 +31,124 @@ interface PairingsPageProps {
   tournamentId: string | null;
   currentUser: User | null;
 }
+interface TournamentDetailsProps {
+  onNavigate: (page: Page, data?: any) => void;
+  tournamentId: string | null;
+  currentUser: User | null;
+}
+
+interface LojaPublico {
+    id: number;
+    nome: string;
+    email: string;
+    usuario: UsuarioPublico;
+}
+
+interface UsuarioPublico {
+    id: number;
+}
+
+interface JogadorPublico {
+  id: number;
+  nome: string;
+}
+
+interface JogadorTorneioLinkPublico {
+  jogador_id: number;
+  torneio_id: string;
+  nome: string;
+  ponto: number;
+  jogador?: JogadorPublico;
+}
+
+interface RodadaBase {
+  id: string;
+  numero: number;
+  data: string;
+}
+
+interface TipoJogadorPublico {
+  id: number;
+  nome: string;
+  pt_vitoria: number;
+  pt_derrota: number;
+  pt_empate: number;
+  pt_oponente_perde: number;
+  pt_oponente_ganha: number;
+  pt_oponente_empate: number;
+  loja: number;
+  tcg: string;
+}
+
+interface TorneioRegraAdicionalPublico {
+  tipo_jogador: TipoJogadorPublico;
+  jogadores: JogadorPublico[];
+}
+
+interface BackendTournament {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  cidade: string | null;
+  data_inicio: string;
+  loja_id: number;
+  loja?: LojaPublico;
+  formato: string | null;
+  taxa: number;
+  premios: string | null;
+  estrutura: string | null;
+  vagas: number;
+  finalizado: boolean;
+  jogadores: JogadorTorneioLinkPublico[];
+  rodadas: RodadaBase[];
+  regra_basica_id: number;
+  regras_adicionais: TorneioRegraAdicionalPublico[];
+}
+
+
+const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
+  let status: 'open' | 'in-progress' | 'finished';
+  if (backendData.finalizado) {
+    status = 'finished';
+  } else if (backendData.rodadas && backendData.rodadas.length > 0) {
+    status = 'in-progress';
+  } else {
+    status = 'open';
+  }
+  
+  return {
+      id: backendData.id,
+      name: backendData.nome,
+      organizerId: (backendData.loja_id ?? backendData.loja?.id)?.toString() || "0",
+      organizerUserId: (backendData.loja?.usuario?.id)?.toString() || "0",
+      organizerName: backendData.loja?.nome || "Organizador não informado",
+      date: backendData.data_inicio,
+      time: "Horário não informado",
+      format: backendData.formato || 'Formato não informado',
+      store: backendData.cidade || 'Local não informado',
+      description: backendData.descricao || '',
+      prizes: backendData.premios || '',
+      maxParticipants: backendData.vagas,
+      entryFee: `$${backendData.taxa}`,
+      structure: backendData.estrutura || '',
+      rounds: backendData.rodadas?.length || 0,
+      status: status,
+      currentRound: backendData.rodadas?.length || 0,
+      participants: backendData.jogadores.map(p => ({
+          id: p.jogador_id.toString(),
+          userId: p.jogador_id.toString(),
+          userName: p.nome || 'Nome indisponível',
+          registeredAt: new Date().toISOString(),
+          points: p.ponto,
+          wins: 0, losses: 0, draws: 0, currentStanding: 0
+      })),
+      matches: [],
+      bracket: [],
+      createdAt: new Date().toISOString(),
+      hasImportedResults: !!backendData.rodadas?.length,
+      ruleId: backendData.regra_basica_id
+  };
+};
 
 export function PairingsPage({ onNavigate, tournamentId, currentUser }: PairingsPageProps) {
   const [tournament, setTournament] = useState<Tournament | null>(null);
@@ -110,7 +228,7 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
       if (tournamentResponse.ok) {
         const tournamentData = await tournamentResponse.json();
         
-        setTournament(tournamentData);
+        setTournament(mapBackendToFrontend(tournamentData));
         setFormData({
             name: tournamentData.nome,
             date: tournamentData.data_inicio,
@@ -385,13 +503,10 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
       return <Badge variant="default" className="bg-green-600 text-white">Auto Win</Badge>;
     }
     
-    switch (match.status) {
-      case 'pending':
-        return <Badge variant="outline">In Progress</Badge>;
-      case 'in-progress':
-        return <Badge variant="secondary">In Progress</Badge>;
-      case 'completed':
-        return <Badge variant="default">Finalized</Badge>;
+    if (match.status) {
+        return <Badge variant="Finalizado">In Progress</Badge>;
+    } else {
+        return <Badge variant="Em Andamento">In Progress</Badge>;
     }
   };
 
@@ -614,8 +729,9 @@ export function PairingsPage({ onNavigate, tournamentId, currentUser }: Pairings
     );
   }
 
-  const canManage = currentUser?.type === 'organizer' && currentUser.id === tournament.organizerId;
-
+  const canManage = currentUser?.type === 'organizer' && currentUser.id.toString() === tournament.organizerUserId.toString();
+  console.log(tournament.organizerUserId)
+  console.log(currentUser?.id)
   if (!canManage) {
     return (
       <div className="container mx-auto px-4 py-8">

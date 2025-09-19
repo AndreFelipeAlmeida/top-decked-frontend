@@ -6,6 +6,7 @@ import { OrganizerDashboard } from './components/OrganizerDashboard.tsx';
 import { TournamentCreation } from './components/TournamentCreation.tsx';
 import { RankingScreen } from './components/RankingScreen.tsx';
 import { TournamentDetails } from './components/TournamentDetails.tsx';
+import { PairingsPage } from './components/PareamentoScreen.tsx';
 import { TournamentList } from './components/TournamentList.tsx';
 import { TournamentEdit } from './components/TournamentEdit.tsx';
 import { PlayerRules } from './components/PlayerRules.tsx';
@@ -16,7 +17,7 @@ import { Toaster } from './components/ui/sonner.tsx';
 import { tournamentStore, User } from './data/store.ts';
 
 
-type Page = 'login' | 'player-dashboard' | 'subscription' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
+type Page = 'login' | 'player-dashboard' | 'subscription' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile' | 'pairings';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('login');
@@ -50,6 +51,9 @@ export default function App() {
 
   const handleNavigate = (page: Page, data?: any) => {
     if ((page === 'tournament-details' || page === 'tournament-edit') && data?.tournamentId) {
+      setSelectedTournamentId(data.tournamentId);
+    }
+    if ((page === 'pairings') && data?.tournamentId) {
       setSelectedTournamentId(data.tournamentId);
     }
     if (page === 'player-profile' && data?.playerId) {
@@ -143,6 +147,12 @@ export default function App() {
             currentUser={currentUser}
           />
         );
+      case 'pairings':
+          return (<PairingsPage 
+            onNavigate={handleNavigate} 
+            tournamentId={selectedTournamentId} 
+            currentUser={currentUser} />);
+
       default:
         return <LoginScreen onLogin={handleLogin} />;
     }
