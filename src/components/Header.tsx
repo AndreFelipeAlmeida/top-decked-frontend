@@ -90,7 +90,7 @@ export function Header({ userType, onNavigate, onLogout, currentPage, currentUse
             className="flex items-center space-x-2"
           >
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">{userType === 'player' ? currentUser?.name : 'Downtown Comics'}</span>
+            <span className="hidden sm:inline">{currentUser?.name}</span>
           </Button>
           
           <Button
