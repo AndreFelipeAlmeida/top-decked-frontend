@@ -50,6 +50,23 @@ export interface Tournament {
   ruleId: number;
 }
 
+export interface Match {
+  id: string;
+  tableNumber: number;
+  player1Id: string;
+  player1Name: string;
+  player2Id: string;
+  player2Name: string;
+  player1Score: number;
+  player1Vde: VDE;
+  player2Score: number;
+  player2Vde: VDE;
+  status: "completed" | "in-progress" | "pending";
+  winnerId?: string;
+  winnerName?: string;
+  round: number; // The missing property
+}
+
 export interface TournamentParticipant {
   id: string;
   userId: string;
@@ -96,7 +113,7 @@ export interface Match {
   player1Vde: VDE;   // novo campo
   player2Score: number;
   player2Vde: VDE;   // novo campo
-  status: boolean;
+  status: "completed" | "in-progress" | "pending";
   winnerId?: string;
   winnerName?: string;
 }
@@ -206,6 +223,7 @@ export const mockTournaments: Tournament[] = [
     name: 'Weekly Modern Championship',
     organizerId: 'organizer-1',
     organizerName: 'Sarah Johnson',
+    organizerUserId: 'organizer-1',
     date: '2024-12-25',
     time: '18:00',
     format: 'Modern',
@@ -244,13 +262,15 @@ export const mockTournaments: Tournament[] = [
     ],
     matches: [],
     createdAt: '2024-12-15T09:00:00Z',
-    hasImportedResults: false
+    hasImportedResults: false,
+    ruleId: 1
   },
   {
     id: 'tournament-2',
     name: 'Standard Showdown',
     organizerId: 'organizer-1',
     organizerName: 'Sarah Johnson',
+    organizerUserId: 'organizer-1',
     date: '2024-12-22',
     time: '14:00',
     format: 'Standard',
@@ -266,13 +286,15 @@ export const mockTournaments: Tournament[] = [
     participants: [],
     matches: [],
     createdAt: '2024-12-10T14:00:00Z',
-    hasImportedResults: false
+    hasImportedResults: false,
+    ruleId: 2
   },
   {
     id: 'tournament-3',
     name: 'Friday Night Magic',
     organizerId: 'organizer-1',
     organizerName: 'Sarah Johnson',
+    organizerUserId: 'organizer-1',
     date: '2024-12-15',
     time: '19:00',
     format: 'Modern',
@@ -323,18 +345,19 @@ export const mockTournaments: Tournament[] = [
     matches: [
       {
         id: 'match-1',
-        tournamentId: 'tournament-3',
-        round: 1,
-        table: 1,
+        round: 1, // Add the missing 'round' property
+        tableNumber: 1,
         player1Id: 'player-1',
         player1Name: 'Alex Chen',
         player2Id: 'player-2',
         player2Name: 'Mike Rodriguez',
         player1Score: 2,
+        player1Vde: { vitorias: 2, derrotas: 1, empates: 0 },
         player2Score: 1,
+        player2Vde: { vitorias: 1, derrotas: 2, empates: 0 },
+        status: 'completed',
         winnerId: 'player-1',
-        winnerName: 'Alex Chen',
-        status: 'completed'
+        winnerName: 'Alex Chen'
       }
     ],
     bracket: [
@@ -349,7 +372,8 @@ export const mockTournaments: Tournament[] = [
       }
     ],
     createdAt: '2024-12-10T09:00:00Z',
-    hasImportedResults: true
+    hasImportedResults: true,
+    ruleId: 3
   }
 ];
 
@@ -453,7 +477,7 @@ class TournamentStore {
     );
   }
 
-  createTournament(tournamentData: Omit<Tournament, 'id' | 'participants' | 'matches' | 'createdAt' | 'status' | 'currentRound' | 'hasImportedResults'>): Tournament {
+  createTournament(tournamentData: Omit<Tournament, 'id' | 'participants' | 'matches' | 'createdAt' | 'status' | 'currentRound' | 'hasImportedResults' | 'organizerUserId' | 'ruleId'> & { organizerUserId: string, ruleId: number }): Tournament {
     const newTournament: Tournament = {
       ...tournamentData,
       id: `tournament-${Date.now()}`,
@@ -566,8 +590,15 @@ class TournamentStore {
   }
 
 
-  updateMatchResult(matchId: string, winnerId: string, player1Score: number, player2Score: number): boolean {
-    const tournament = this.tournaments.find(t => 
+  updateMatchResult(
+    matchId: string,
+    winnerId: string,
+    player1Score: number,
+    player2Score: number,
+    player1Vde: VDE,
+    player2Vde: VDE
+  ): boolean {
+    const tournament = this.tournaments.find(t =>
       t.matches.some(m => m.id === matchId)
     );
     
@@ -578,6 +609,8 @@ class TournamentStore {
 
     match.player1Score = player1Score;
     match.player2Score = player2Score;
+    match.player1Vde = player1Vde;
+    match.player2Vde = player2Vde;
     match.winnerId = winnerId;
     match.winnerName = winnerId === match.player1Id ? match.player1Name : match.player2Name;
     match.status = 'completed';
