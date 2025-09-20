@@ -181,7 +181,7 @@ useEffect(() => {
       const specificData: BackendTournament[] = await organizerResponse.json();
       const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
       setMyTournaments(mappedOrganizerTournaments);
-      setData(data)
+      setData(myTournaments)
       const hoje = new Date();
       const umaSemanaAtras = new Date();
       const mesAtual = hoje.getMonth(); // 0-11
