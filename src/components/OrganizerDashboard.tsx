@@ -5,7 +5,7 @@ import { Button } from './ui/button.tsx';
 import { Calendar, Users, Trophy, Plus, Upload, TrendingUp, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TournamentImport } from './TournamentImport.tsx';
-import { tournamentStore } from '../data/store.ts';
+import { tournamentStore, Tournament } from '../data/store.ts';
 import { useMemo } from 'react';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
@@ -13,6 +13,115 @@ type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-c
 interface OrganizerDashboardProps {
   onNavigate: (page: Page, data?: any) => void;
 }
+
+interface LojaPublico {
+    id: number;
+    nome: string;
+    email: string;
+}
+
+interface JogadorTorneioLinkPublico {
+  jogador_id: number; 
+  torneio_id: string;
+  ponto: number;
+}
+
+interface RodadaBase {
+  id: string;
+  numero: number;
+  data: string;
+}
+
+interface BackendTournament {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  cidade: string | null;
+  data_inicio: string;
+  loja_id: number;
+  loja?: LojaPublico;
+  formato: string | null;
+  taxa: number;
+  premios: string | null;
+  estrutura: string | null;
+  vagas: number;
+  status: string;
+  jogadores: JogadorTorneioLinkPublico[];
+  rodadas: RodadaBase[];
+  regras_adicionais: any[];
+}
+
+interface BackendTournament {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  cidade: string | null;
+  data_inicio: string;
+  loja_id: number;
+  loja?: LojaPublico;
+  formato: string | null;
+  taxa: number;
+  premios: string | null;
+  estrutura: string | null;
+  vagas: number;
+  status: string;
+  jogadores: JogadorTorneioLinkPublico[];
+  rodadas: RodadaBase[];
+  regras_adicionais: any[];
+}
+
+const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
+  if (!backendData || !Array.isArray(backendData)) {
+      console.error("Dados de backend inválidos. Esperado um array.");
+      return [];
+  }
+
+  return backendData.map(t => {
+      let status: 'open' | 'in-progress' | 'finished';
+      if (t.status === "FINALIZADO") {
+        status = 'finished';
+      } else if (t.status === "EM_ANDAMENTO") {
+        status = 'in-progress';
+      } else {
+        status = 'open';
+      }
+
+    return {
+      id: t.id ? t.id.toString() : "",
+      organizerUserId: t.loja_id?.toString() || "0",
+      ruleId: 0, 
+      name: t.nome || "Torneio sem nome",
+      organizerId: (t.loja_id ?? t.loja?.id)?.toString() || "0",
+      organizerName: t.loja?.nome || "Organizador não informado",
+      date: t.data_inicio || new Date().toISOString(),
+      time: "Horário não informado",
+      format: t.formato || 'Formato não informado',
+      store: t.cidade || 'Local não informado',
+      description: t.descricao || '',
+      prizes: t.premios || '',
+      maxParticipants: t.vagas ?? 0,
+      entryFee: `$${t.taxa ?? 0}`,
+      structure: t.estrutura || '',
+      rounds: t.rodadas?.length || 0,
+      status: status,
+      currentRound: t.rodadas?.length || 0,
+      participants: t.jogadores?.map(p => ({ 
+        id: p.jogador_id?.toString() || "", 
+        userId: p.jogador_id?.toString() || "",
+        userName: "Nome não disponível",
+        registeredAt: new Date().toISOString(),
+        points: p.ponto ?? 0,
+        wins: 0, losses: 0, draws: 0, currentStanding: 0
+      })) || [],
+      matches: [],
+      bracket: [],
+      createdAt: new Date().toISOString(),
+      hasImportedResults: false,
+    };
+  });
+};
+
+
 
 export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -31,6 +140,7 @@ const [monthlyData, setMonthlyData] = useState<{ month: string; tournaments: num
 const [data, setData] = useState<any[]>([]);
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1'];
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
+const [myTournaments, setMyTournaments] = useState<Tournament[]>([]);
 
 const formatData = useMemo(() => {
   if (data.length === 0) {
@@ -68,7 +178,9 @@ useEffect(() => {
 
       if (!organizerResponse.ok) throw new Error('Erro ao buscar torneios');
 
-      const data = await organizerResponse.json();
+      const specificData: BackendTournament[] = await organizerResponse.json();
+      const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
+      setMyTournaments(mappedOrganizerTournaments);
       setData(data)
       const hoje = new Date();
       const umaSemanaAtras = new Date();
@@ -77,7 +189,7 @@ useEffect(() => {
       umaSemanaAtras.setDate(hoje.getDate() - 7);
 
       // Quantidade de torneios ativos e finalizados
-      const ativos = data.filter((t: any) => t.finalizado === false).length;
+      const ativos = myTournaments.filter((t: any) => t.status === 'finished').length;
       const finalizados = data.filter((t: any) => t.finalizado === true).length;
 
       // Total de participantes
@@ -109,8 +221,8 @@ useEffect(() => {
         }
       ).length;
 
-      const finalizadosMes = data.filter((t: any) => {
-        if (!t.finalizado) return false;
+      const finalizadosMes = myTournaments.filter((t: any) => {
+        if (t.status !== 'finished') return false;
         const dataTorneio = new Date(t.data_inicio);
         return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
       }).length;
