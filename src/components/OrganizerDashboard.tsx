@@ -12,6 +12,7 @@ type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-c
 
 interface OrganizerDashboardProps {
   onNavigate: (page: Page, data?: any) => void;
+  onNavigateToTournament: (tournamentId: string) => void;
 }
 
 interface LojaPublico {
@@ -123,7 +124,7 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
 
 
 
-export function OrganizerDashboard({ onNavigate }: OrganizerDashboardProps) {
+export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: OrganizerDashboardProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const currentUser = tournamentStore.getCurrentUser();
 
@@ -136,6 +137,8 @@ const [torneiosUltimaSemana, setTorneiosUltimaSemana] = useState(0);
 const [torneiosFinalizadosMes, setTorneiosFinalizadosMes] = useState(0);
 const [participantesSemana, setParticipantesSemana] = useState(0);
 const [torneiosSemana, setTorneiosSemana] = useState(0);
+const [ultimos3Concluidos, setUltimos3Concluidos] = useState<Tournament[]>([]);
+const [lastWeekTournaments, setLastWeekTournaments] = useState<any[]>([]);
 const [monthlyData, setMonthlyData] = useState<{ month: string; tournaments: number; participants: number }[]>([]);
 const [data, setData] = useState<any[]>([]);
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1'];
@@ -158,12 +161,6 @@ const formatData = useMemo(() => {
     color: COLORS[index % COLORS.length],
   }));
 }, [data]);
-const [lastWeekTournaments, setLastWeekTournaments] = useState<any[]>([]);
-
-const ultimos3Concluidos = data
-  .filter(torneio => torneio.finalizado)
-  .sort((a, b) => new Date(b.dataTorneio).getTime() - new Date(a.dataTorneio).getTime())
-  .slice(0, 3);
 
 useEffect(() => {
   async function fetchOrganizerTournaments() {
@@ -180,48 +177,47 @@ useEffect(() => {
 
       const specificData: BackendTournament[] = await organizerResponse.json();
       const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
+      // TODO: Separar onde tiver mappedOrganizerTournaments por outros useEffect, igual o de baixo
       setMyTournaments(mappedOrganizerTournaments);
-      setData(myTournaments)
+      setData(specificData)
       const hoje = new Date();
       const umaSemanaAtras = new Date();
       const mesAtual = hoje.getMonth(); // 0-11
       const anoAtual = hoje.getFullYear();
       umaSemanaAtras.setDate(hoje.getDate() - 7);
 
-      // Quantidade de torneios ativos e finalizados
-      const ativos = myTournaments.filter((t: any) => t.status === 'finished').length;
-      const finalizados = data.filter((t: any) => t.finalizado === true).length;
-
       // Total de participantes
-      const participantes = data.reduce(
+      const participantes = specificData.reduce(
         (acc: number, torneio: any) => acc + (torneio.jogadores?.length || 0),
         0
       );
 
       // Média de participantes por torneio
-      const media = data.length > 0 ? (participantes / data.length).toFixed(2) : 0;
+      const media = mappedOrganizerTournaments.length > 0 ? (participantes / mappedOrganizerTournaments.length).toFixed(2) : 0;
 
       // Torneios com datas futuras
       const hj = new Date();
       hj.setHours(0, 0, 0, 0); // zera horas, minutos, segundos, ms
+      const ultimos3Concluidos = mappedOrganizerTournaments
+        .filter(torneio => torneio.status === "finished")
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 3);
 
-      const futuros = data.filter((t: any) => {
-        const tData = new Date(t.data_inicio);
+      const futuros = mappedOrganizerTournaments.filter((t: Tournament) => {
+        const tData = new Date(t.date);
         tData.setHours(0, 0, 0, 0); // zera também a hora do torneio
         return tData > hoje;
       });
       
-      console.log(futuros)
-      console.log("teste")
       // Torneios da última semana
-      const ultimaSemana = data.filter(
+      const ultimaSemana = specificData.filter(
         (t: any) => {
           const dataT = new Date(t.data_inicio);
           return dataT >= umaSemanaAtras && dataT <= hoje;
         }
       ).length;
 
-      const finalizadosMes = myTournaments.filter((t: any) => {
+      const finalizadosMes = specificData.filter((t: any) => {
         if (t.status !== 'finished') return false;
         const dataTorneio = new Date(t.data_inicio);
         return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
@@ -236,11 +232,11 @@ useEffect(() => {
       ultimoDiaSemana.setHours(23, 59, 59, 999);
 
       // Filtra torneios desta semana
-      const torneiosEstaSemana = data.filter((t: any) => {
+      const torneiosEstaSemana = specificData.filter((t: any) => {
         const dataTorneio = new Date(t.data_inicio);
         return dataTorneio >= primeiroDiaSemana && dataTorneio <= ultimoDiaSemana;
       });
-      
+      console.log(torneiosEstaSemana)
       // Soma participantes
       const totalParticipantes = torneiosEstaSemana.reduce((acc: number, t: any) => {
         return acc + (t.jogadores?.length || 0);
@@ -249,7 +245,7 @@ useEffect(() => {
       // Processa os dados por mês
       const monthly = Array.from({ length: 12 }, (_, i) => {
         const month = i + 1;
-        const monthTournaments = data.filter((tournament: any) => {
+        const monthTournaments = specificData.filter((tournament: any) => {
           const date = new Date(tournament.data_inicio);
           return date.getMonth() + 1 === month;
         });
@@ -267,7 +263,7 @@ useEffect(() => {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(today.getDate() - 7);
 
-      const lastWeek = data.filter((tournament: any) => {
+      const lastWeek = specificData.filter((tournament: any) => {
         const tournamentDate = new Date(tournament.data_inicio);
         return tournamentDate >= sevenDaysAgo && tournamentDate <= today;
       });
@@ -275,10 +271,9 @@ useEffect(() => {
       setLastWeekTournaments(lastWeek);
       setMonthlyData(monthly);
       setTorneiosSemana(torneiosEstaSemana.length);
+      setUltimos3Concluidos(ultimos3Concluidos)
       setParticipantesSemana(totalParticipantes);
       setTorneiosFinalizadosMes(finalizadosMes);
-      setTorneiosAtivos(ativos);
-      setTorneiosFinalizados(finalizados);
       setTotalParticipantes(participantes);
       setMediaParticipantes(media);
       setTorneiosFuturos(futuros);
@@ -291,6 +286,16 @@ useEffect(() => {
 
   fetchOrganizerTournaments();
 }, []);
+
+useEffect(() => {
+  if (myTournaments.length === 0) return;
+
+  const ativos = myTournaments.filter((t: any) => t.status !== 'finished').length;
+  const finalizados = myTournaments.filter((t: any) => t.status === 'finished').length;
+
+  setTorneiosAtivos(ativos);
+  setTorneiosFinalizados(finalizados);
+}, [myTournaments]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -441,33 +446,33 @@ useEffect(() => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {torneiosFuturos.map((tournament) => (
+            {torneiosFuturos.map((tournament: Tournament) => (
               <div key={tournament.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{tournament.nome}</h3>
-                    <p className="text-sm text-muted-foreground">{tournament.data}</p>
+                    <h3 className="font-semibold">{tournament.name}</h3>
+                    <p className="text-sm text-muted-foreground">{tournament.date}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{tournament.jogadores.length}/{tournament.vagas}</span>
+                      <span className="text-sm">{tournament.participants.length}/{tournament.maxParticipants}</span>
                     </div>
                     <Badge 
-                      className={tournament.finalizado ? 'bg-gray-100 text-black' : 'bg-purple-100 text-purple-800'}
+                      className={tournament.status === "finished" ? 'bg-gray-100 text-black' : 'bg-purple-100 text-purple-800'}
                     >
-                      {tournament.status === 'closed' ? 'Fechado' : 'Aberto'}
+                      {tournament.status === 'finished' ? 'Fechado' : 'Aberto'}
                     </Badge>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => onNavigate('tournament-details')}
+                    onClick={() => onNavigateToTournament(tournament.id.toString())}
                   >
                     Ver Detalhes
                   </Button>
@@ -494,7 +499,7 @@ useEffect(() => {
               <div className="flex items-center gap-4 min-w-0">
                 <Trophy className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                 <div className="min-w-0">
-                  <h3 className="font-semibold truncate">{tournament.nome}</h3>
+                  <h3 className="font-semibold truncate">{tournament.name}</h3>
                   <p className="text-sm text-muted-foreground"></p>
                 </div>
               </div>
@@ -503,7 +508,7 @@ useEffect(() => {
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
-                    {tournament.jogadores?.length || 0} jogadores
+                    {tournament.participants?.length || 0} jogadores
                   </span>
                 </div>
               </div>

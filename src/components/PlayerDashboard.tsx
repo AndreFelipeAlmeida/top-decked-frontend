@@ -98,6 +98,8 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         setRecentTournaments(formattedRecentTournaments);
 
         setYearlyProgressionData(statsData.estatisticas_anuais || []);
+        console.log("yearlyProgressionData")
+        console.log(yearlyProgressionData)
         const uniqueYears = Array.from(new Set<number>((statsData.estatisticas_anuais || []).map((d: any) => d.ano)))
           .sort((a, b) => b - a)
           .map(y => y.toString());

@@ -85,6 +85,7 @@ export default function App() {
         return (
           <OrganizerDashboard 
             onNavigate={handleNavigate}
+            onNavigateToTournament={handleNavigateToTournament}
           />
         );
       case 'tournament-creation':
