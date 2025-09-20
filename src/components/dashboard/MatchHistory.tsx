@@ -1,11 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card.tsx';
 import { Badge } from '../ui/badge.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table.tsx';
 import { Input } from '../ui/input.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.tsx';
 import { CheckCircle, XCircle, Minus, Search, Filter } from 'lucide-react';
+import { toast } from "sonner";
 
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
+
+interface History {
+  data: string;
+  loja: string;
+  rodada: string;
+  mesa: string;
+  resultado: string;
+  oponente: string;
+}
 interface MatchHistoryProps {
   matchHistory: any[];
 }
@@ -15,25 +26,17 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
   const [dateFilter, setDateFilter] = useState('');
   const [resultFilter, setResultFilter] = useState('all');
   const [storeFilter, setStoreFilter] = useState('all');
+  const [history, setHistory] = useState<History[]>([]);
 
   const uniqueStores = Array.from(new Set(matchHistory.map(match => match.store)));
 
-  const filteredMatches = matchHistory.filter(match => {
-    const matchesSearch = searchTerm === '' || (match.opponent && match.opponent.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesDate = dateFilter === '' || (match.date === dateFilter);
-    const matchesResult = resultFilter === 'all' || (match.result && match.result.toLowerCase() === resultFilter);
-    const matchesStore = storeFilter === 'all' || (match.store && match.store === storeFilter);
-    
-    return matchesSearch && matchesDate && matchesResult && matchesStore;
-  });
-
   const getResultIcon = (result: string | undefined) => {
     switch (result?.toLowerCase()) {
-      case 'win':
+      case 'vitoria':
         return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'loss':
+      case 'derrota':
         return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'draw':
+      case 'empate':
         return <Minus className="h-4 w-4 text-yellow-600" />;
       default:
         return null;
@@ -42,11 +45,11 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
 
   const getResultBadge = (result: string | undefined) => {
     switch (result?.toLowerCase()) {
-      case 'win':
+      case 'vitoria':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Vitória</Badge>;
-      case 'loss':
+      case 'derrota':
         return <Badge variant="destructive">Derrota</Badge>;
-      case 'draw':
+      case 'empate':
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Empate</Badge>;
       default:
         return <Badge variant="outline">{result || 'N/A'}</Badge>;
@@ -54,19 +57,44 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
   };
 
   const formatMatchResult = (match: any) => {
-    if (match.result?.toLowerCase() === 'draw') {
+    if (match.resultado?.toLowerCase() === 'empate') {
       return 'Empate';
     }
-    const winnerName = match.winner ? match.winner : 'Ninguém';
-    const loserName = match.loser ? match.loser : 'Ninguém';
-    if (match.result?.toLowerCase() === 'win') {
-        return `Vitória contra ${match.opponent || 'Desconhecido'}`;
-    } else if (match.result?.toLowerCase() === 'loss') {
-        return `Derrota contra ${match.opponent || 'Desconhecido'}`;
+    if (match.resultado?.toLowerCase() === 'vitoria') {
+        return `Vitória contra ${match.oponente || 'Desconhecido'}`;
+    } else if (match.resultado?.toLowerCase() === 'derrota') {
+        return `Derrota contra ${match.oponente || 'Desconhecido'}`;
     }
     return 'Resultado Indisponível';
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_URL}/jogadores/rodadas`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (response.ok) {
+          const data: History[] = await response.json();
+          const formattedData = data.map(match => ({
+            ...match,
+            data: new Date(match.data).toLocaleDateString('pt-BR'),
+          }));
+          setHistory(formattedData);
+          console.log(formattedData)
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchData();
+  }, []);
+  
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -141,7 +169,7 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
           <CardTitle>Histórico de Partidas</CardTitle>
           <CardDescription>
             Registro completo de todas as suas partidas em torneios
-            {filteredMatches.length !== matchHistory.length && ` (exibindo ${filteredMatches.length} de ${matchHistory.length} partidas)`}
+            {history.length !== history.length && ` (exibindo ${history.length} de ${history.length} partidas)`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -159,22 +187,22 @@ export function MatchHistory({ matchHistory }: MatchHistoryProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMatches.length > 0 ? (
-                  filteredMatches.map((match) => (
-                    <TableRow key={match.id}>
+                {history.length > 0 ? (
+                  history.map((match: History) => (
+                    <TableRow key={match.rodada}>
                       <TableCell className="font-medium">
-                        {match.date}
+                        {match.data}
                       </TableCell>
-                      <TableCell>{match.store}</TableCell>
-                      <TableCell className="text-center">{match.tournamentRound !== undefined && match.tournamentRound !== null ? `R${match.tournamentRound}` : 'N/A'}</TableCell>
-                      <TableCell className="text-center">{match.tableNumber !== undefined && match.tableNumber !== null ? `#${match.tableNumber}` : 'N/A'}</TableCell>
+                      <TableCell>{match.loja}</TableCell>
+                      <TableCell className="text-center">{match.rodada !== undefined && match.rodada !== null ? `R${match.rodada}` : 'N/A'}</TableCell>
+                      <TableCell className="text-center">{match.mesa !== undefined && match.mesa !== null ? `#${match.mesa}` : 'N/A'}</TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center space-x-2">
-                          {getResultIcon(match.result)}
-                          {getResultBadge(match.result)}
+                          {getResultIcon(match.resultado)}
+                          {getResultBadge(match.resultado)}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">{match.opponent}</TableCell>
+                      <TableCell className="font-medium">{match.oponente}</TableCell>
                       <TableCell>
                         <span className="text-sm text-muted-foreground">
                           {formatMatchResult(match)}

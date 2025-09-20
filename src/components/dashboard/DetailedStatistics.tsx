@@ -16,15 +16,13 @@ interface DetailedStatisticsProps {
 const COLORS = ['#2d1b69', '#ffd700', '#8b5cf6', '#06b6d4', '#10b981'];
 
 export function DetailedStatistics({ yearlyProgressionData, availableYears, frequentOpponentsData, performanceByFormatData }: DetailedStatisticsProps) {
-  const [selectedMetric, setSelectedMetric] = useState('points');
+  const [selectedMetric, setSelectedMetric] = useState('pontos');
   const [selectedYears, setSelectedYears] = useState(['2024', '2025']);
-
-  const filteredData = yearlyProgressionData.filter(d => selectedYears.includes(d.year?.toString()));
-
-  const chartData = Array.from(new Set(filteredData.map((d: any) => d.month))).map((month: any) => {
+  const filteredData = yearlyProgressionData.filter(d => selectedYears.includes(d.ano.toString()));
+  const chartData = Array.from(new Set(filteredData.map((d: any) => d.mes))).map((month: any) => {
     const monthData: any = { month };
     selectedYears.forEach(year => {
-      const yearData = filteredData.find(d => d.month === month && d.year?.toString() === year);
+      const yearData = filteredData.find(d => d.mes === month && d.ano?.toString() === year);
       if (yearData) {
         monthData[`${selectedMetric}_${year}`] = yearData[selectedMetric as keyof typeof yearData];
       }
@@ -84,10 +82,10 @@ export function DetailedStatistics({ yearlyProgressionData, availableYears, freq
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="points">Pontos</SelectItem>
-                    <SelectItem value="wins">Vitórias</SelectItem>
-                    <SelectItem value="losses">Derrotas</SelectItem>
-                    <SelectItem value="draws">Empates</SelectItem>
+                    <SelectItem value="pontos">Pontos</SelectItem>
+                    <SelectItem value="vitorias">Vitórias</SelectItem>
+                    <SelectItem value="derrotas">Derrotas</SelectItem>
+                    <SelectItem value="empates">Empates</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -162,16 +160,16 @@ export function DetailedStatistics({ yearlyProgressionData, availableYears, freq
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ nome, percent }) => `${nome} ${(percent * 100).toFixed(0)}%`}
+                      label={({ formato, percent }) => percent > 0 ? `${formato} ${(percent * 100).toFixed(0)}%` : ""}
                       outerRadius={80}
                       fill="#8884d8"
-                      dataKey="pontuacao_media"
+                      dataKey="pontos"
                     >
                       {performanceByFormatData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value, name, props) => [`${value} pts`, props.payload.nome]} />
+                    <Tooltip formatter={(value, name, props) => [`${value} pts`, props.payload.formato]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

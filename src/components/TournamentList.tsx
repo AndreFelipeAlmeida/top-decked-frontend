@@ -67,9 +67,9 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
 
   return backendData.map(t => {
       let status: 'open' | 'in-progress' | 'finished';
-      if (t.status === "FINALIZADO") {
+      if (t.status?.toUpperCase() === "FINALIZADO") {
         status = 'finished';
-      } else if (t.status === "EM_ANDAMENTO") {
+      } else if (t.status?.toUpperCase() === "EM_ANDAMENTO") {
         status = 'in-progress';
       } else {
         status = 'open';
@@ -222,7 +222,7 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
         matchesStatus = tournament.status === 'open';
       } else if (statusFilter === 'in-progress') {
         matchesStatus = tournament.status === 'in-progress';
-      } else if (statusFilter === 'closed') {
+      } else if (statusFilter === 'finished') {
         matchesStatus = tournament.status === 'finished';
       }
 
@@ -409,7 +409,11 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
       </Card>
 
       <Tabs defaultValue={currentUser?.type === 'player' ? 'all' : 'my-tournaments'} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList
+            className={`grid w-full ${
+              currentUser?.type === 'player' ? 'grid-cols-3' : 'grid-cols-2'
+            }`}
+          >
           <TabsTrigger value="all">Todos os Torneios</TabsTrigger>
           <TabsTrigger value="my-tournaments">
             {currentUser?.type === 'player' ? 'Meus Torneios' : 'Meus Torneios'}

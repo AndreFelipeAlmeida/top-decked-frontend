@@ -54,7 +54,6 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         });
         if (!statsRes.ok) throw new Error('Erro ao buscar estatísticas');
         const statsData = await statsRes.json();
-
         setPlayerStats(statsData);
 
         // Calcular as estatísticas de colocação
@@ -68,13 +67,13 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             if (item.colocacao === 1) {
               firstPlaceCount++;
             }
-            if (item.colocacao === 2) {
+            else if (item.colocacao === 2) {
               secondPlaceCount++;
             }
-            if (item.colocacao <= 4) {
+            else if (item.colocacao <= 4) {
               topFourCount++;
             }
-            if (item.colocacao <= 8) {
+            else if (item.colocacao <= 8) {
               topEightCount++;
             }
           });
@@ -96,10 +95,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
           points: item.pontuacao,
         })) || [];
         setRecentTournaments(formattedRecentTournaments);
-
         setYearlyProgressionData(statsData.estatisticas_anuais || []);
-        console.log("yearlyProgressionData")
-        console.log(yearlyProgressionData)
         const uniqueYears = Array.from(new Set<number>((statsData.estatisticas_anuais || []).map((d: any) => d.ano)))
           .sort((a, b) => b - a)
           .map(y => y.toString());
@@ -119,10 +115,9 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         });
         if (!opponentsRes.ok) throw new Error('Erro ao buscar histórico de partidas');
         const opponentsData = await opponentsRes.json();
-
         setFrequentOpponentsData(opponentsData);
 
-        const formattedMatchHistory = opponentsData.map((item: any) => ({
+        const formattedMatchHistory = opponentsData.historico_partidasz.map((item: any) => ({
           id: item.id,
           opponent: item.nome,
           wins: item.vitorias,
