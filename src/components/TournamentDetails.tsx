@@ -1,0 +1,734 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
+import { Button } from './ui/button.tsx';
+import { Badge } from './ui/badge.tsx';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table.tsx';
+import { ArrowLeft, Calendar, Users, Trophy, MapPin, DollarSign, UserPlus, UserMinus, Upload, Settings } from 'lucide-react';
+import { Tournament, User, PlayerRule, PlayerRuleAssignment } from '../data/store.ts';
+import { TournamentImport } from './TournamentImport.tsx';
+import { toast } from 'sonner';
+
+type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile'  | 'pairings';
+
+const API_URL = process.env.REACT_APP_BACKEND_API_URL;
+
+interface TournamentDetailsProps {
+  onNavigate: (page: Page, data?: any) => void;
+  tournamentId: string | null;
+  currentUser: User | null;
+}
+
+interface LojaPublico {
+    id: number;
+    nome: string;
+    email: string;
+    usuario: UsuarioPublico;
+}
+
+interface UsuarioPublico {
+    id: number;
+}
+
+interface JogadorPublico {
+  id: number;
+  nome: string;
+}
+
+interface JogadorTorneioLinkPublico {
+  jogador_id: number;
+  torneio_id: string;
+  nome: string;
+  ponto: number;
+  jogador?: JogadorPublico;
+}
+
+interface RodadaBase {
+  id: string;
+  numero: number;
+  data: string;
+}
+
+interface TipoJogadorPublico {
+  id: number;
+  nome: string;
+  pt_vitoria: number;
+  pt_derrota: number;
+  pt_empate: number;
+  pt_oponente_perde: number;
+  pt_oponente_ganha: number;
+  pt_oponente_empate: number;
+  loja: number;
+  tcg: string;
+}
+
+interface TorneioRegraAdicionalPublico {
+  tipo_jogador: TipoJogadorPublico;
+  jogadores: JogadorPublico[];
+}
+
+interface BackendTournament {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  cidade: string | null;
+  data_inicio: string;
+  loja_id: number;
+  loja?: LojaPublico;
+  formato: string | null;
+  taxa: number;
+  premios: string | null;
+  estrutura: string | null;
+  vagas: number;
+  jogadores: JogadorTorneioLinkPublico[];
+  rodadas: RodadaBase[];
+  regra_basica_id: number;
+  regras_adicionais: TorneioRegraAdicionalPublico[];
+  status: 'ABERTO' | 'EM_ANDAMENTO' | 'FINALIZADO';
+}
+
+interface TournamentResult {
+  id: string;
+  userId: string;
+  userName: string;
+  points: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  currentStanding: number;
+}
+
+const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
+  let status: 'open' | 'in-progress' | 'finished';
+  if (backendData.status === "FINALIZADO") {
+    status = 'finished';
+  } else if (backendData.status === "EM_ANDAMENTO") {
+    status = 'in-progress';
+  } else {
+    status = 'open';
+  }
+  
+  
+  return {
+      id: backendData.id,
+      name: backendData.nome,
+      organizerId: (backendData.loja_id ?? backendData.loja?.id)?.toString() || "0",
+      organizerUserId: (backendData.loja?.usuario?.id)?.toString() || "0",
+      organizerName: backendData.loja?.nome || "Organizador não informado",
+      date: backendData.data_inicio,
+      time: "Horário não informado",
+      format: backendData.formato || 'Formato não informado',
+      store: backendData.cidade || 'Local não informado',
+      description: backendData.descricao || '',
+      prizes: backendData.premios || '',
+      maxParticipants: backendData.vagas,
+      entryFee: `$${backendData.taxa}`,
+      structure: backendData.estrutura || '',
+      rounds: backendData.rodadas?.length || 0,
+      status: status,
+      currentRound: backendData.rodadas?.length || 0,
+      participants: backendData.jogadores.map(p => ({
+          id: p.jogador_id.toString(),
+          userId: p.jogador_id.toString(),
+          userName: p.nome || 'Nome indisponível',
+          registeredAt: new Date().toISOString(),
+          points: p.ponto,
+          wins: 0, losses: 0, draws: 0, currentStanding: 0
+      })),
+      matches: [],
+      bracket: [],
+      createdAt: new Date().toISOString(),
+      hasImportedResults: !!backendData.rodadas?.length,
+      ruleId: backendData.regra_basica_id
+  };
+};
+
+export function TournamentDetails({ onNavigate, tournamentId, currentUser }: TournamentDetailsProps) {
+  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(false);
+
+  const [playerRuleAssignments, setPlayerRuleAssignments] = useState<PlayerRuleAssignment[]>([]);
+  const [availableRules, setAvailableRules] = useState<PlayerRule[]>([]);
+  const [tournamentResults, setTournamentResults] = useState<TournamentResult[]>([]);
+  
+  const fetchTournamentDetails = useCallback(async () => {
+    if (!tournamentId) return;
+
+    setIsLoading(true);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setIsLoading(false);
+      toast.error('Token de acesso não encontrado. Faça o login novamente.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/lojas/torneios/${tournamentId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "Falha ao buscar detalhes do torneio.");
+      }
+
+      const backendData: BackendTournament = await response.json();
+      const mappedTournament = mapBackendToFrontend(backendData);
+      const mappedRules: PlayerRuleAssignment[] = backendData.regras_adicionais?.flatMap(rule => 
+        rule.jogadores.map(player => ({
+          id: `${rule.tipo_jogador.id}-${player.id}`,
+          playerId: player.id.toString(),
+          playerName: player.nome,
+          ruleId: rule.tipo_jogador.id.toString(),
+          ruleName: rule.tipo_jogador.nome,
+        }))
+      ) || [];
+      setPlayerRuleAssignments(mappedRules);
+      
+      const mappedResults: TournamentResult[] = mappedTournament.participants
+        .sort((a, b) => b.points - a.points)
+        .map((p, index) => ({
+          id: p.id.toString(),
+          userId: p.userId.toString(),
+          userName: p.userName,
+          points: p.points,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          currentStanding: index + 1,
+        }));
+      setTournamentResults(mappedResults);
+
+
+try {
+  const response2 = await fetch(`${API_URL}/lojas/tipoJogador/`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+
+  if (response2.status === 404) {
+    // 404 esperado → não tem tipos de jogador cadastrados
+    console.warn("Nenhum tipo de jogador encontrado.");
+    setAvailableRules([]);
+  } else if (!response2.ok) {
+    // outro erro que não seja 404
+    const errorData = await response2.json();
+    throw new Error(errorData.detail || "Erro ao buscar tipos de jogador.");
+  } else {
+    const backendData2 = (await response2.json()) as TipoJogadorPublico[];
+    if (!Array.isArray(backendData2)) {
+      console.warn("Resposta inesperada da API:", backendData2);
+      setAvailableRules([]);
+    } else {
+      const availableRulesFromBackend = backendData2.map(rule => ({
+        id: rule.id.toString(),
+        typeName: rule.nome,
+        pointsForWin: rule.pt_vitoria,
+        pointsForLoss: rule.pt_derrota,
+        pointsForDraw: rule.pt_empate,
+        pointsGivenToOpponent: rule.pt_oponente_ganha,
+        pointsLostByOpponent: rule.pt_oponente_perde,
+        pointsGivenToOpponentOnDraw: rule.pt_oponente_empate,
+        tcg: rule.tcg,
+        createdAt: new Date().toISOString()
+      }));
+      setAvailableRules(availableRulesFromBackend);
+    }
+  }
+} catch (err) {
+  console.error("Erro ao buscar tipos de jogador:", err);
+  setAvailableRules([]);
+}
+
+
+      
+      setTournament(mappedTournament);
+    } catch (error) {
+      console.error("Erro ao buscar detalhes do torneio:", error);
+      toast.error((error as Error).message);
+      setTournament(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tournamentId]);
+
+  useEffect(() => {
+    fetchTournamentDetails();
+  }, [fetchTournamentDetails]);
+
+  const handleRegistration = async () => {
+    if (!tournament || !currentUser || currentUser.type !== 'player') return;
+
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/inscricao`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Falha ao se inscrever.');
+        }
+        
+        setIsRegistered(true);
+        toast.success('Inscrição para o torneio realizada com sucesso!');
+        fetchTournamentDetails();
+    } catch (err: any) {
+        console.error("Erro na inscrição:", err.message);
+        toast.error(err.message || 'Falha ao se inscrever. O torneio pode estar lotado ou você precisa de um Pokémon ID.');
+    }
+  };
+
+  const iniciarTorneio = async () => {
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/iniciar`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Falha ao iniciar o torneio.');
+        }
+
+        fetchTournamentDetails();
+    } catch (err: any) {
+        console.error("Erro ao iniciar o torneio:", err.message);
+        toast.error(err.message || 'Falha ao iniciar o torneio.');
+    }
+  }
+      const handleUnregistration = async () => {
+    if (!tournament || !currentUser || currentUser.type !== 'player') return;
+
+    try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/inscricao`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Falha ao remover a inscrição.');
+        }
+
+        setIsRegistered(false);
+        toast.success('Inscrição no torneio removida com sucesso.');
+        fetchTournamentDetails();
+    } catch (err: any) {
+        console.error("Erro ao remover inscrição:", err.message);
+        toast.error(err.message || 'Falha ao remover a inscrição.');
+    }
+  };
+
+  const getStatusColor = (status: Tournament['status']) => {
+    switch (status) {
+      case 'open':
+        return 'bg-purple-100 text-purple-800';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'finished':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: Tournament['status']) => {
+    switch (status) {
+      case 'open':
+        return 'Aberto';
+      case 'in-progress':
+        return 'Em Andamento';
+      case 'finished':
+        return 'Finalizado';
+      default:
+        return 'Desconhecido';
+    }
+  };
+
+  const getPositionBadgeStyle = (position: number) => {
+    switch (position) {
+      case 1:
+        return "bg-yellow-500 text-white";
+      case 2:
+        return "bg-gray-400 text-white";
+      case 3:
+        return "bg-amber-700 text-white";
+      default:
+        return "bg-secondary text-secondary-foreground";
+    }
+  };
+
+  const getRulePointsDescription = (ruleId: string) => {
+    const rule = availableRules.find(r => r.id === ruleId);
+    if (!rule) return 'Regra não encontrada.';
+    return `Vitória: ${rule?.pointsForWin}pts, Derrota: ${rule.pointsForLoss}pts, Empate: ${rule.pointsForDraw}pts`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p>Carregando detalhes do torneio...</p>
+      </div>
+    );
+  }
+
+  if (!tournament) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Torneio Não Encontrado</h1>
+          <Button onClick={() => onNavigate('tournament-list')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar para Torneios
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const isTournamentCreator = currentUser?.id.toString() === tournament.organizerUserId.toString();
+  const isPlayer = currentUser?.type === 'player';
+  
+  const hasSpecificRules = playerRuleAssignments.length > 0;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <Button 
+          variant="ghost" 
+          onClick={() => onNavigate('tournament-list')}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar para Torneios
+        </Button>
+      </div>
+
+<Card className="mb-8">
+  <CardHeader>
+    <div className="flex items-start justify-between">
+      <div className="space-y-2">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-3xl font-bold">{tournament.name}</h1>
+          <Badge className={getStatusColor(tournament.status)}>
+            {getStatusText(tournament.status)}
+          </Badge>
+        </div>
+        <p className="text-muted-foreground">
+          Organizado por{" "}
+          {currentUser?.type === "player" ? (
+            <button
+              onClick={() =>
+                onNavigate("organizer-profile", { organizerId: tournament.organizerId })
+              }
+              className="text-primary hover:underline font-medium cursor-pointer"
+            >
+              {tournament.organizerName}
+            </button>
+          ) : (
+            <span>{tournament.organizerName}</span>
+          )}
+        </p>
+      </div>
+
+      <div className="flex space-x-2">
+        {isPlayer && (
+          <>
+            {isRegistered ? (
+              <Button
+                variant="outline"
+                onClick={handleUnregistration}
+                className="flex items-center space-x-2"
+              >
+                <UserMinus className="h-4 w-4" />
+                <span>Remover Inscrição</span>
+              </Button>
+            ) : (
+              <Button onClick={handleRegistration} className="flex items-center space-x-2">
+                <UserPlus className="h-4 w-4" />
+                <span>Inscrever-se</span>
+              </Button>
+            )}
+          </>
+        )}
+
+        {isTournamentCreator && (
+          <>
+            <Button
+              variant="outline"
+              onClick={() =>
+                onNavigate("tournament-edit", { tournamentId: tournament.id })
+              }
+              className="flex items-center space-x-2 bg-white border-gray-300 text-gray-900 hover:bg-yellow-400 hover:text-gray-900 hover:border-gray-300"
+            >
+              <span>Editar</span>
+            </Button>
+
+            <Button onClick={() => setImportDialogOpen(true)} className="flex items-center space-x-2">
+              <Upload className="h-4 w-4" />
+              <span>Importar</span>
+            </Button>
+
+            {tournament.status === "open" && (
+              <Button
+                onClick={() =>
+                   {iniciarTorneio();
+                    onNavigate('pairings', { tournamentId: tournament.id })}}
+                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+              >
+                <Trophy className="h-4 w-4" />
+                <span>Start Tournament</span>
+              </Button>
+            )}
+
+            {tournament.status === "in-progress" && (
+              <Button
+                onClick={() => onNavigate('pairings', { tournamentId: tournament.id })}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <Trophy className="h-4 w-4" />
+                <span>Continue Tournament</span>
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  </CardHeader>
+
+    <CardContent>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex items-center space-x-3">
+          <Calendar className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">
+              {tournament.date
+                ? tournament.date.split("T")[0].split("-").reverse().join("/")
+                : ""}
+            </div>
+            <div className="text-sm text-muted-foreground">{tournament.time}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <MapPin className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">{tournament.store}</div>
+            <div className="text-sm text-muted-foreground">{tournament.format}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">
+              {tournament.participants.length}/{tournament.maxParticipants}
+            </div>
+            <div className="text-sm text-muted-foreground">Participantes</div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <DollarSign className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <div className="font-medium">{tournament.entryFee}</div>
+            <div className="text-sm text-muted-foreground">Taxa de Inscrição</div>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+
+      <Tabs defaultValue="details" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="details">Detalhes</TabsTrigger>
+          <TabsTrigger value="player-rules">Regras de Jogador Utilizadas</TabsTrigger>
+          <TabsTrigger value="tournament-results">Participantes do Torneio</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações do Torneio</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-semibold mb-2">Descrição</h4>
+                <p className="text-muted-foreground">{tournament.description || 'Nenhuma descrição fornecida.'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Estrutura de Prêmios</h4>
+                <p className="text-muted-foreground">{tournament.prizes || 'Prêmios a serem definidos'}</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Detalhes do Formato</h4>
+                  <div className="space-y-1 text-sm">
+                    <div>Formato: <span className="font-medium">{tournament.format}</span></div>
+                    <div>Estrutura: <span className="font-medium">{tournament.structure}</span></div>
+                    <div>Rodadas: <span className="font-medium">{tournament.rounds}</span></div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Status Atual</h4>
+                  <div className="space-y-1 text-sm">
+                    <div>Rodada: <span className="font-medium">{tournament.currentRound}</span></div>
+                    <div>Status: <span className="font-medium">{getStatusText(tournament.status)}</span></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="player-rules" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Settings className="h-5 w-5" />
+                <span>Regras de Jogador Utilizadas</span>
+              </CardTitle>
+              <CardDescription>
+                Regras de pontuação aplicadas aos jogadores neste torneio
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(tournament.ruleId === null) ? (
+                <div className="text-center py-8">
+                  <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">As regras de jogador aparecerão após a edição do torneio</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-medium mb-3">Regra Padrão</h4>
+                          {(() => {
+                            const selectedRule = availableRules.find(
+                              (rule) => Number(rule.id) === Number(tournament.ruleId)
+                            );
+                            console.log(availableRules)
+                            return (
+                              <Card className="p-4 bg-muted/50">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <span className="font-medium">{selectedRule?.typeName}</span>
+                                    <div className="text-sm text-muted-foreground">
+                                      Vitória: {selectedRule?.pointsForWin} pts,{" "}
+                                      Derrota: {selectedRule?.pointsForLoss} pts,{" "}
+                                      Empate: {selectedRule?.pointsForDraw} pts
+                                    </div>
+                                  </div>
+                                  <Badge variant="secondary">Aplicado a todos os jogadores por padrão</Badge>
+                                </div>
+                              </Card>
+                            );
+                          })()}
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-3">Regras Específicas de Jogador</h4>
+                    <div className="space-y-3">
+                      {hasSpecificRules ? (
+                        playerRuleAssignments.map((assignment, index) => (
+                          <Card key={index} className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="font-medium">{assignment.playerName}</span>
+                                <div className="text-sm text-muted-foreground">
+                                  Regra: {assignment.ruleName}
+                                </div>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                <span>
+                                  {getRulePointsDescription(assignment.ruleId)}
+                                </span>
+                              </div>
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground">Nenhuma regra específica aplicada.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tournament-results" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Trophy className="h-5 w-5" />
+                <span>Participantes do Torneio</span>
+              </CardTitle>
+              <CardDescription>
+                Participação deste torneio
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!tournament.hasImportedResults ? (
+                <div className="text-center py-8">
+                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Os participantes do torneio aparecerão após a importação dos dados do torneio</p>
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Posição</TableHead>
+                        <TableHead>Jogador</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tournamentResults.map((participant) => (
+                        <TableRow key={participant.id}>
+                          <TableCell>
+                            <Badge 
+                              variant="secondary"
+                              className={getPositionBadgeStyle(participant.currentStanding)}
+                            >
+                              {participant.currentStanding}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{participant.userName}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {tournament && (
+        <TournamentImport
+          isOpen={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onNavigate={onNavigate}
+          targetTournamentId={tournament.id.toString()}
+          targetTournamentName={tournament.name}
+          currentUser={currentUser}
+        />
+      )}
+    </div>
+  );
+}
