@@ -38,6 +38,17 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleEntryFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const regex = /^\d*([.,]\d*)?$/;
+    if (value === "" || regex.test(value.replace(',', '.'))) {
+      setFormData({
+        ...formData,
+        entryFee: value,
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -57,24 +68,26 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
       return;
     }
 
-    const { name, date, format, structure, maxParticipants, entryFee, rounds, roundTime } = formData;
+    const { name, date, format, structure, entryFee, rounds, maxParticipants, roundTime } = formData;
 
     if (!name || !date || !format || !structure) {
       setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
       setIsLoading(false);
       return;
     }
-
-    const parsedVagas = maxParticipants ? parseInt(maxParticipants, 10) : 0;
+    
     const parsedTaxa = entryFee ? parseFloat(entryFee.replace(',', '.')) : 0.00;
+    
+    if (isNaN(parsedTaxa) || parsedTaxa < 0) {
+        setMessage({ type: 'error', text: 'A taxa de inscrição deve ser um valor numérico positivo ou zero.' });
+        setIsLoading(false);
+        return;
+    }
+    
+    const parsedVagas = maxParticipants ? parseInt(maxParticipants, 10) : 0;
     const parsedRodadas = rounds ? parseInt(rounds, 10) : 0;
     const parsedTempoRodada = roundTime ? parseInt(roundTime, 10) : 30;
 
-    if (parsedTaxa < 0) {
-      setMessage({ type: 'error', text: 'A taxa de inscrição não pode ser negativa.' });
-      setIsLoading(false);
-      return;
-    }
     if (parsedVagas < 0 || parsedRodadas < 0 || parsedTempoRodada < 0) {
       setMessage({ type: 'error', text: 'Os campos de vagas, rodadas e tempo de rodada não podem ser negativos.' });
       setIsLoading(false);
@@ -91,9 +104,9 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
       vagas: parsedVagas,
       hora: formData.time || '12:00',
       formato: formData.format,
-      taxa: parsedTaxa,
+      taxa: parsedTaxa, 
       premio: formData.prizes,
-      n_rodadadas: parsedRodadas,
+      n_rodadas: parsedRodadas, 
     };
     
     try {
@@ -115,7 +128,8 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
         }, 1500);
       } else {
         console.error('Falha na criação do torneio:', data);
-        setMessage({ type: 'error', text: data.detail || 'Falha ao criar o torneio. Por favor, tente novamente.' });
+        const errorMessage = Array.isArray(data.detail) ? data.detail.map((err: any) => err.msg).join(", ") : data.detail;
+        setMessage({ type: 'error', text: errorMessage || 'Falha ao criar o torneio. Por favor, tente novamente.' });
       }
     } catch (error) {
       console.error('Erro ao conectar com a API:', error);
@@ -256,21 +270,17 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                       setFormData({ ...formData, maxParticipants: value });
                     }
                   }}
+                  min="0"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="entryFee">Taxa de Inscrição</Label>
                 <Input
                   id="entryFee"
-                  type="number"
+                  type="text"
                   placeholder="0.00"
                   value={formData.entryFee}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || (!isNaN(Number(value)) && Number(value) >= 0)) {
-                      setFormData({ ...formData, entryFee: value });
-                    }
-                  }}
+                  onChange={handleEntryFeeChange}
                 />
               </div>
             </div>
@@ -331,6 +341,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                       setFormData({ ...formData, rounds: value });
                     }
                   }}
+                  min="0"
                 />
               </div>
             </div>
@@ -347,6 +358,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                       setFormData({ ...formData, roundTime: value });
                     }
                   }}
+                min="0"
               />
             </div>
           </CardContent>
