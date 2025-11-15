@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog.tsx';
 import { Badge } from './ui/badge.tsx';
-import { Trophy, Eye, EyeOff, Users, Calendar } from 'lucide-react';
+import { Trophy, Eye, EyeOff, Users, Calendar, Mail } from 'lucide-react';
 import { User } from '../data/store.ts';
 import logo from '../images/logo.png';
 
@@ -17,6 +18,17 @@ interface LoginScreenProps {
   onLogin: (user: User) => void;
 }
 
+type RegisterData = {
+  name: string;
+  email: string;
+  password: string;
+  userType: 'player' | 'organizer';
+  storeAddress: string;
+  telefone: string;
+  data_nascimento: string;
+  site: string;
+};
+
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [activeTab, setActiveTab] = useState('login');
   const [loginData, setLoginData] = useState({
@@ -24,7 +36,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     password: '',
     accountType: 'player' as 'player' | 'organizer',
   });
-  const [registerData, setRegisterData] = useState({
+  const [registerData, setRegisterData] = useState<RegisterData>({
     name: '',
     email: '',
     password: '',
@@ -37,6 +49,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [pendingUserData, setPendingUserData] = useState<RegisterData | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +120,77 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleConfirmRegistration = async () => {
+    if (!pendingUserData) return;
+
+    setIsLoading(true);
+    setMessage(null);
+    setShowEmailConfirmation(false);
+
+    const dataToRegister = pendingUserData;
+  
+    let endpoint = '';
+    let payload = {};
+  
+    if (dataToRegister.userType === 'player') {
+      endpoint = `${API_URL}/jogadores/`;
+      payload = {
+        nome: dataToRegister.name,
+        email: dataToRegister.email,
+        senha: dataToRegister.password,
+        telefone: dataToRegister.telefone,
+        data_nascimento: dataToRegister.data_nascimento,
+      };
+    } else if (dataToRegister.userType === 'organizer') {
+      endpoint = `${API_URL}/lojas/`;
+      payload = {
+        nome: dataToRegister.name,
+        email: dataToRegister.email,
+        senha: dataToRegister.password,
+        endereco: dataToRegister.storeAddress,
+        site: dataToRegister.site,
+        telefone: dataToRegister.telefone,
+      };
+    }
+  
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        setMessage({ type: 'error', text: data.detail || 'Erro no cadastro. Por favor, tente novamente.' });
+        setPendingUserData(null);
+        return;
+      }
+  
+      setMessage({ 
+        type: 'success', 
+        text: 'Cadastro realizado com sucesso! Por favor, entre com suas credenciais.', 
+      });
+      
+
+      setActiveTab('login');
+      setLoginData(prev => ({ 
+        ...prev, 
+        email: dataToRegister.email, 
+        accountType: dataToRegister.userType 
+      }));
+
+    } catch (error) {
+      console.error('Erro de cadastro:', error);
+      setMessage({ type: 'error', text: 'Falha na conexão com o servidor. Tente novamente mais tarde.' });
+    } finally {
+      setIsLoading(false);
+      setPendingUserData(null);
+    }
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
@@ -128,93 +212,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       return;
     }
   
-    let endpoint = '';
-    let payload = {};
-  
-    if (registerData.userType === 'player') {
-      endpoint = `${API_URL}/jogadores/`;
-      payload = {
-        nome: registerData.name,
-        email: registerData.email,
-        senha: registerData.password,
-        telefone: registerData.telefone,
-        data_nascimento: registerData.data_nascimento,
-      };
-    } else if (registerData.userType === 'organizer') {
-      endpoint = `${API_URL}/lojas/`;
-      payload = {
-        nome: registerData.name,
-        email: registerData.email,
-        senha: registerData.password,
-        endereco: registerData.storeAddress,
-        site: registerData.site,
-        telefone: registerData.telefone,
-      };
-    }
-  
-    try {
-      // Cria o usuário
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-  
-      const data = await response.json();
-  
-      if (!response.ok) {
-        setMessage({ type: 'error', text: data.detail || 'Erro no cadastro. Por favor, tente novamente.' });
-        return;
-      }
-  
-      const loginForm = new URLSearchParams();
-      loginForm.append('username', registerData.email);
-      loginForm.append('password', registerData.password);
-  
-      const loginResponse = await fetch(`${API_URL}/login/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: loginForm.toString(),
-      });
-  
-      const loginData = await loginResponse.json();
-  
-      if (!loginResponse.ok) {
-        setMessage({ type: 'error', text: 'Cadastro realizado, mas falha ao logar automaticamente.' });
-        return;
-      }
-  
-      localStorage.setItem('accessToken', loginData.access_token);
-      const userProfileResponse = await fetch(`${API_URL}/login/profile`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${loginData.access_token}` },
-      });
-  
-      if (!userProfileResponse.ok) {
-        setMessage({ type: 'error', text: 'Cadastro realizado, mas falha ao buscar perfil do usuário.' });
-        return;
-      }
-  
-      const userProfile = await userProfileResponse.json();
-      const userType = userProfile.tipo === 'loja' ? 'organizer' : 'player';
-  
-      setMessage({ type: 'success', text: 'Cadastro e login bem-sucedidos!' });
-      setTimeout(() => {
-        onLogin({
-          email: userProfile.email,
-          name: userProfile.nome,
-          type: userType,
-          id: userProfile.usuario_id,
-        });
-      }, 500);
-  
-    } catch (error) {
-      console.error('Erro de cadastro:', error);
-      setMessage({ type: 'error', text: 'Falha na conexão com o servidor. Tente novamente mais tarde.' });
-    } finally {
-      setIsLoading(false);
-    }
-  };    
+    setPendingUserData(registerData);
+    setShowEmailConfirmation(true);
+    setIsLoading(false);
+  };
+
+  const handleBackFromConfirmation = () => {
+    setShowEmailConfirmation(false);
+    setPendingUserData(null);
+  };
 
   const handleAccountTypeSelect = (accountType: 'player' | 'organizer') => {
     setRegisterData((prev) => ({
@@ -528,7 +534,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   )}
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Criando Conta...' : 'Cadastrar'}
+                    {isLoading ? 'Verificando...' : 'Cadastrar'}
                   </Button>
                 </form>
               </CardContent>
@@ -536,6 +542,44 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Email Confirmation Dialog */}
+      <Dialog open={showEmailConfirmation} onOpenChange={handleBackFromConfirmation}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <Mail className="h-8 w-8 text-primary mb-2 mx-auto" />
+            <DialogTitle className="text-center">Confirmar E-mail</DialogTitle>
+            <DialogDescription className="text-center">
+              Você está prestes a criar uma conta para o e-mail:
+              <p className="font-semibold text-primary mt-1">
+                {pendingUserData?.email}
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2">
+            <p className="text-sm text-center text-muted-foreground">
+              Ao confirmar, o cadastro será enviado para o servidor.
+            </p>
+          </div>
+          <div className="flex justify-between gap-4 pt-4">
+            <Button
+              variant="outline"
+              onClick={handleBackFromConfirmation}
+              disabled={isLoading}
+              className="flex-1"
+            >
+              Voltar
+            </Button>
+            <Button
+              onClick={handleConfirmRegistration}
+              disabled={isLoading}
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isLoading ? 'Aguarde...' : 'Confirmar Cadastro'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
