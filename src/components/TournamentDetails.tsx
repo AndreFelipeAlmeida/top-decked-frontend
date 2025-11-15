@@ -4,10 +4,11 @@ import { Button } from './ui/button.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table.tsx';
-import { ArrowLeft, Calendar, Users, Trophy, MapPin, DollarSign, UserPlus, UserMinus, Upload, Settings } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Trophy, MapPin, DollarSign, UserPlus, UserMinus, Download, Settings, Upload } from 'lucide-react';
 import { Tournament, User, PlayerRule, PlayerRuleAssignment } from '../data/store.ts';
 import { TournamentImport } from './TournamentImport.tsx';
 import { toast } from 'sonner';
+import ExportDialog from "./ExportDialog.tsx";
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile'  | 'pairings';
 
@@ -39,7 +40,7 @@ interface JogadorTorneioLinkPublico {
   jogador_id: number;
   torneio_id: string;
   nome: string;
-  ponto: number;
+  pontuacao: number;
   jogador?: JogadorPublico;
 }
 
@@ -132,7 +133,7 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
           userId: p.jogador_id.toString(),
           userName: p.nome || 'Nome indisponível',
           registeredAt: new Date().toISOString(),
-          points: p.ponto,
+          points: p.pontuacao,
           wins: 0, losses: 0, draws: 0, currentStanding: 0
       })),
       matches: [],
@@ -152,7 +153,8 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
   const [playerRuleAssignments, setPlayerRuleAssignments] = useState<PlayerRuleAssignment[]>([]);
   const [availableRules, setAvailableRules] = useState<PlayerRule[]>([]);
   const [tournamentResults, setTournamentResults] = useState<TournamentResult[]>([]);
-  
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   const fetchTournamentDetails = useCallback(async () => {
     if (!tournamentId) return;
 
@@ -372,6 +374,9 @@ try {
     }
   };
 
+  const isRuleMissing = !tournament?.ruleId;
+
+
   const getRulePointsDescription = (ruleId: string) => {
     const rule = availableRules.find(r => r.id === ruleId);
     if (!rule) return 'Regra não encontrada.';
@@ -479,10 +484,34 @@ try {
             </Button>
 
             <Button onClick={() => setImportDialogOpen(true)} className="flex items-center space-x-2">
-              <Upload className="h-4 w-4" />
+              <Download className="h-4 w-4" />
               <span>Importar</span>
             </Button>
+            {tournament.status === "finished" && (
+            <div className="relative export-button-wrapper group">
+              <Button
+                onClick={() => {
+                  if (!tournament.ruleId) return;
+                  setExportDialogOpen(true);
+                }}
+                disabled={isRuleMissing}
+                className="flex items-center space-x-2
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Upload className="h-4 w-4" />
+                <span>Exportar Ranking</span>
+              </Button>
 
+              {isRuleMissing && (
+                <span
+                  className="absolute left-0 mt-2 w-max hidden group-hover:block 
+                  bg-white text-black text-xs p-2 rounded shadow-lg"
+                >
+                  Defina uma regra de jogador primeiro
+                </span>
+              )}
+            </div>
+            )}
             {tournament.status === "open" && (
               <Button
                 onClick={() =>
@@ -727,6 +756,13 @@ try {
           targetTournamentId={tournament.id.toString()}
           targetTournamentName={tournament.name}
           currentUser={currentUser}
+        />
+      )}
+      {tournament && (
+        <ExportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          tournamentResults={tournamentResults}
         />
       )}
     </div>
