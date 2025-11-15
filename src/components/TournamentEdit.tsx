@@ -174,12 +174,12 @@ export function TournamentEdit({
         return {
             jogador_id: player.id,
             nome_jogador: player.name,
-            ...stats
+            estatisticas: stats, 
         };
       });
 
       const allResults = await Promise.all(resultsPromises);
-      setMonthlyResults(allResults.filter(result => result !== null));
+      setMonthlyResults(allResults.filter(result => result && result.estatisticas));
     } catch (error) {
         console.error('Erro ao buscar resultados mensais:', error);
         toast.error('Falha ao carregar os resultados mensais.');
@@ -305,7 +305,19 @@ export function TournamentEdit({
         setHasAccess(false);
     }
   }, [tournamentId, currentUser]);
-
+  
+  const handleEntryFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const regex = /^\d*([.,]\d*)?$/;
+    if (value === "" || regex.test(value.replace(',', '.'))) {
+      setFormData({
+        ...formData,
+        entryFee: value,
+      });
+    } else if (!value.endsWith('.')) {
+        toast.warning("Por favor, insira apenas números para a Taxa de Inscrição.");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,7 +335,21 @@ export function TournamentEdit({
       setIsLoading(false);
       return;
     }
-
+    
+    const entryFeeNumber = parseFloat(formData.entryFee.replace(',', '.'));
+    if (formData.entryFee && (isNaN(entryFeeNumber) || entryFeeNumber < 0)) {
+        toast.error("A Taxa de Inscrição deve ser um valor numérico positivo ou zero.");
+        setIsLoading(false);
+        return;
+    }
+    
+    const roundsNumber = parseInt(formData.rounds, 10);
+    if (formData.rounds && (isNaN(roundsNumber) || roundsNumber < 0)) {
+        toast.error("O Número de Rodadas deve ser um número inteiro positivo ou zero.");
+        setIsLoading(false);
+        return;
+    }
+    
     const token = localStorage.getItem('accessToken');
     if (!token) {
       toast.error('Token de acesso não encontrado. Faça o login novamente.');
@@ -343,8 +369,8 @@ export function TournamentEdit({
       formato: formData.format,
       descricao: formData.description,
       premio: formData.prizes,
-      taxa: parseFloat(formData.entryFee) || 0,
-      n_rodadadas: parseInt(formData.rounds, 10) || 5, 
+      taxa: entryFeeNumber || 0,
+      n_rodadas: roundsNumber || 5,
       regra_basica_id: defaultRuleId ? parseInt(defaultRuleId, 10) : undefined, 
       regras_adicionais: regrasAdicionaisDict,
       hora: formData.time && formData.time !== "--:--" ? formData.time : null,
@@ -735,12 +761,8 @@ export function TournamentEdit({
                   id="entryFee"
                   placeholder="$15"
                   value={formData.entryFee}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      entryFee: e.target.value,
-                    })
-                  }
+                  onChange={handleEntryFeeChange}
+                  type="text" 
                 />
               </div>
               <div className="space-y-2">
@@ -776,7 +798,9 @@ export function TournamentEdit({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="rounds">Número de Rondas</Label>
+              <Label htmlFor="rounds">
+                Número de Rodadas
+              </Label>
               <Input
                 id="rounds"
                 type="number"
@@ -789,6 +813,7 @@ export function TournamentEdit({
                   })
                 }
                 className="w-32"
+                min="0"
               />
             </div>
 
@@ -1191,23 +1216,23 @@ export function TournamentEdit({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {monthlyResults.map((result) => {
+                        {monthlyResults.map((result: any) => { 
                           return (
                             <TableRow key={result.jogador_id}>
                               <TableCell>
                                 {result.nome_jogador}
                               </TableCell>
                               <TableCell>
-                                {result.estatisticas[0]?.pontos ?? 0}
+                                {result.estatisticas?.[0]?.pontos ?? 0}
                               </TableCell>
                               <TableCell>
-                                {result.estatisticas[0]?.vitorias ?? 0}
+                                {result.estatisticas?.[0]?.vitorias ?? 0}
                               </TableCell>
                               <TableCell>
-                                {result.estatisticas[0]?.derrotas ?? 0}
+                                {result.estatisticas?.[0]?.derrotas ?? 0}
                               </TableCell>
                               <TableCell>
-                                {result.estatisticas[0]?.empates ?? 0}
+                                {result.estatisticas?.[0]?.empates ?? 0}
                               </TableCell>
                             </TableRow>
                           );
