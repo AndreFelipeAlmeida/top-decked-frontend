@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from './ui/alert.tsx';
 import { Badge } from './ui/badge.tsx';
 import { Trophy, Eye, EyeOff, Users, Calendar } from 'lucide-react';
 import { User } from '../data/store.ts';
+import logo from '../images/logo.png';
 
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
@@ -251,7 +252,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-4">
-            <Trophy className="h-16 w-16 text-primary" />
+            <img 
+                src={logo} 
+                alt="TopDecked Logo" 
+                className="h-40 w-auto object-contain"
+              />
           </div>
           <h1 className="text-3xl font-bold text-primary">Bem-vindo ao TopDecked</h1>
           <p className="text-muted-foreground mt-2">A plataforma definitiva para gerenciamento de torneios TCG</p>
