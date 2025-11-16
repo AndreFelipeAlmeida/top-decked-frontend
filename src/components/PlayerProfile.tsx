@@ -572,29 +572,6 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
               )}
             </div>
 
-            {showSettings && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Bell className="h-5 w-5" />
-                    <h3 className="text-lg font-semibold">Preferências de Notificação</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Receber notificações por email</Label>
-                        <p className="text-sm text-muted-foreground">Seja notificado sobre torneios, resultados e atualizações importantes</p>
-                      </div>
-                      <Switch
-                        checked={notifications.email}
-                        onCheckedChange={(checked) => setNotifications({email: checked})}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
         <FormMessage message={securityMessage} />
