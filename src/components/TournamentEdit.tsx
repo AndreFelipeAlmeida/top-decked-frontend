@@ -66,7 +66,7 @@ import {
   TournamentParticipant,
 } from "../data/store.ts";
 import { toast } from "sonner";
-
+import PlayerTypeDialog from "./PlayerTypeDialog.tsx";
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -132,6 +132,7 @@ export function TournamentEdit({
     useState<PlayerRuleAssignment[]>([]);
   const [applyAdditionalRules, setApplyAdditionalRules] =
     useState<boolean>(false);
+  const [isPlayerRuleDialogOpen, setIsPlayerRuleDialogOpen] = useState(false);
 
   const [availableRules, setAvailableRules] = useState<
     PlayerRule[]
@@ -186,6 +187,34 @@ export function TournamentEdit({
         setMonthlyResults([]);
     }
   };
+  const fetchAvailableRules = async () => {
+    const token = localStorage.getItem('accessToken');
+
+    const rulesResponse = await fetch(`${API_URL}/lojas/tipoJogador/`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (rulesResponse.ok) {
+      const rulesData = await rulesResponse.json();
+      setAvailableRules(rulesData.map((rule: any) => ({
+        id: rule.id.toString(),
+        typeName: rule.nome,
+        pointsForWin: rule.pt_vitoria,
+        pointsForLoss: rule.pt_derrota,
+      })));
+
+      const defaultRule = rulesData.find((rule: any) => rule.nome === "Normal Player") || rulesData[0];
+      if (defaultRule) {
+        setDefaultRuleId(defaultRule.id.toString());
+      }
+    } else if (rulesResponse.status === 404) {
+      setAvailableRules([]);
+      console.warn('Nenhum tipo de jogador encontrado. Usando lista vazia.');
+    } else {
+      const errorData = await rulesResponse.json();
+      throw new Error(errorData.detail || 'Falha ao buscar as regras de jogador.');
+    }
+  }
 
   const fetchTournamentData = async () => {
     const token = localStorage.getItem('accessToken');
@@ -259,31 +288,7 @@ export function TournamentEdit({
           setDefaultRuleId(tournamentData.regra_basica_id.toString());
         }
   
-        const rulesResponse = await fetch(`${API_URL}/lojas/tipoJogador/`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-  
-        if (rulesResponse.ok) {
-          const rulesData = await rulesResponse.json();
-          setAvailableRules(rulesData.map((rule: any) => ({
-            id: rule.id.toString(),
-            typeName: rule.nome,
-            pointsForWin: rule.pt_vitoria,
-            pointsForLoss: rule.pt_derrota,
-          })));
-  
-          const defaultRule = rulesData.find((rule: any) => rule.nome === "Normal Player") || rulesData[0];
-          if (defaultRule) {
-            setDefaultRuleId(defaultRule.id.toString());
-          }
-        } else if (rulesResponse.status === 404) {
-          setAvailableRules([]);
-          console.warn('Nenhum tipo de jogador encontrado. Usando lista vazia.');
-        } else {
-          const errorData = await rulesResponse.json();
-          throw new Error(errorData.detail || 'Falha ao buscar as regras de jogador.');
-        }
-  
+        fetchAvailableRules();
         setHasAccess(true);
       } else {
         setHasAccess(false);
@@ -655,6 +660,14 @@ export function TournamentEdit({
         </p>
       </div>
 
+      <PlayerTypeDialog
+        editingRule={false}
+        currentUser={currentUser}
+        isFormOpen={isPlayerRuleDialogOpen}
+        setIsFormOpen={setIsPlayerRuleDialogOpen}
+        onSuccess={fetchAvailableRules}
+      />
+
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Tournament Information Section */}
         <Card>
@@ -851,16 +864,29 @@ export function TournamentEdit({
 
         {(
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings className="h-5 w-5" />
-                <span>Regras de Jogador</span>
-              </CardTitle>
-              <CardDescription>
-                Configure as regras de pontuação para os
-                jogadores neste torneio
-              </CardDescription>
-            </CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center space-x-2">
+                  <Settings className="h-5 w-5" />
+                  <span>Regras do Torneio</span>
+                </CardTitle>
+                <CardDescription>
+                  Definir as regras básicas e opcionais do torneio
+                </CardDescription>
+              </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2"
+            onClick={() => setIsPlayerRuleDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Criar Regra de Jogador</span>
+          </Button>
+          </div>
+          </CardHeader>
             <CardContent className="space-y-6">
               {/* Default Rule */}
               <div className="space-y-2">

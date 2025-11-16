@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card.tsx';
 import { Button } from './ui/button.tsx';
 import { Input } from './ui/input.tsx';
@@ -6,8 +6,12 @@ import { Label } from './ui/label.tsx';
 import { Textarea } from './ui/textarea.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
 import { Alert, AlertDescription } from './ui/alert.tsx';
-import { Calendar, Trophy, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Calendar, Settings, Trophy, ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 import { User } from '../data/store.ts';
+import PlayerTypeDialog from './PlayerTypeDialog.tsx';
+import {
+  PlayerRule,
+} from "../data/store.ts";
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
@@ -33,10 +37,60 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
     city: '',
     state: '',
     roundTime: '',
+    regraBasica: null
   });
 
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPlayerRuleDialogOpen, setIsPlayerRuleDialogOpen] = useState(false);
+  const [defaultRuleId, setDefaultRuleId] =
+    useState<string>(null);
+  const [availableRules, setAvailableRules] = useState<
+    PlayerRule[]
+  >([]);
+
+  const fetchAvailableRules = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.warn("Token de acesso não encontrado.");
+      return;
+    }
+
+    try {
+      const rulesResponse = await fetch(`${API_URL}/lojas/tipoJogador/`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (rulesResponse.ok) {
+        const rulesData = await rulesResponse.json();
+
+        const mappedRules = rulesData.map((rule: any) => ({
+          id: rule.id.toString(),
+          typeName: rule.nome,
+          pointsForWin: rule.pt_vitoria,
+          pointsForLoss: rule.pt_derrota,
+        }));
+
+        setAvailableRules(mappedRules);
+
+        const defaultRule = rulesData.find((rule: any) => rule.nome === "Normal Player") || rulesData[0];
+        if (defaultRule) setDefaultRuleId(defaultRule.id.toString());
+
+      } else if (rulesResponse.status === 404) {
+        setAvailableRules([]);
+        console.warn('Nenhum tipo de jogador encontrado. Usando lista vazia.');
+      } else {
+        const errorData = await rulesResponse.json();
+        throw new Error(errorData.detail || 'Falha ao buscar as regras de jogador.');
+      }
+    } catch (error) {
+      console.error("Erro ao buscar regras:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailableRules();
+  }, []);
 
   const handleEntryFeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -107,8 +161,9 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
       taxa: parsedTaxa, 
       premio: formData.prizes,
       n_rodadas: parsedRodadas, 
+      ...(defaultRuleId && { regra_basica_id: defaultRuleId })
     };
-    
+    console.log(payload)
     try {
       const response = await fetch(`${API_URL}/lojas/torneios/criar`, {
         method: 'POST',
@@ -361,6 +416,68 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
                 min="0"
               />
             </div>
+          </CardContent>
+        </Card>
+        {/* Tournament Rules */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center space-x-2">
+                  <Settings className="h-5 w-5" />
+                  <span>Regras do Torneio</span>
+                </CardTitle>
+                <CardDescription>
+                  Definir as regras básicas e opcionais do torneio
+                </CardDescription>
+              </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2"
+            onClick={() => setIsPlayerRuleDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Criar Regra de Jogador</span>
+          </Button>
+          <PlayerTypeDialog
+            editingRule={false}
+            currentUser={currentUser}
+            isFormOpen={isPlayerRuleDialogOpen}
+            setIsFormOpen={setIsPlayerRuleDialogOpen}
+            onSuccess={fetchAvailableRules}
+          />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+                        {/* Default Rule */}
+                        <div className="space-y-2">
+                          <Label htmlFor="defaultRule">
+                            Regra Básica do Jogador
+                          </Label>
+                          <Select
+                            value={defaultRuleId}
+                            onValueChange={setDefaultRuleId}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecionar regra padrão para todos os jogadores" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableRules.map((rule) => (
+                                <SelectItem key={rule.id} value={rule.id}>
+                                  {rule.typeName} (Vitória:{" "}
+                                  {rule.pointsForWin}pts, Derrota:{" "}
+                                  {rule.pointsForLoss}pts)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-sm text-muted-foreground">
+                            Esta regra será aplicada a todos os jogadores
+                            por padrão
+                          </p>
+                        </div>
           </CardContent>
         </Card>
 

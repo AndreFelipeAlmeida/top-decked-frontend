@@ -8,6 +8,8 @@ import { Label } from './ui/label.tsx';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog.tsx';
 import { Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import PlayerTypeDialog from "./PlayerTypeDialog.tsx";
+
 
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
@@ -73,16 +75,6 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
   const [playerRules, setPlayerRules] = useState<PlayerRule[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<PlayerRule | null>(null);
-  const [formData, setFormData] = useState<PlayerRuleFormData>({
-    nome: '',
-    pt_vitoria: 3,
-    pt_derrota: 0,
-    pt_empate: 1,
-    pt_oponente_ganha: 0,
-    pt_oponente_perde: 0,
-    pt_oponente_empate: 0,
-    tcg: ''
-  });
 
   const currentUser = { id: 1, type: 'organizer' };
 
@@ -122,105 +114,14 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
     }
   }, [currentUser]);
 
-  const resetForm = () => {
-    setFormData({
-      nome: '',
-      pt_vitoria: 3,
-      pt_derrota: 0,
-      pt_empate: 1,
-      pt_oponente_ganha: 0,
-      pt_oponente_perde: 0,
-      pt_oponente_empate: 0,
-      tcg: ''
-    });
+  const handleAddNew = () => {
     setEditingRule(null);
-  };
-
-  const openEditForm = (rule: PlayerRule) => {
-    setFormData({
-      nome: rule.typeName,
-      pt_vitoria: rule.pointsForWin,
-      pt_derrota: rule.pointsForLoss,
-      pt_empate: rule.pointsForDraw,
-      pt_oponente_ganha: rule.pointsGivenToOpponent,
-      pt_oponente_perde: rule.pointsLostByOpponent,
-      pt_oponente_empate: rule.pointsGivenToOpponentOnDraw,
-      tcg: rule.tcg,
-    });
-    setEditingRule(rule);
     setIsFormOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!currentUser) {
-      toast.error('Você deve estar logado para gerenciar as regras de jogadores');
-      return;
-    }
-
-    if (!formData.nome.trim()) {
-      toast.error('O nome do tipo é obrigatório');
-      return;
-    }
-
-    if (!formData.tcg.trim()) {
-      toast.error('O TCG é obrigatório');
-      return;
-    }
-    
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      toast.error('Token de acesso não encontrado. Faça o login novamente.');
-      return;
-    }
-
-    try {
-      if (editingRule) {
-        // Lógica de atualização (PUT)
-        const response = await fetch(`${API_URL}/lojas/tipoJogador/${editingRule.id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-
-        if (response.ok) {
-          toast.success('Regra do jogador atualizada com sucesso');
-          setIsFormOpen(false);
-          resetForm();
-          fetchRules();
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Falha ao atualizar a regra do jogador');
-        }
-      } else {
-        // Lógica de criação (POST)
-        const response = await fetch(`${API_URL}/lojas/tipoJogador/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-
-        if (response.ok) {
-          toast.success('Regra do jogador criada com sucesso');
-          setIsFormOpen(false);
-          resetForm();
-          fetchRules();
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Falha ao criar a regra do jogador');
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao salvar a regra:', error);
-      toast.error((error as Error).message);
-    }
+  const openEditForm = (rule: PlayerRule) => {
+    setEditingRule(rule);
+    setIsFormOpen(true);
   };
 
   const handleDelete = async (ruleId: number) => {
@@ -288,152 +189,21 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
             <h1 className="text-3xl font-bold mb-2">Regras de Jogadores</h1>
             <p className="text-muted-foreground">Gerencie regras de pontuação personalizadas para diferentes tipos de jogadores em seus torneios.</p>
           </div>
-          
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                onClick={() => {
-                  resetForm();
-                  setIsFormOpen(true);
-                }}
-                className="flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Adicionar Novo Tipo</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingRule ? 'Editar Tipo de Jogador' : 'Adicionar Novo Tipo de Jogador'}
-                </DialogTitle>
-                <DialogDescription>
-                Crie regras de pontuação personalizadas para diferentes tipos de jogadores em seus torneios.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <Label htmlFor="nome">Nome do Tipo</Label>
-                  <Input
-                    id="nome"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    placeholder="e.g., Equipe Rocket"
-                    required
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="pt_vitoria">Pontos por Vitória</Label>
-                    <Input
-                      id="pt_vitoria"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.pt_vitoria}
-                      onChange={(e) => setFormData({ ...formData, pt_vitoria: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="pt_derrota">Pontos por Derrota</Label>
-                    <Input
-                      id="pt_derrota"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.pt_derrota}
-                      onChange={(e) => setFormData({ ...formData, pt_derrota: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pt_empate">Pontos por Empate</Label>
-                    <Input
-                      id="pt_empate"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.pt_empate}
-                      onChange={(e) => setFormData({ ...formData, pt_empate: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pt_oponente_ganha">Pts. Oponente (Vitória)</Label>
-                    <Input
-                      id="pt_oponente_ganha"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.pt_oponente_ganha}
-                      onChange={(e) => setFormData({ ...formData, pt_oponente_ganha: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pt_oponente_perde">Pts. Oponente (Derrota)</Label>
-                    <Input
-                      id="pt_oponente_perde"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.pt_oponente_perde}
-                      onChange={(e) => setFormData({ ...formData, pt_oponente_perde: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pt_oponente_empate">Pts. Oponente (Empate)</Label>
-                    <Input
-                      id="pt_oponente_empate"
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={formData.pt_oponente_empate}
-                      onChange={(e) => setFormData({ ...formData, pt_oponente_empate: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="tcg">TCG</Label>
-                  <Input
-                    id="tcg"
-                    value={formData.tcg}
-                    onChange={(e) => setFormData({ ...formData, tcg: e.target.value })}
-                    placeholder="e.g., Magic: The Gathering"
-                    required
-                  />
-                </div>
-                
-                <div className="flex justify-end space-x-3">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      setIsFormOpen(false);
-                      resetForm();
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit">
-                    {editingRule ? 'Atualizar' : 'Salvar'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+        <Button
+          onClick={handleAddNew}
+          className="flex items-center space-x-2"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Adicionar Novo Tipo</span>
+        </Button>
         </div>
+        <PlayerTypeDialog
+        editingRule={editingRule}
+        initialData={editingRule}
+        currentUser={currentUser}
+        isFormOpen={isFormOpen}
+        setIsFormOpen={setIsFormOpen}
+        />
       </div>
 
       {playerRules.length === 0 ? (
@@ -445,7 +215,6 @@ export function PlayerRules({ onNavigate }: PlayerRulesProps) {
                 <DialogTrigger asChild>
                   <Button 
                     onClick={() => {
-                      resetForm();
                       setIsFormOpen(true);
                     }}
                   >
