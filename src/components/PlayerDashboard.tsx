@@ -16,6 +16,19 @@ interface PlayerDashboardProps {
   currentUser: User | null;
 }
 
+export interface StoreTCG {
+  foto?: string;
+}
+
+export interface Organizer {
+  id: number
+  nome: string;
+  endereco: string;
+  banner?: string;
+  usuario: StoreTCG;
+  n_torneios: number;
+}
+
 export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUser }: PlayerDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [playerStats, setPlayerStats] = useState<any | null>(null);
@@ -33,6 +46,53 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
     topFour: 0,
     topEight: 0
   });
+  const [organizers, setOrganizers] = useState<Organizer[]>([]);
+
+  
+  const getImageUrl = (filename: string | null | undefined) => {
+      if (!filename) return undefined;
+      if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
+      return `${API_URL}/uploads/${filename}`;
+  };
+
+  useEffect(() => {
+     async function fetchOrganizers() {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const statsRes = await fetch(`${API_URL}/lojas`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!statsRes.ok) throw new Error('Erro ao buscar estatísticas');
+        const statsData : Organizer[] = await statsRes.json();
+        statsData.forEach(element => {
+          if (element.banner) {
+            element.banner = getImageUrl(element.banner);
+          }
+
+          if (element.usuario?.foto) {
+            element.usuario.foto = getImageUrl(element.usuario.foto);
+          }
+        });
+
+        setOrganizers(statsData)
+      } catch (err) {
+        console.error("Erro na integração do dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchOrganizers();
+  }, [currentUser]);
 
   useEffect(() => {
     async function fetchData() {
@@ -174,6 +234,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             playerStats={playerStats}
             recentTournaments={recentTournaments}
             placementStats={placementStats} // Passando as novas estatísticas
+            organizers={organizers}
           />
         </TabsContent>
 

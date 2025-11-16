@@ -1,11 +1,27 @@
-import React from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card.tsx';
 import { Badge } from '../ui/badge.tsx';
 import { Button } from '../ui/button.tsx';
 import { Progress } from '../ui/progress.tsx';
-import { Trophy, TrendingUp, Calendar, Target, Medal, Users, BarChart3 } from 'lucide-react';
+import { Trophy, TrendingUp, Calendar, Target, Medal, Users, BarChart3, Store } from 'lucide-react';
+import Autoplay from 'embla-carousel-autoplay';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '../ui/carousel.tsx';
+import { ImageWithFallback } from '../../figma/ImageWithFallback.tsx';
 
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules' | 'player-profile' | 'organizer-profile';
+
+export interface StoreTCG {
+  foto?: string;
+}
+
+export interface Organizer {
+  id: number
+  nome: string;
+  endereco: string;
+  banner?: string;
+  usuario: StoreTCG;
+  n_torneios: number;
+}
 
 interface MainDashboardProps {
   onNavigate: (page: Page, data?: any) => void;
@@ -19,9 +35,15 @@ interface MainDashboardProps {
     topFour: number;
     topEight: number;
   };
+  organizers: Organizer[]
 }
 
-export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats, recentTournaments, placementStats }: MainDashboardProps) {
+
+export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats, recentTournaments, placementStats, organizers }: MainDashboardProps) {
+  console.log(organizers)
+  const autoplayPlugin = useRef(
+    Autoplay({ delay: 4000, stopOnInteraction: true })
+  );
 
   const stats = playerStats || {};
 
@@ -52,9 +74,84 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
 
   const winRate = stats.taxa_vitoria || 0;
   const gamesPlayed = (stats.vitorias || 0) + (stats.derrotas || 0) + (stats.empates || 0);
-
   return (
     <div className="space-y-8">
+      {/* Store Advertisement Carousel */}
+      {organizers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Store className="h-5 w-5" />
+              <span>Featured Stores</span>
+            </CardTitle>
+            <CardDescription>Discover stores hosting tournaments in your area</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Carousel 
+              className="w-full"
+              plugins={[autoplayPlugin.current]}
+              opts={{
+                loop: true,
+              }}
+            >
+              <CarouselContent>
+                {organizers.map((organizer) => (
+                  <CarouselItem key={organizer.id}>
+                    <div className="p-1">
+                      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                        <div className="relative h-48 w-full overflow-hidden bg-gradient-to-r from-purple-100 to-indigo-100">
+                          <ImageWithFallback 
+                            src={organizer.banner} 
+                            alt={organizer.nome}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <div className="flex items-center space-x-3">
+                              {organizer.usuario.foto && (
+                                <div className="flex-shrink-0">
+                                  <div className="h-12 w-12 rounded-full border-2 border-white overflow-hidden bg-white">
+                                    <ImageWithFallback 
+                                      src={organizer.usuario.foto} 
+                                      alt={organizer.nome}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-semibold text-white">{organizer.nome}</h3>
+                                <p className="text-sm text-white/90">{organizer.n_torneios || 0} tournaments hosted</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            {organizer.endereco && (
+                              <p className="text-sm text-muted-foreground line-clamp-1">{organizer.endereco}</p>
+                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => onNavigate('tournament-list')}
+                            >
+                              View Tournaments
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </CardContent>
+        </Card>
+      )}
       {/* General Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>

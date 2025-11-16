@@ -227,7 +227,13 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
         <h1 className="text-3xl font-bold mb-2">Criar Torneio</h1>
         <p className="text-muted-foreground">Configure um novo evento de torneio</p>
       </div>
-
+      <PlayerTypeDialog
+        editingRule={false}
+        currentUser={currentUser}
+        isFormOpen={isPlayerRuleDialogOpen}
+        setIsFormOpen={setIsPlayerRuleDialogOpen}
+        onSuccess={fetchAvailableRules}
+      />
       <form onSubmit={handleSubmit} className="space-y-8">
         <Card>
           <CardHeader>
@@ -368,7 +374,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
               <Calendar className="h-5 w-5" />
               <span>Estrutura do Torneio</span>
             </CardTitle>
-            <CardDescription>Configure o formato e as regras do torneio</CardDescription>
+            <CardDescription>Configure o formato do torneio</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -441,13 +447,6 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
             <Plus className="h-4 w-4" />
             <span>Criar Regra de Jogador</span>
           </Button>
-          <PlayerTypeDialog
-            editingRule={false}
-            currentUser={currentUser}
-            isFormOpen={isPlayerRuleDialogOpen}
-            setIsFormOpen={setIsPlayerRuleDialogOpen}
-            onSuccess={fetchAvailableRules}
-          />
             </div>
           </CardHeader>
           <CardContent className="space-y-6">

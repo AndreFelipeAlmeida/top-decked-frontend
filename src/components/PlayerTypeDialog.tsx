@@ -208,8 +208,7 @@ useEffect(() => {
               <Input
                 id="pt_vitoria"
                 type="number"
-                min="0"
-                step="0.1"
+                step="1"
                 value={formData.pt_vitoria}
                 onChange={(e) =>
                   setFormData({
@@ -226,8 +225,7 @@ useEffect(() => {
               <Input
                 id="pt_derrota"
                 type="number"
-                min="0"
-                step="0.1"
+                step="1"
                 value={formData.pt_derrota}
                 onChange={(e) =>
                   setFormData({
@@ -244,8 +242,7 @@ useEffect(() => {
               <Input
                 id="pt_empate"
                 type="number"
-                min="0"
-                step="0.1"
+                step="1"
                 value={formData.pt_empate}
                 onChange={(e) =>
                   setFormData({
@@ -262,8 +259,7 @@ useEffect(() => {
               <Input
                 id="pt_oponente_ganha"
                 type="number"
-                min="0"
-                step="0.1"
+                step="1"
                 value={formData.pt_oponente_ganha}
                 onChange={(e) =>
                   setFormData({
@@ -280,8 +276,7 @@ useEffect(() => {
               <Input
                 id="pt_oponente_perde"
                 type="number"
-                min="0"
-                step="0.1"
+                step="1"
                 value={formData.pt_oponente_perde}
                 onChange={(e) =>
                   setFormData({
@@ -298,8 +293,7 @@ useEffect(() => {
               <Input
                 id="pt_oponente_empate"
                 type="number"
-                min="0"
-                step="0.1"
+                step="1"
                 value={formData.pt_oponente_empate}
                 onChange={(e) =>
                   setFormData({
