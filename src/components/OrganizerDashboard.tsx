@@ -454,14 +454,17 @@ useEffect(() => {
                   </div>
                   <div>
                     <h3 className="font-semibold">{tournament.name}</h3>
-                    <p className="text-sm text-muted-foreground">{tournament.date}</p>
+                    <p className="text-sm text-muted-foreground">{new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' })
+                  .format(new Date(`${tournament.date}T00:00:00Z`))}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{tournament.participants.length}/{tournament.maxParticipants}</span>
+                      <span className="text-sm">
+                        {tournament.participants.length} {tournament.maxParticipants > 0 ? ` / ${tournament.maxParticipants}`: ''}
+                        </span>
                     </div>
                     <Badge 
                       className={tournament.status === "finished" ? 'bg-gray-100 text-black' : 'bg-purple-100 text-purple-800'}
