@@ -5,8 +5,11 @@ import { Badge } from './ui/badge.tsx';
 import { Input } from './ui/input.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select.tsx';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs.tsx';
-import { Calendar, Users, Trophy, MapPin, Search, Filter, Plus, ArrowLeft } from 'lucide-react';
-import { User, Tournament } from '../data/store.ts';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar.tsx';
+import { ImageWithFallback } from './ui/ImageWithFallback.tsx';
+import { Calendar, Users, Trophy, MapPin, Search, Filter, Plus, ArrowLeft, Store } from 'lucide-react'; 
+import { User } from '../data/store.ts';
+
 
 interface JogadorTorneioLinkPublico {
   jogador_id: number; 
@@ -24,6 +27,13 @@ interface LojaPublico {
     id: number;
     nome: string;
     email: string;
+    logo?: string; 
+    banner?: string;
+    usuario?: { 
+        id: number;
+        email: string;
+        foto?: string; 
+    };
 }
 
 interface BackendTournament {
@@ -49,6 +59,34 @@ interface PlayerTournamentLink {
   torneio_id: string;
 }
 
+interface Tournament {
+    id: string;
+    organizerUserId: string;
+    ruleId: number;
+    name: string;
+    organizerId: string;
+    organizerName: string;
+    date: string;
+    time: string;
+    format: string;
+    store: string;
+    description: string;
+    prizes: string;
+    maxParticipants: number;
+    entryFee: string;
+    structure: string;
+    rounds: number;
+    status: 'open' | 'in-progress' | 'finished';
+    currentRound: number;
+    participants: any[];
+    matches: any[];
+    bracket: any[];
+    createdAt: string;
+    hasImportedResults: boolean;
+    organizerLogo?: string;
+    organizerBanner?: string;
+}
+
 type Page = 'login' | 'player-dashboard' | 'organizer-dashboard' | 'tournament-creation' | 'ranking' | 'tournament-details' | 'tournament-list' | 'tournament-edit' | 'player-rules';
 
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
@@ -59,7 +97,32 @@ interface TournamentListProps {
   currentUser: User | null;
 }
 
-const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
+const getImageUrl = (filename: string | null | undefined) => {
+    if (!filename) return undefined;
+    if (filename.startsWith('http') || filename.startsWith('data:')) return filename;
+    return `${API_URL}/uploads/${filename}`;
+};
+
+const fetchStoreDetails = async (lojaId: number, token: string): Promise<{ logo?: string, banner?: string }> => {
+    try {
+        const response = await fetch(`${API_URL}/lojas/${lojaId}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+            const storeData: LojaPublico = await response.json();
+            
+            const finalLogo = storeData.logo || storeData.usuario?.foto;
+            
+            return { logo: finalLogo, banner: storeData.banner };
+        }
+    } catch (error) {
+        console.error(`Falha ao buscar detalhes da loja ${lojaId}:`, error);
+    }
+    return {}; 
+};
+
+
+const mapBackendToFrontend = (backendData: BackendTournament[], storeDetailsMap?: Map<number, { logo?: string, banner?: string }>): Tournament[] => {
   if (!backendData || !Array.isArray(backendData)) {
       console.error("Dados de backend inválidos. Esperado um array.");
       return [];
@@ -74,6 +137,9 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
       } else {
         status = 'open';
       }
+
+    const lojaId = t.loja_id ?? t.loja?.id ?? 0;
+    const details = storeDetailsMap?.get(lojaId) || {};
 
     return {
       id: t.id ? t.id.toString() : "",
@@ -106,6 +172,8 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
       bracket: [],
       createdAt: new Date().toISOString(),
       hasImportedResults: false,
+      organizerLogo: details.logo,
+      organizerBanner: details.banner,
     };
   });
 };
@@ -136,7 +204,20 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
           throw new Error("Falha ao buscar todos os torneios.");
         }
         const allData: BackendTournament[] = await allResponse.json();
-        const mappedAllTournaments = mapBackendToFrontend(allData);
+        
+        const uniqueLojaIds = Array.from(new Set(allData
+            .map(t => t.loja_id ?? t.loja?.id)
+            .filter((id): id is number => id !== undefined && id !== null && id !== 0)));
+
+        const storeDetailsPromises = uniqueLojaIds.map(id => fetchStoreDetails(id, token));
+        const storeDetailsResults = await Promise.all(storeDetailsPromises);
+        
+        const storeDetailsMap = new Map<number, { logo?: string, banner?: string }>();
+        uniqueLojaIds.forEach((id, index) => {
+            storeDetailsMap.set(id, storeDetailsResults[index]);
+        });
+
+        const mappedAllTournaments = mapBackendToFrontend(allData, storeDetailsMap);
         setAllTournaments(mappedAllTournaments);
 
         if (currentUser) {
@@ -167,10 +248,10 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
               if (organizerResponse.status !== 404) {
                   throw new Error("Falha ao buscar torneios do organizador.");
               }
-              setMyTournaments([]);
+              setMyTournaments(mappedAllTournaments.filter(t => t.organizerId === currentUser.id.toString()));
             } else {
               const specificData: BackendTournament[] = await organizerResponse.json();
-              const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
+              const mappedOrganizerTournaments = mapBackendToFrontend(specificData, storeDetailsMap);
               setMyTournaments(mappedOrganizerTournaments);
             }
           }
@@ -258,8 +339,50 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
     const isRegistered = currentUser?.type === 'player' && 
                         myTournaments.some(t => t.id === tournament.id);
     
+    const initials = (tournament.organizerName || 'ORG')
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+
+    const logoUrl = getImageUrl(tournament.organizerLogo);
+    
     return (
-      <Card key={tournament.id} className="hover:shadow-lg transition-shadow">
+      <Card key={tournament.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+        
+        {/* Adição do Banner/Logo no cabeçalho */}
+        {(tournament.organizerBanner || tournament.organizerLogo) && (
+            <div className="relative h-32 w-full overflow-hidden bg-gradient-to-r from-purple-100 to-indigo-100">
+                
+                {/* Banner */}
+                {tournament.organizerBanner ? (
+                    <ImageWithFallback 
+                        src={getImageUrl(tournament.organizerBanner)} 
+                        alt={`${tournament.organizerName} banner`}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <Store className="h-16 w-16 text-gray-400" />
+                    </div>
+                )}
+
+                {/* Store Logo Overlay */}
+                <div className="absolute bottom-2 left-4 z-10">
+                    <Avatar className="h-16 w-16 border-4 border-white shadow-lg">
+                        <AvatarImage 
+                            src={logoUrl} 
+                            alt={tournament.organizerName} 
+                        />
+                        <AvatarFallback className="bg-purple-600 text-white font-semibold text-xl">
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
+                </div>
+            </div>
+        )}
+
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="space-y-2">
