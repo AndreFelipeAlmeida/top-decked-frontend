@@ -7,7 +7,7 @@ import { Separator } from './ui/separator.tsx';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog.tsx';
 import { Button } from './ui/button.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar.tsx';
-import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loader2 } from 'lucide-react';
+import { ArrowLeft, Settings, Bell, Trash2, Edit, Save, Camera, Eye, Shield, Loader2, Store } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
@@ -20,13 +20,25 @@ interface OrganizerProfileProps {
   viewedOrganizerId?: number | null;
 }
 
+// 💡 HELPER: Função para construir a URL da imagem corretamente (Base64 ou caminho do servidor)
+const getImageUrl = (filename: string | null) => {
+    if (!filename) return undefined;
+    // Se for Base64 (upload local temporário)
+    if (filename.startsWith('data:')) return filename;
+    // Se for o nome do arquivo do backend, constrói a URL completa
+    return `${API_URL}/uploads/${filename}`;
+};
+
+
 export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrganizerId }: OrganizerProfileProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const [organizerData, setOrganizerData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [bannerImage, setBannerImage] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>({
     nome: '',
     email: '',
@@ -43,7 +55,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
   const [notifications, setNotifications] = useState({ email: true });
 
   const [profileMessage, setProfileMessage] = useState<{ text: string, type: 'success' | 'error' | null }>({ text: '', type: null });
-  const [securityMessage, setSecurityMessage] = useState<{ text: string, type: 'success' | 'error' | null }>({ text: '', type: null });
+  const [securityMessage, setSecurityDataMessage] = useState<{ text: string, type: 'success' | 'error' | null }>({ text: '', type: null });
 
   const isPlayer = currentUser?.type === 'player';
   const isViewingOtherOrganizer = viewedOrganizerId && viewedOrganizerId !== currentUser?.id;
@@ -57,7 +69,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
   };
 
   const clearSecurityMessage = () => {
-    setTimeout(() => setSecurityMessage({ text: '', type: null }), 5000);
+    setTimeout(() => setSecurityDataMessage({ text: '', type: null }), 5000);
   };
 
   const getOrganizerData = async (id: number) => {
@@ -84,7 +96,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
 
   const updateProfileData = async (updatedData: any, scope: "profile" | "security") => {
     if (scope === "profile") setProfileMessage({ text: '', type: null });
-    if (scope === "security") setSecurityMessage({ text: '', type: null });
+    if (scope === "security") setSecurityDataMessage({ text: '', type: null });
 
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -111,7 +123,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
         clearProfileMessage();
       }
       if (scope === "security") {
-        setSecurityMessage({ text: "Credenciais atualizadas com sucesso!", type: 'success' });
+        setSecurityDataMessage({ text: "Credenciais atualizadas com sucesso!", type: 'success' });
         setSecurityEditMode(false);
         clearSecurityMessage();
       }
@@ -124,11 +136,12 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
         clearProfileMessage();
       }
       if (scope === "security") {
-        setSecurityMessage({ text: err.message || "Falha ao salvar alterações de segurança.", type: 'error' });
+        setSecurityDataMessage({ text: err.message || "Falha ao salvar alterações de segurança.", type: 'error' });
         clearSecurityMessage();
       }
     }
   };
+
 
   const deleteAccount = async () => {
     const token = localStorage.getItem('accessToken');
@@ -145,12 +158,12 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
       if (!response.ok) throw new Error('Erro ao excluir a conta do organizador.');
 
       localStorage.removeItem('accessToken');
-      setSecurityMessage({ text: "Conta excluída com sucesso!", type: 'success' });
+      setSecurityDataMessage({ text: "Conta excluída com sucesso!", type: 'success' });
       clearSecurityMessage();
       onLogout();
     } catch (err) {
       console.error(err);
-      setSecurityMessage({ text: "Falha ao excluir a conta do organizador. Por favor, tente novamente.", type: 'error' });
+      setSecurityDataMessage({ text: "Falha ao excluir a conta do organizador. Por favor, tente novamente.", type: 'error' });
       clearSecurityMessage();
     }
   };
@@ -182,7 +195,9 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
           novaSenha: '',
           confirmarSenha: '',
         });
+        // ✅ CORREÇÃO 1: Inicializa o estado com o nome do arquivo do servidor
         setProfileImage(fetchedData.usuario?.foto || null);
+        setBannerImage(fetchedData.banner || null);
       }
       setLoading(false);
     };
@@ -199,7 +214,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
             <p className="text-muted-foreground mb-4">
               Você não tem permissão para visualizar este perfil.
             </p>
-            <Button onClick={() => onNavigate(currentUser?.type === 'player' ? 'tournament-details' : 'organizer-dashboard')} variant="outline">
+            <Button onClick={() => onNavigate(currentUser?.type === 'player' ? 'tournament-list' : 'organizer-dashboard')} variant="outline">
               Voltar ao Dashboard
             </Button>
           </CardContent>
@@ -225,6 +240,108 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
     );
   }
 
+  // ✅ CORREÇÃO 2: Funções de upload com sincronização com o servidor
+
+  const handleBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 1. Visualização local imediata (Base64)
+    const reader = new FileReader();
+    reader.onload = (e) => setBannerImage(e.target?.result as string);
+    reader.readAsDataURL(file);
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setProfileMessage({ text: "Token de autenticação não encontrado.", type: "error" });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API_URL}/lojas/upload_banner`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao enviar o banner.");
+      }
+
+      const updatedLoja = await response.json();
+
+      // 2. SINCRONIZAÇÃO: Atualiza com o nome do arquivo retornado pelo servidor
+      setOrganizerData(updatedLoja);
+      setBannerImage(updatedLoja.banner || null);
+
+      setProfileMessage({ text: "Banner atualizado com sucesso!", type: "success" });
+      clearProfileMessage();
+    } catch (err) {
+      console.error(err);
+      setProfileMessage({ text: "Falha ao atualizar o banner.", type: "error" });
+      clearProfileMessage();
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 1. Visualização local imediata (Base64)
+    const reader = new FileReader();
+    reader.onload = (e) => setProfileImage(e.target?.result as string);
+    reader.readAsDataURL(file);
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setProfileMessage({ text: "Token de autenticação não encontrado.", type: "error" });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API_URL}/lojas/upload_foto`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao enviar a foto de perfil.");
+      }
+
+      const updatedLoja = await response.json();
+
+      // 2. SINCRONIZAÇÃO: Atualiza com o nome do arquivo retornado pelo servidor
+      setOrganizerData(updatedLoja);
+      setProfileImage(updatedLoja.usuario.foto || null);
+
+      setProfileMessage({ text: "Foto de perfil atualizada com sucesso!", type: "success" });
+      clearProfileMessage();
+    } catch (err) {
+      console.error(err);
+      setProfileMessage({ text: "Falha ao atualizar a foto de perfil.", type: "error" });
+      clearProfileMessage();
+    }
+  };
+
+  const triggerImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const triggerBannerUpload = () => {
+    bannerInputRef.current?.click();
+  };
+
   const handleSave = () => {
     if (!formData.nome) {
       setProfileMessage({ text: "O campo Nome Completo é obrigatório.", type: 'error' });
@@ -236,176 +353,126 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
       clearProfileMessage();
       return;
     }
-    if (!formData.telefone) {
-      setProfileMessage({ text: "O campo de Telefone é obrigatório.", type: 'error' });
-      clearProfileMessage();
-      return;
-    }
-    if (!formData.endereco) {
-      setProfileMessage({ text: "O campo de Endereço é obrigatório.", type: 'error' });
-      clearProfileMessage();
-      return;
-    }
 
-    const changes: any = {};
-    const original = organizerData;
-    const current = formData;
+    const dataToUpdate = {
+      ...organizerData,
+      nome: formData.nome,
+      telefone: formData.telefone,
+      endereco: formData.endereco,
+      site: formData.site,
+    };
 
-    if (current.nome && current.nome !== original.nome) {
-      changes.nome = current.nome;
-    }
-    if (current.email && current.email !== original.usuario.email) {
-      changes.email = current.email;
-    }
-    if (current.telefone !== original.telefone) {
-      changes.telefone = current.telefone || null;
-    }
-    if (current.endereco !== original.endereco) {
-      changes.endereco = current.endereco || null;
-    }
-    if (current.site !== original.site) {
-      changes.site = current.site || null;
-    }
-
-    if (Object.keys(changes).length === 0) {
-      setProfileMessage({ text: "Nenhuma alteração para salvar.", type: 'success' });
-      setEditMode(false);
-      clearProfileMessage();
-      return;
-    }
-
-    updateProfileData(changes, "profile");
+    updateProfileData(dataToUpdate, "profile");
   };
 
   const handleSecuritySave = () => {
-    if (!securityData.email) {
-      setSecurityMessage({ text: "O campo Email é obrigatório.", type: 'error' });
-      clearSecurityMessage();
-      return;
-    }
     if (securityData.novaSenha && securityData.novaSenha !== securityData.confirmarSenha) {
-      setSecurityMessage({ text: "As senhas não coincidem!", type: 'error' });
+      setSecurityDataMessage({ text: "As novas senhas não coincidem.", type: 'error' });
       clearSecurityMessage();
       return;
     }
 
-    const updatedData: any = {};
-    if (securityData.email !== organizerData?.usuario?.email) {
-      updatedData.email = securityData.email;
-    }
-    if (securityData.novaSenha) {
-      updatedData.senha = securityData.novaSenha;
-    }
-
-    if (Object.keys(updatedData).length === 0) {
-      setSecurityMessage({ text: "Nenhuma alteração para salvar.", type: 'success' });
-      setSecurityEditMode(false);
-      clearSecurityMessage();
-      return;
-    }
-
-    updateProfileData(updatedData, "security");
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setProfileImage(result);
+    const securityDataToUpdate = {
+      email: securityData.email,
+      senha: securityData.novaSenha || undefined,
     };
-    reader.readAsDataURL(file);
 
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      setProfileMessage({ text: "Token de autenticação não encontrado.", type: "error" });
-      clearProfileMessage();
-      return;
-    }
-  
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-  
-      const response = await fetch(`${API_URL}/lojas/upload_foto`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-  
-      if (!response.ok) {
-        throw new Error("Erro ao enviar a foto.");
-      }
-  
-      const updatedloja = await response.json();
-  
-      setOrganizerData(updatedloja);
-  
-      setProfileMessage({ text: "Foto atualizada com sucesso!", type: "success" });
-      clearProfileMessage();
-    } catch (err) {
-      console.error(err);
-      setProfileMessage({ text: "Falha ao atualizar a foto.", type: "error" });
-      clearProfileMessage();
+    updateProfileData(securityDataToUpdate, "security");
+    // Se updateProfileData for bem-sucedido, ele atualiza a mensagem e o modo de edição
+  };
+
+
+  const getBackNavigation = () => {
+    if (currentUser?.tipo === 'player' || isViewingOtherOrganizer) {
+      return { page: 'tournament-list', label: 'Voltar para Torneios' };
+    } else {
+      return { page: 'organizer-dashboard', label: 'Voltar ao Dashboard' };
     }
   };
 
-  const triggerImageUpload = () => {
-    fileInputRef.current?.click();
-  };
+  const backNav = getBackNavigation();
+  const displayedName = organizerData?.nome || organizerData?.usuario?.nome || 'Organizador Desconhecido';
+  const displayedEmail = organizerData?.usuario?.email || '';
 
-  function FormMessage({ message }: { message: { text: string, type: 'success' | 'error' | null } }) {
-    if (!message.text) return null;
-    return (
-      <div className={`mb-4 p-4 rounded-lg text-sm ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-        {message.text}
-      </div>
-    );
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <Button
           variant="ghost"
-          onClick={() => onNavigate(currentUser?.type === 'player' ? 'tournament-details' : 'organizer-dashboard')}
+          onClick={() => onNavigate(backNav.page as Page)}
           className="mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {isViewingOtherOrganizer ? 'Voltar para os detalhes de Torneio' : 'Voltar ao Dashboard'}
+          {backNav.label}
         </Button>
-        {isViewingOtherOrganizer && organizerData && (
+
+        {isViewingOtherOrganizer && (
           <div className="mb-4 p-3 bg-secondary rounded-lg">
             <p className="text-sm text-secondary-foreground">
               <Eye className="h-4 w-4 inline mr-2" />
-              Você está visualizando o perfil de {organizerData.nome} como jogador
+              Você está visualizando o perfil de **{displayedName}**
             </p>
           </div>
         )}
       </div>
 
-      <Card className="mb-8">
+      {/* Profile Header */}
+      <Card className="mb-8 overflow-hidden">
+        {(bannerImage || canEdit) && (
+          <div className="relative h-48 w-full overflow-hidden bg-white">
+            {bannerImage ? (
+              // ✅ CORREÇÃO 3A: Usa getImageUrl para o Banner
+              <img
+                src={getImageUrl(bannerImage)}
+                alt="Store banner"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Store className="h-16 w-16 text-gray-400" />
+              </div>
+            )}
+
+            {canEdit && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="absolute top-4 right-4 bg-white/90 text-foreground"
+                  onClick={triggerBannerUpload}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  {bannerImage ? 'Mudar Banner' : 'Carregar Banner'}
+                </Button>
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBannerUpload}
+                  className="hidden"
+                />
+              </>
+            )}
+          </div>
+        )}
         <CardContent className="p-8">
-          <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-8">
+          <div
+            className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-8"
+            style={{ marginTop: bannerImage || canEdit ? '-4rem' : '0' }}
+          >
             <div className="relative">
-              <Avatar className="h-32 w-32">
-                {profileImage && (
-                  <AvatarImage
-                    src={
-                      organizerData?.usuario?.foto
-                        ? `${API_URL}/uploads/${organizerData.usuario.foto}`
-                        : profileImage
-                    }
-                    alt={organizerData?.nome}
-                  />
+              <Avatar
+                className={`${bannerImage || canEdit ? 'h-32 w-32 border-2 border-white' : 'h-32 w-32'}`}
+              >
+                {profileImage ? (
+                  // ✅ CORREÇÃO 3B: Usa getImageUrl para o Avatar
+                  <AvatarImage src={getImageUrl(profileImage)} alt={displayedName} />
+                ) : (
+                  <AvatarFallback className="text-2xl">
+                    {(organizerData?.nome || organizerData?.usuario?.nome || 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                  </AvatarFallback>
                 )}
-                <AvatarFallback className="text-2xl">
-                  {organizerData?.nome?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                </AvatarFallback>
               </Avatar>
               {canEdit && (
                 <>
@@ -427,19 +494,27 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
               )}
             </div>
 
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl font-bold mb-4">{organizerData?.nome}</h1>
+            <div className="flex-1 text-center md:text-left mt-4">
+              <h1 className="text-3xl font-bold mb-4 mt-4">{displayedName}</h1>
 
               <div className="text-muted-foreground mb-4">
-                <p>{organizerData?.usuario?.email}</p>
-                <p>Membro desde: {organizerData?.usuario?.data_criacao ? new Date(organizerData.usuario.data_criacao).toLocaleDateString() : 'Data desconhecida'}</p>
+                <p>{displayedEmail}</p>
+                <p>Membro desde: {organizerData?.data_criacao ? new Date(organizerData.data_criacao).toLocaleDateString() : 'N/A'}</p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
-      <FormMessage message={profileMessage} />
+
+      {/* Exibição de Mensagens de Perfil */}
+      {profileMessage.text && (
+        <div className={`p-3 mb-4 rounded-lg ${profileMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {profileMessage.text}
+        </div>
+      )}
+
       <div className="space-y-6">
+        {/* Profile Information - Always visible */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -448,12 +523,13 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
             </CardTitle>
             <CardDescription>
               {isViewingOtherOrganizer
-                ? `Visualizando informações do perfil de ${organizerData?.nome}`
-                : 'Gerencie as informações da sua loja e preferências'
+                ? `Visualizar as informações da loja ${displayedName}`
+                : 'Gerencie as informações e preferências da sua loja'
               }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Store Information */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Informações da Loja</h3>
@@ -461,10 +537,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setEditMode(!editMode);
-                      setProfileMessage({ text: '', type: null });
-                    }}
+                    onClick={() => setEditMode(!editMode)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     {editMode ? 'Cancelar' : 'Editar'}
@@ -476,48 +549,49 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="nome">Nome da Loja</Label>
+                      <Label htmlFor="storeName">Nome da Loja</Label>
                       <Input
-                        id="nome"
+                        id="storeName"
                         value={formData.nome}
                         onChange={(e) => setFormData({...formData, nome: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="storeEmail">Email</Label>
                       <Input
-                        id="email"
+                        id="storeEmail"
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        disabled
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="telefone">Número de Telefone</Label>
+                      <Label htmlFor="storePhone">Telefone (Opcional)</Label>
                       <Input
-                        id="telefone"
+                        id="storePhone"
                         type="tel"
                         value={formData.telefone}
                         onChange={(e) => setFormData({...formData, telefone: e.target.value})}
-                        placeholder="(555) 123-4567"
+                        placeholder="(99) 99999-9999"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="endereco">Endereço</Label>
+                      <Label htmlFor="storeWebsite">Website (Opcional)</Label>
                       <Input
-                        id="endereco"
-                        value={formData.endereco}
-                        onChange={(e) => setFormData({...formData, endereco: e.target.value})}
-                        placeholder="123 Main St, City, State 12345"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="site">Site</Label>
-                      <Input
-                        id="site"
+                        id="storeWebsite"
                         value={formData.site}
                         onChange={(e) => setFormData({...formData, site: e.target.value})}
                         placeholder="https://example.com"
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="storeAddress">Endereço (Opcional)</Label>
+                      <Input
+                        id="storeAddress"
+                        value={formData.endereco}
+                        onChange={(e) => setFormData({...formData, endereco: e.target.value})}
+                        placeholder="Rua Principal, 123, Cidade, Estado 12345"
                       />
                     </div>
                   </div>
@@ -534,23 +608,23 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>Nome da Loja</Label>
-                      <p className="text-sm text-muted-foreground mt-1">{organizerData?.nome}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{organizerData?.nome || 'N/A'}</p>
                     </div>
                     <div>
                       <Label>Email</Label>
-                      <p className="text-sm text-muted-foreground mt-1">{organizerData?.usuario?.email}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{displayedEmail || 'N/A'}</p>
                     </div>
                     <div>
-                      <Label>Número de Telefone</Label>
+                      <Label>Telefone</Label>
                       <p className="text-sm text-muted-foreground mt-1">{organizerData?.telefone || 'Não fornecido'}</p>
                     </div>
                     <div>
+                      <Label>Website</Label>
+                      <p className="text-sm text-muted-foreground mt-1">{organizerData?.site || 'Não fornecido'}</p>
+                    </div>
+                    <div className="md:col-span-2">
                       <Label>Endereço</Label>
                       <p className="text-sm text-muted-foreground mt-1">{organizerData?.endereco || 'Não fornecido'}</p>
-                    </div>
-                    <div>
-                      <Label>Site</Label>
-                      <p className="text-sm text-muted-foreground mt-1">{organizerData?.site || 'Não fornecido'}</p>
                     </div>
                   </div>
                 </div>
@@ -582,29 +656,32 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
             )}
           </CardContent>
         </Card>
-        <FormMessage message={securityMessage} />
+
         {showSettings && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Shield className="h-5 w-5" />
-                <span>Segurança e Login</span>
+                <span>Segurança & Login</span>
               </CardTitle>
               <CardDescription>
                 Gerencie suas credenciais de login e segurança da conta
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {securityMessage.text && (
+                <div className={`p-3 rounded-lg ${securityMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {securityMessage.text}
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Informações de Login</h3>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setSecurityEditMode(!securityEditMode);
-                      setSecurityMessage({text: '', type: null});
-                    }}
+                    onClick={() => setSecurityEditMode(!securityEditMode)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     {securityEditMode ? 'Cancelar' : 'Editar'}
@@ -624,9 +701,9 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="novaSenha">Nova Senha</Label>
+                        <Label htmlFor="newPassword">Nova Senha</Label>
                         <Input
-                          id="novaSenha"
+                          id="newPassword"
                           type="password"
                           value={securityData.novaSenha}
                           onChange={(e) => setSecurityData({...securityData, novaSenha: e.target.value})}
@@ -634,9 +711,9 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="confirmarSenha">Confirme a Nova Senha</Label>
+                        <Label htmlFor="confirmPassword">Confirme a Nova Senha</Label>
                         <Input
-                          id="confirmarSenha"
+                          id="confirmPassword"
                           type="password"
                           value={securityData.confirmarSenha}
                           onChange={(e) => setSecurityData({...securityData, confirmarSenha: e.target.value})}
@@ -656,7 +733,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                   <div className="space-y-4">
                     <div>
                       <Label>Endereço de Email</Label>
-                      <p className="text-sm text-muted-foreground mt-1">{organizerData?.usuario?.email}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{displayedEmail}</p>
                     </div>
                     <div>
                       <Label>Senha</Label>
@@ -668,6 +745,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
 
               <Separator />
 
+              {/* Danger Zone */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-destructive">Zona de Perigo</h3>
                 <div className="border border-destructive/20 rounded-lg p-4">
@@ -675,7 +753,7 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                     <div>
                       <Label className="text-destructive">Excluir Conta</Label>
                       <p className="text-sm text-muted-foreground">
-                        Excluir permanentemente sua conta e todos os dados associados
+                        Exclua permanentemente sua conta e todos os dados associados.
                       </p>
                     </div>
                     <AlertDialog>
@@ -687,11 +765,11 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                          <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Essa ação não pode ser desfeita. Isso excluirá permanentemente sua
+                            Esta ação não pode ser desfeita. Isso excluirá permanentemente sua
                             conta e removerá todos os seus dados de nossos servidores, incluindo seu
-                            histórico de torneios, classificações e conquistas.
+                            histórico de torneios, informações da loja e todos os torneios associados.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
