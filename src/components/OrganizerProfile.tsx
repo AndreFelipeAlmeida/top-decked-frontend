@@ -499,7 +499,11 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
 
               <div className="text-muted-foreground mb-4">
                 <p>{displayedEmail}</p>
-                <p>Membro desde: {organizerData?.data_criacao ? new Date(organizerData.data_criacao).toLocaleDateString() : 'N/A'}</p>
+                <p>Membro desde: {organizerData?.usuario.data_cadastro ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' })
+                  .format(new Date(`${organizerData.usuario.data_cadastro}T00:00:00Z`))
+                    : 'N/A'
+                    }
+                </p>
               </div>
             </div>
           </div>
@@ -630,30 +634,6 @@ export function OrganizerProfile({ onNavigate, onLogout, currentUser, viewedOrga
                 </div>
               )}
             </div>
-
-            {showSettings && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Bell className="h-5 w-5" />
-                    <h3 className="text-lg font-semibold">Preferências de Notificação</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Receber notificações por email</Label>
-                        <p className="text-sm text-muted-foreground">Seja notificado sobre torneios, resultados e atualizações importantes</p>
-                      </div>
-                      <Switch
-                        checked={notifications.email}
-                        onCheckedChange={(checked) => setNotifications({email: checked})}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
 

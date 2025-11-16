@@ -41,7 +41,6 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
     confirmarSenha: '',
   });
   const [securityEditMode, setSecurityEditMode] = useState(false);
-  const [notifications, setNotifications] = useState({ email: true });
   
   const [profileMessage, setProfileMessage] = useState<{ text: string, type: 'success' | 'error' | null }>({ text: '', type: null });
   const [securityMessage, setSecurityMessage] = useState<{ text: string, type: 'success' | 'error' | null }>({ text: '', type: null });
@@ -443,7 +442,11 @@ export function PlayerProfile({ onNavigate, onLogout, currentUser, viewedPlayerI
               
               <div className="text-muted-foreground mb-4">
                 <p>{playerData?.usuario?.email}</p>
-                <p>Membro desde: {new Date(playerData?.usuario?.data_criacao).toLocaleDateString()}</p>
+                                <p>Membro desde: {playerData?.usuario.data_cadastro ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' })
+                  .format(new Date(`${playerData.usuario.data_cadastro}T00:00:00Z`))
+                    : 'N/A'
+                    }
+                </p>
               </div>
             </div>
           </div>

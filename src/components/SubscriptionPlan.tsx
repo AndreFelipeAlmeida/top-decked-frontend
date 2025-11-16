@@ -142,7 +142,7 @@ export function SubscriptionPlan({ onNavigate }: SubscriptionPlanProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Próxima Cobrança</span>
                 <span className="text-sm text-muted-foreground">
-                  {new Date(currentSubscription.nextBilling).toLocaleDateString()}
+                  {new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(`${currentSubscription.nextBilling}T00:00:00Z`))}
                 </span>
               </div>
               
