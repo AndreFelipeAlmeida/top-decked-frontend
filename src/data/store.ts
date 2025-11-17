@@ -133,6 +133,7 @@ export interface PlayerRule {
   typeName: string;
   pointsForWin: number;
   pointsForLoss: number;
+  pointsForDraw: number;
   pointsGivenToOpponent: number;
   pointsLostByOpponent: number;
   organizerId: string;

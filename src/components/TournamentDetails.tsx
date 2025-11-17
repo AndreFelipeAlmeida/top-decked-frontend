@@ -205,6 +205,11 @@ export function TournamentDetails({ onNavigate, tournamentId, currentUser }: Tou
         }));
       setTournamentResults(mappedResults);
 
+      const userId = currentUser?.gameIds?.find(e => e.game === "pokemon")?.id;
+      const isRegistered = userId
+        ? mappedTournament.participants.some(p => p.userId === userId)
+        : false;
+      setIsRegistered(isRegistered)
 
 try {
   const response2 = await fetch(`${API_URL}/lojas/tipoJogador/`, {
@@ -235,6 +240,7 @@ try {
         pointsLostByOpponent: rule.pt_oponente_perde,
         pointsGivenToOpponentOnDraw: rule.pt_oponente_empate,
         tcg: rule.tcg,
+        organizerId: "",
         createdAt: new Date().toISOString()
       }));
       setAvailableRules(availableRulesFromBackend);
@@ -291,7 +297,7 @@ try {
   const iniciarTorneio = async () => {
     try {
         const token = localStorage.getItem('accessToken');
-        const response = await fetch(`${API_URL}/lojas/torneios/${tournament.id}/iniciar`, {
+        const response = await fetch(`${API_URL}/lojas/torneios/${tournament?.id}/iniciar`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -409,7 +415,7 @@ try {
 
   const isTournamentCreator = currentUser?.id.toString() === tournament.organizerUserId.toString();
   const isPlayer = currentUser?.type === 'player';
-  
+  const isTournamentFinishedOrOngoing = tournament.status === "finished" || tournament.status === "in-progress"
   const hasSpecificRules = playerRuleAssignments.length > 0;
 
   return (
@@ -459,13 +465,22 @@ try {
               <Button
                 variant="outline"
                 onClick={handleUnregistration}
-                className="flex items-center space-x-2"
+                disabled={isTournamentFinishedOrOngoing}
+                className={`flex items-center space-x-2 ${
+                  isTournamentFinishedOrOngoing ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 <UserMinus className="h-4 w-4" />
                 <span>Remover Inscrição</span>
               </Button>
             ) : (
-              <Button onClick={handleRegistration} className="flex items-center space-x-2">
+              <Button
+                onClick={handleRegistration}
+                disabled={isTournamentFinishedOrOngoing}
+                className={`flex items-center space-x-2 ${
+                  isTournamentFinishedOrOngoing ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
                 <UserPlus className="h-4 w-4" />
                 <span>Inscrever-se</span>
               </Button>

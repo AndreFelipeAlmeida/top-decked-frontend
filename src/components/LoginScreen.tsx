@@ -78,7 +78,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         if (userProfileResponse.ok) {
           const userProfile = await userProfileResponse.json();
           const userType = userProfile.tipo === 'loja' ? 'organizer' : 'player';
-
           if (userType !== loginData.accountType) {
             setMessage({
               type: 'error',
@@ -95,6 +94,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 name: userProfile.nome,
                 type: userType,
                 id: userProfile.usuario_id,
+                gameIds: [{game: "pokemon",
+                            id: userProfile.pokemon_id}
+                ],
               });
             }, 500);
           }
