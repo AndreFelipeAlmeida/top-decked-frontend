@@ -239,12 +239,11 @@ export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: Organ
         ).length;
 
         const finalizadosMes = specificData.filter((t: any) => {
-          if (t.status !== 'finished') return false;
+          if (t.status !== 'FINALIZADO') return false;
           const dataTorneio = new Date(t.data_inicio);
           return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
         }).length;
-        alert(finalizadosMes)
-
+        
         const primeiroDiaSemana = new Date(hoje);
         primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay()); // domingo
         primeiroDiaSemana.setHours(0, 0, 0, 0);
