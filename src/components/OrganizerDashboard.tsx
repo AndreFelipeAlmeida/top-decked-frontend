@@ -239,6 +239,8 @@ export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: Organ
         ).length;
 
         const finalizadosMes = specificData.filter((t: any) => {
+          console.log(t)
+          console.log("aqui")
           if (t.status !== 'finished') return false;
           const dataTorneio = new Date(t.data_inicio);
           return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
