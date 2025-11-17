@@ -239,13 +239,12 @@ export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: Organ
         ).length;
 
         const finalizadosMes = specificData.filter((t: any) => {
-          console.log("aqui")
           if (t.status !== 'finished') return false;
-          console.log(t)
           const dataTorneio = new Date(t.data_inicio);
           return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
         }).length;
-
+        console.log(finalizadosMes)
+        
         const primeiroDiaSemana = new Date(hoje);
         primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay()); // domingo
         primeiroDiaSemana.setHours(0, 0, 0, 0);
@@ -259,7 +258,6 @@ export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: Organ
           const dataTorneio = new Date(t.data_inicio);
           return dataTorneio >= primeiroDiaSemana && dataTorneio <= ultimoDiaSemana;
         });
-        console.log(torneiosEstaSemana)
         // Soma participantes
         const totalParticipantes = torneiosEstaSemana.reduce((acc: number, t: any) => {
           return acc + (t.jogadores?.length || 0);
