@@ -243,8 +243,8 @@ export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: Organ
           const dataTorneio = new Date(t.data_inicio);
           return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
         }).length;
-        console.log(finalizadosMes)
-        
+        alert(finalizadosMes)
+
         const primeiroDiaSemana = new Date(hoje);
         primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay()); // domingo
         primeiroDiaSemana.setHours(0, 0, 0, 0);
