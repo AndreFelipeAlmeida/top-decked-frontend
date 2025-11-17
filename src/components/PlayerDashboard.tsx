@@ -176,8 +176,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
         if (!opponentsRes.ok) throw new Error('Erro ao buscar histórico de partidas');
         const opponentsData = await opponentsRes.json();
         setFrequentOpponentsData(opponentsData);
-
-        const formattedMatchHistory = opponentsData.historico_partidasz.map((item: any) => ({
+        const formattedMatchHistory = opponentsData.map((item: any) => ({
           id: item.id,
           opponent: item.nome,
           wins: item.vitorias,
@@ -194,7 +193,7 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
     }
 
     fetchData();
-  }, [currentUser]);
+  }, [currentUser, performanceByFormatData]);
 
   if (loading) {
     return (

@@ -64,6 +64,11 @@ export function DetailedStatistics({ yearlyProgressionData, availableYears, freq
     }
   };
 
+  const pieData = performanceByFormatData.map(item => ({
+    ...item,
+    value: item.pontos <= 0 ? 1 : item.pontos,
+  }));
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -156,20 +161,20 @@ export function DetailedStatistics({ yearlyProgressionData, availableYears, freq
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={performanceByFormatData}
+                      data={pieData}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
                       label={({ formato, percent }) => percent > 0 ? `${formato} ${(percent * 100).toFixed(0)}%` : ""}
                       outerRadius={80}
                       fill="#8884d8"
-                      dataKey="pontos"
+                      dataKey="value"
                     >
                       {performanceByFormatData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value, name, props) => [`${value} pts`, props.payload.formato]} />
+                    <Tooltip formatter={(value, name, props) => [`${props.payload.pontos} pts`, props.payload.formato]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
