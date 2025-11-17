@@ -56,7 +56,7 @@ export default function ExportDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Pré-visualização para Exportação</DialogTitle>
+            <DialogTitle>Pré-visualização para Exportação (10 jogadores)</DialogTitle>
           </DialogHeader>
 
           <div className="p-4">

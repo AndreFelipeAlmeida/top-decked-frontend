@@ -388,7 +388,7 @@ export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: Organ
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{torneiosFinalizados}</div>
+            <div className="text-2xl font-bold">{torneiosFinalizadosMes}</div>
             <p className="text-xs text-muted-foreground">
             este mês
             </p>

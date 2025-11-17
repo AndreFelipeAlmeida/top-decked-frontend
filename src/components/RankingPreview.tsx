@@ -26,7 +26,7 @@ export default function RankingPreview({ tournamentResults }: RankingPreviewProp
 
     {/* Linhas */}
         <div>
-            {tournamentResults.map((player, index) => (
+            {tournamentResults.slice(0, 10).map((player, index) => (
             <div
                 key={player.id}
                 className="grid grid-cols-4 px-2 py-1 border-b border-dashed border-[#ED50AB]"
