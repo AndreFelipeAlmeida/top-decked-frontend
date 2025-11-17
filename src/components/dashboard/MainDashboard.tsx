@@ -76,82 +76,6 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
   const gamesPlayed = (stats.vitorias || 0) + (stats.derrotas || 0) + (stats.empates || 0);
   return (
     <div className="space-y-8">
-      {/* Store Advertisement Carousel */}
-      {organizers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Store className="h-5 w-5" />
-              <span>Featured Stores</span>
-            </CardTitle>
-            <CardDescription>Discover stores hosting tournaments in your area</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Carousel 
-              className="w-full"
-              plugins={[autoplayPlugin.current]}
-              opts={{
-                loop: true,
-              }}
-            >
-              <CarouselContent>
-                {organizers.map((organizer) => (
-                  <CarouselItem key={organizer.id}>
-                    <div className="p-1">
-                      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-                        <div className="relative h-48 w-full overflow-hidden bg-gradient-to-r from-purple-100 to-indigo-100">
-                          <ImageWithFallback 
-                            src={organizer.banner} 
-                            alt={organizer.nome}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <div className="flex items-center space-x-3">
-                              {organizer.usuario.foto && (
-                                <div className="flex-shrink-0">
-                                  <div className="h-12 w-12 rounded-full border-2 border-white overflow-hidden bg-white">
-                                    <ImageWithFallback 
-                                      src={organizer.usuario.foto} 
-                                      alt={organizer.nome}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                </div>
-                              )}
-                              <div>
-                                <h3 className="font-semibold text-white">{organizer.nome}</h3>
-                                <p className="text-sm text-white/90">{organizer.n_torneios || 0} tournaments hosted</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <CardContent className="p-4">
-                          <div className="space-y-2">
-                            {organizer.endereco && (
-                              <p className="text-sm text-muted-foreground line-clamp-1">{organizer.endereco}</p>
-                            )}
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="w-full"
-                              onClick={() => onNavigate('tournament-list')}
-                            >
-                              View Tournaments
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          </CardContent>
-        </Card>
-      )}
       {/* General Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -300,8 +224,12 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
               })}
             </div>
           ) : (
+            // [ALTERADO] Mensagem amigável de torneios recentes
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum torneio recente encontrado.
+              <p>Nenhum torneio recente encontrado...</p>
+              <p className="mt-1 text-sm">
+                Eles aparecerão aqui assim que você participar de algum!
+              </p>
             </div>
           )}
           <div className="mt-6 flex justify-center">
@@ -320,20 +248,31 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
           <CardDescription>Sua posição em várias tabelas de classificação</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <h3 className="font-semibold text-lg">Mensal</h3>
-              <p className="text-3xl font-bold text-primary">#{stats.rank_mensal || '-'}</p>
+          {/* [ALTERADO] Lógica para mostrar grid ou mensagem amigável */}
+          {(stats.rank_mensal || stats.rank_anual || stats.rank_geral) ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg">Mensal</h3>
+                <p className="text-3xl font-bold text-primary">#{stats.rank_mensal || '-'}</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg">Anual</h3>
+                <p className="text-3xl font-bold text-primary">#{stats.rank_anual || '-'}</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg">Geral</h3>
+                <p className="text-3xl font-bold text-primary">#{stats.rank_geral || '-'}</p>
+              </div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <h3 className="font-semibold text-lg">Anual</h3>
-              <p className="text-3xl font-bold text-primary">#{stats.rank_anual || '-'}</p>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Você ainda não apareceu em nenhum ranking :(</p>
+              <p className="mt-1 text-sm">
+                Participe de torneios para começar a sua escalada!
+              </p>
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <h3 className="font-semibold text-lg">Geral</h3>
-              <p className="text-3xl font-bold text-primary">#{stats.rank_geral || '-'}</p>
-            </div>
-          </div>
+          )}
+
           <div className="mt-6 flex justify-center">
             <Button onClick={() => onNavigate('ranking')} className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90">
               <Trophy className="h-4 w-4" />
@@ -342,6 +281,83 @@ export function MainDashboard({ onNavigate, onNavigateToTournament, playerStats,
           </div>
         </CardContent>
       </Card>
+
+      {/* Store Advertisement Carousel */}
+      {organizers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Store className="h-5 w-5" />
+              <span>Conheça lojas</span>
+            </CardTitle>
+            <CardDescription>Descubra novas lojas para se divertir!</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Carousel 
+              className="w-full"
+              plugins={[autoplayPlugin.current]}
+              opts={{
+                loop: true,
+              }}
+            >
+              <CarouselContent>
+                {organizers.map((organizer) => (
+                  <CarouselItem key={organizer.id}>
+                    <div className="p-1">
+                      <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                        <div className="relative h-48 w-full overflow-hidden bg-gradient-to-r from-purple-100 to-indigo-100">
+                          <ImageWithFallback 
+                            src={organizer.banner} 
+                            alt={organizer.nome}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <div className="flex items-center space-x-3">
+                              {organizer.usuario.foto && (
+                                <div className="flex-shrink-0">
+                                  <div className="h-12 w-12 rounded-full border-2 border-white overflow-hidden bg-white">
+                                    <ImageWithFallback 
+                                      src={organizer.usuario.foto} 
+                                      alt={organizer.nome}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-semibold text-white">{organizer.nome}</h3>
+                                <p className="text-sm text-white/90">{organizer.n_torneios || 0} tournaments hosted</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            {organizer.endereco && (
+                              <p className="text-sm text-muted-foreground line-clamp-1">{organizer.endereco}</p>
+                            )}
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => onNavigate('tournament-list')}
+                            >
+                              View Tournaments
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

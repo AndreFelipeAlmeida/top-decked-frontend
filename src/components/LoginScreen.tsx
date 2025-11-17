@@ -10,7 +10,6 @@ import { Badge } from './ui/badge.tsx';
 import { Trophy, Eye, EyeOff, Users, Calendar } from 'lucide-react';
 import { User } from '../data/store.ts';
 import logo from '../images/logo.png';
-
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
 interface LoginScreenProps {
@@ -18,6 +17,9 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
+  const MIN_PASSWORD_LENGTH = 6;
+  const PHONE_LENGTH = 11;
+
   const [activeTab, setActiveTab] = useState('login');
   const [loginData, setLoginData] = useState({
     email: '',
@@ -38,10 +40,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleTabChange = (tabValue: string) => {
+    setMessage(null); 
+    setActiveTab(tabValue); 
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage(null);
+    setMessage(null); 
 
     const formData = new URLSearchParams();
     formData.append('username', loginData.email);
@@ -109,7 +116,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage(null);
+    setMessage(null); 
   
     let requiredFields: (keyof typeof registerData)[] = ['name', 'email', 'password'];
     if (registerData.userType === 'organizer') {
@@ -123,7 +130,19 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     );
   
     if (!isValid) {
-      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios.' });
+      setMessage({ type: 'error', text: 'Por favor, preencha todos os campos obrigatórios marcados com *.' });
+      setIsLoading(false);
+      return;
+    }
+
+    if (registerData.password.length < MIN_PASSWORD_LENGTH) {
+      setMessage({ type: 'error', text: `A senha deve ter, no mínimo, ${MIN_PASSWORD_LENGTH} caracteres.` });
+      setIsLoading(false);
+      return;
+    }
+
+    if (registerData.telefone.length != PHONE_LENGTH) {
+      setMessage({ type: 'error', text: `Telefone inválido. Por favor, tente novamente.` });
       setIsLoading(false);
       return;
     }
@@ -300,7 +319,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           </Card>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Cadastro</TabsTrigger>
@@ -395,7 +414,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <form onSubmit={handleRegister} className="space-y-4" noValidate>
                   <div className="space-y-2">
                     <Label htmlFor="name">
-                      {registerData.userType === 'organizer' ? 'Nome da Loja' : 'Nome Completo'}
+                      {registerData.userType === 'organizer' ? 'Nome da Loja *' : 'Nome Completo *'}
                     </Label>
                     <Input
                       id="name"
@@ -407,7 +426,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">E-mail</Label>
+                    <Label htmlFor="register-email">E-mail *</Label>
                     <Input
                       id="register-email"
                       type="email"
@@ -419,7 +438,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">Senha</Label>
+                    <Label htmlFor="register-password">Senha *</Label>
                     <div className="relative">
                       <Input
                         id="register-password"
@@ -439,10 +458,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Mínimo de {MIN_PASSWORD_LENGTH} caracteres.
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="userType">Tipo de Conta</Label>
+                    <Label htmlFor="userType">Tipo de Conta *</Label>
                     <Select
                       value={registerData.userType}
                       onValueChange={(value: 'player' | 'organizer') => setRegisterData({ ...registerData, userType: value })}
@@ -453,26 +475,30 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       <SelectContent>
                         <SelectItem value="player">Jogador</SelectItem>
                         <SelectItem value="organizer">Loja</SelectItem>
-                      </SelectContent>
+                      </SelectContent> {/* [CORREÇÃO APLICADA AQUI] */}
                     </Select>
                   </div>
 
                   {registerData.userType === 'player' && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="telefone">Telefone</Label>
+                        <Label htmlFor="telefone">Telefone *</Label>
                         <Input
                           id="telefone"
                           type="tel"
-                          placeholder="Ex: 9912345678"
+                          placeholder="Ex: 83912345678"
                           value={registerData.telefone}
                           onChange={(e) => setRegisterData({ ...registerData, telefone: e.target.value })}
                           maxLength={11}
+                          minLength={PHONE_LENGTH}
                           required
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Quantidade de {PHONE_LENGTH} dígitos, incluindo DDD.
+                        </p>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                        <Label htmlFor="data_nascimento">Data de Nascimento *</Label>
                         <Input
                           id="data_nascimento"
                           type="date"
@@ -487,7 +513,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   {registerData.userType === 'organizer' && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="storeAddress">Endereço da Loja</Label>
+                        <Label htmlFor="storeAddress">Endereço da Loja *</Label>
                         <Input
                           id="storeAddress"
                           placeholder="Insira o endereço da sua loja"
@@ -497,7 +523,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="site">Site (opcional)</Label>
+                        <Label htmlFor="site">Site</Label>
                         <Input
                           id="site"
                           type="url"
@@ -507,16 +533,20 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="telefone">Telefone</Label>
+                        <Label htmlFor="telefone">Telefone *</Label> {/* [CORREÇÃO APLICADA AQUI] */}
                         <Input
                           id="telefone"
                           type="tel"
-                          placeholder="Ex: 9912345678"
+                          placeholder="Ex: 83912345678"
                           value={registerData.telefone}
                           onChange={(e) => setRegisterData({ ...registerData, telefone: e.target.value })}
                           maxLength={11}
+                          minLength={PHONE_LENGTH}
                           required
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Quantidade de {PHONE_LENGTH} dígitos, incluindo DDD.
+                        </p>
                       </div>
                     </>
                   )}

@@ -31,14 +31,15 @@ const plans = [
       'Sem análises avançadas',
       'Formatos de torneio limitados',
       'Sem personalização de marca',
-      'Apenas relatórios básicos'
+      'Apenas relatórios básicos',
+      'Sem banner de propaganda'
     ],
     popular: false
   },
   {
     id: 'premium',
     name: 'Premium',
-    price: 149,
+    price: '59,90',
     interval: 'mês',
     description: 'Solução completa para organizadores de torneios sérios',
     features: [
@@ -49,8 +50,7 @@ const plans = [
       'Suporte prioritário',
       'Acesso total à API',
       'Engajamento avançado de jogadores',
-      'Suporte a múltiplas localidades',
-      'Capacidade de exportação'
+      'Capacidade de exportação para a comunidade no Instagram'
     ],
     limitations: [],
     popular: true
@@ -60,7 +60,7 @@ const plans = [
 const currentSubscription = {
   plan: 'premium',
   status: 'ativo',
-  nextBilling: '2024-01-15',
+  nextBilling: '2025-12-15',
   usage: {
     tournaments: 12,
     limit: 999,
@@ -148,7 +148,7 @@ export function SubscriptionPlan({ onNavigate }: SubscriptionPlanProps) {
               
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Custo Mensal</span>
-                <span className="text-sm font-bold">${currentPlan?.price}/mês</span>
+                <span className="text-sm font-bold">R${currentPlan?.price}/mês</span>
               </div>
             </div>
             
@@ -214,7 +214,7 @@ export function SubscriptionPlan({ onNavigate }: SubscriptionPlanProps) {
             <CardHeader className="text-center">
               <CardTitle className="text-2xl">{plan.name}</CardTitle>
               <div className="text-3xl font-bold">
-                ${plan.price}
+                R${plan.price}
                 <span className="text-sm font-normal text-muted-foreground">/{plan.interval}</span>
               </div>
               <CardDescription>{plan.description}</CardDescription>
@@ -267,7 +267,7 @@ export function SubscriptionPlan({ onNavigate }: SubscriptionPlanProps) {
             <CardHeader>
               <CardTitle>Assinar {selectedPlanData.name}</CardTitle>
               <CardDescription>
-                ${selectedPlanData.price}/{selectedPlanData.interval} - Conclua sua assinatura
+                R${selectedPlanData.price}/{selectedPlanData.interval} - Conclua sua assinatura
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -326,7 +326,7 @@ export function SubscriptionPlan({ onNavigate }: SubscriptionPlanProps) {
                     Cancelar
                   </Button>
                   <Button type="submit">
-                    Assinar por ${selectedPlanData.price}/mês
+                    Assinar por R${selectedPlanData.price}/mês
                   </Button>
                 </div>
               </form>

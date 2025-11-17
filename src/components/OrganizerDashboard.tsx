@@ -52,24 +52,7 @@ interface BackendTournament {
   regras_adicionais: any[];
 }
 
-interface BackendTournament {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  cidade: string | null;
-  data_inicio: string;
-  loja_id: number;
-  loja?: LojaPublico;
-  formato: string | null;
-  taxa: number;
-  premios: string | null;
-  estrutura: string | null;
-  vagas: number;
-  status: string;
-  jogadores: JogadorTorneioLinkPublico[];
-  rodadas: RodadaBase[];
-  regras_adicionais: any[];
-}
+// NOTE: Removi a interface duplicada 'BackendTournament'
 
 const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] => {
   if (!backendData || !Array.isArray(backendData)) {
@@ -101,7 +84,7 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
       description: t.descricao || '',
       prizes: t.premios || '',
       maxParticipants: t.vagas ?? 0,
-      entryFee: `$${t.taxa ?? 0}`,
+      entryFee: `R$${t.taxa ?? 0}`,
       structure: t.estrutura || '',
       rounds: t.rodadas?.length || 0,
       status: status,
@@ -122,180 +105,218 @@ const mapBackendToFrontend = (backendData: BackendTournament[]): Tournament[] =>
   });
 };
 
+/**
+ * Um componente reutilizável para exibir quando
+ * uma seção (gráficos, listas) não tem dados.
+ */
+const EmptyStateMessage = () => (
+  <div className="w-full h-full flex flex-col justify-center items-center text-center text-gray-500 p-4">
+    <Trophy className="h-10 w-10 text-gray-300 mb-3" />
+    <p className="font-medium text-sm">Ainda sem dados por aqui :(</p>
+    <p className="text-xs max-w-xs mt-1">
+      Crie ou importe seus torneios para aproveitar o melhor do TopDecked!
+    </p>
+  </div>
+);
+
+const EmptyStateMessageRecents = () => (
+  <div className="w-full h-full flex flex-col justify-center items-center text-center text-gray-500 p-4">
+    <Trophy className="h-10 w-10 text-gray-300 mb-3" />
+    <p className="font-medium text-sm">Sem torneios próximos por aqui :(</p>
+    <p className="text-xs max-w-xs mt-1">
+      Crie seus próximos torneios e começe a acompanhá-los!
+    </p>
+  </div>
+);
+
+const EmptyStateMessageLasts = () => (
+  <div className="w-full h-full flex flex-col justify-center items-center text-center text-gray-500 p-4">
+    <Trophy className="h-10 w-10 text-gray-300 mb-3" />
+    <p className="font-medium text-sm">Sem torneios há uma semana :(</p>
+    <p className="text-xs max-w-xs mt-1">
+      Importe seus torneios da última semana!
+    </p>
+  </div>
+);
 
 
 export function OrganizerDashboard({ onNavigate, onNavigateToTournament }: OrganizerDashboardProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const currentUser = tournamentStore.getCurrentUser();
 
-const [torneiosAtivos, setTorneiosAtivos] = useState(0);
-const [torneiosFinalizados, setTorneiosFinalizados] = useState(0);
-const [totalParticipantes, setTotalParticipantes] = useState(0);
-const [mediaParticipantes, setMediaParticipantes] = useState(0);
-const [torneiosFuturos, setTorneiosFuturos] = useState<any[]>([]);
-const [torneiosUltimaSemana, setTorneiosUltimaSemana] = useState(0);
-const [torneiosFinalizadosMes, setTorneiosFinalizadosMes] = useState(0);
-const [participantesSemana, setParticipantesSemana] = useState(0);
-const [torneiosSemana, setTorneiosSemana] = useState(0);
-const [ultimos3Concluidos, setUltimos3Concluidos] = useState<Tournament[]>([]);
-const [lastWeekTournaments, setLastWeekTournaments] = useState<any[]>([]);
-const [monthlyData, setMonthlyData] = useState<{ month: string; tournaments: number; participants: number }[]>([]);
-const [data, setData] = useState<any[]>([]);
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1'];
-const API_URL = process.env.REACT_APP_BACKEND_API_URL;
-const [myTournaments, setMyTournaments] = useState<Tournament[]>([]);
+  const [torneiosAtivos, setTorneiosAtivos] = useState(0);
+  const [torneiosFinalizados, setTorneiosFinalizados] = useState(0);
+  const [totalParticipantes, setTotalParticipantes] = useState(0);
+  const [mediaParticipantes, setMediaParticipantes] = useState(0);
+  const [torneiosFuturos, setTorneiosFuturos] = useState<any[]>([]);
+  const [torneiosUltimaSemana, setTorneiosUltimaSemana] = useState(0);
+  const [torneiosFinalizadosMes, setTorneiosFinalizadosMes] = useState(0);
+  const [participantesSemana, setParticipantesSemana] = useState(0);
+  const [torneiosSemana, setTorneiosSemana] = useState(0);
+  const [ultimos3Concluidos, setUltimos3Concluidos] = useState<Tournament[]>([]);
+  const [lastWeekTournaments, setLastWeekTournaments] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<{ month: string; tournaments: number; participants: number }[]>([]);
+  const [data, setData] = useState<any[]>([]);
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1'];
+  const API_URL = process.env.REACT_APP_BACKEND_API_URL;
+  const [myTournaments, setMyTournaments] = useState<Tournament[]>([]);
 
-const formatData = useMemo(() => {
-  if (data.length === 0) {
-    return [{ name: 'Sem dados', value: 1, color: '#ccc' }];
-  }
+  const formatData = useMemo(() => {
+    // [CORREÇÃO APLICADA AQUI]
+    // Agora retorna [] se 'data' estiver vazio,
+    // o que permite ao Card "Distribuição de Formatos" mostrar o EmptyStateMessage
+    if (data.length === 0) {
+      return [];
+    }
 
-  const counts: Record<string, number> = {};
-  data.forEach((t) => {
-    counts[t.formato] = (counts[t.formato] || 0) + 1;
-  });
+    const counts: Record<string, number> = {};
+    data.forEach((t) => {
+      // Garante que 'formato' não seja nulo ou indefinido
+      const formato = t.formato || 'Não informado';
+      counts[formato] = (counts[formato] || 0) + 1;
+    });
 
-  return Object.entries(counts).map(([name, value], index) => ({
-    name,
-    value,
-    color: COLORS[index % COLORS.length],
-  }));
-}, [data]);
+    return Object.entries(counts).map(([name, value], index) => ({
+      name,
+      value,
+      color: COLORS[index % COLORS.length],
+    }));
+  }, [data]);
 
-useEffect(() => {
-  async function fetchOrganizerTournaments() {
-    const token = localStorage.getItem('accessToken');
-    try {
-      const organizerResponse = await fetch(
-        `${API_URL}/lojas/torneios/loja`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` },
-        }
-      );
+  useEffect(() => {
+    async function fetchOrganizerTournaments() {
+      const token = localStorage.getItem('accessToken');
+      try {
+        const organizerResponse = await fetch(
+          `${API_URL}/lojas/torneios/loja`,
+          {
+            headers: { 'Authorization': `Bearer ${token}` },
+          }
+        );
 
-      if (!organizerResponse.ok) throw new Error('Erro ao buscar torneios');
+        if (!organizerResponse.ok) throw new Error('Erro ao buscar torneios');
 
-      const specificData: BackendTournament[] = await organizerResponse.json();
-      const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
-      // TODO: Separar onde tiver mappedOrganizerTournaments por outros useEffect, igual o de baixo
-      setMyTournaments(mappedOrganizerTournaments);
-      setData(specificData)
-      const hoje = new Date();
-      const umaSemanaAtras = new Date();
-      const mesAtual = hoje.getMonth(); // 0-11
-      const anoAtual = hoje.getFullYear();
-      umaSemanaAtras.setDate(hoje.getDate() - 7);
+        const specificData: BackendTournament[] = await organizerResponse.json();
+        const mappedOrganizerTournaments = mapBackendToFrontend(specificData);
+        // TODO: Separar onde tiver mappedOrganizerTournaments por outros useEffect, igual o de baixo
+        setMyTournaments(mappedOrganizerTournaments);
+        setData(specificData)
+        const hoje = new Date();
+        const umaSemanaAtras = new Date();
+        const mesAtual = hoje.getMonth(); // 0-11
+        const anoAtual = hoje.getFullYear();
+        umaSemanaAtras.setDate(hoje.getDate() - 7);
 
-      // Total de participantes
-      const participantes = specificData.reduce(
-        (acc: number, torneio: any) => acc + (torneio.jogadores?.length || 0),
-        0
-      );
+        // Total de participantes
+        const participantes = specificData.reduce(
+          (acc: number, torneio: any) => acc + (torneio.jogadores?.length || 0),
+          0
+        );
 
-      // Média de participantes por torneio
-      const media = mappedOrganizerTournaments.length > 0 ? (participantes / mappedOrganizerTournaments.length).toFixed(2) : 0;
+        // Média de participantes por torneio
+        const media = mappedOrganizerTournaments.length > 0 ? (participantes / mappedOrganizerTournaments.length).toFixed(2) : "0";
 
-      // Torneios com datas futuras
-      const hj = new Date();
-      hj.setHours(0, 0, 0, 0); // zera horas, minutos, segundos, ms
-      const ultimos3Concluidos = mappedOrganizerTournaments
-        .filter(torneio => torneio.status === "finished")
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 3);
+        // Torneios com datas futuras
+        const hj = new Date();
+        hj.setHours(0, 0, 0, 0); // zera horas, minutos, segundos, ms
+        const ultimos3Concluidos = mappedOrganizerTournaments
+          .filter(torneio => torneio.status === "finished")
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 3);
 
-      const futuros = mappedOrganizerTournaments.filter((t: Tournament) => {
-        const tData = new Date(t.date);
-        tData.setHours(0, 0, 0, 0); // zera também a hora do torneio
-        return tData > hoje;
-      });
-      
-      // Torneios da última semana
-      const ultimaSemana = specificData.filter(
-        (t: any) => {
-          const dataT = new Date(t.data_inicio);
-          return dataT >= umaSemanaAtras && dataT <= hoje;
-        }
-      ).length;
+        const futuros = mappedOrganizerTournaments.filter((t: Tournament) => {
+          const tData = new Date(t.date);
+          tData.setHours(0, 0, 0, 0); // zera também a hora do torneio
+          return tData > hoje;
+        });
+        
+        // Torneios da última semana
+        const ultimaSemana = specificData.filter(
+          (t: any) => {
+            const dataT = new Date(t.data_inicio);
+            return dataT >= umaSemanaAtras && dataT <= hoje;
+          }
+        ).length;
 
-      const finalizadosMes = specificData.filter((t: any) => {
-        if (t.status !== 'finished') return false;
-        const dataTorneio = new Date(t.data_inicio);
-        return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
-      }).length;
+        const finalizadosMes = specificData.filter((t: any) => {
+          if (t.status !== 'finished') return false;
+          const dataTorneio = new Date(t.data_inicio);
+          return dataTorneio.getMonth() === mesAtual && dataTorneio.getFullYear() === anoAtual;
+        }).length;
 
-      const primeiroDiaSemana = new Date(hoje);
-      primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay()); // domingo
-      primeiroDiaSemana.setHours(0, 0, 0, 0);
+        const primeiroDiaSemana = new Date(hoje);
+        primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay()); // domingo
+        primeiroDiaSemana.setHours(0, 0, 0, 0);
 
-      const ultimoDiaSemana = new Date(primeiroDiaSemana);
-      ultimoDiaSemana.setDate(primeiroDiaSemana.getDate() + 6); // sábado
-      ultimoDiaSemana.setHours(23, 59, 59, 999);
+        const ultimoDiaSemana = new Date(primeiroDiaSemana);
+        ultimoDiaSemana.setDate(primeiroDiaSemana.getDate() + 6); // sábado
+        ultimoDiaSemana.setHours(23, 59, 59, 999);
 
-      // Filtra torneios desta semana
-      const torneiosEstaSemana = specificData.filter((t: any) => {
-        const dataTorneio = new Date(t.data_inicio);
-        return dataTorneio >= primeiroDiaSemana && dataTorneio <= ultimoDiaSemana;
-      });
-      console.log(torneiosEstaSemana)
-      // Soma participantes
-      const totalParticipantes = torneiosEstaSemana.reduce((acc: number, t: any) => {
-        return acc + (t.jogadores?.length || 0);
-      }, 0);
+        // Filtra torneios desta semana
+        const torneiosEstaSemana = specificData.filter((t: any) => {
+          const dataTorneio = new Date(t.data_inicio);
+          return dataTorneio >= primeiroDiaSemana && dataTorneio <= ultimoDiaSemana;
+        });
+        console.log(torneiosEstaSemana)
+        // Soma participantes
+        const totalParticipantes = torneiosEstaSemana.reduce((acc: number, t: any) => {
+          return acc + (t.jogadores?.length || 0);
+        }, 0);
 
-      // Processa os dados por mês
-      const monthly = Array.from({ length: 12 }, (_, i) => {
-        const month = i + 1;
-        const monthTournaments = specificData.filter((tournament: any) => {
-          const date = new Date(tournament.data_inicio);
-          return date.getMonth() + 1 === month;
+        // Processa os dados por mês
+        const monthly = Array.from({ length: 12 }, (_, i) => {
+          const month = i + 1;
+          const monthTournaments = specificData.filter((tournament: any) => {
+            const date = new Date(tournament.data_inicio);
+            return date.getMonth() + 1 === month;
+          });
+
+          const totalParticipants = monthTournaments.reduce((acc, t: any) => acc + (t.jogadores?.length || 0), 0);
+
+          return {
+            month: new Date(0, i).toLocaleString('pt-BR', { month: 'short' }),
+            tournaments: monthTournaments.length,
+            participants: totalParticipants,
+          };
         });
 
-        const totalParticipants = monthTournaments.reduce((acc, t: any) => acc + (t.jogadores?.length || 0), 0);
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
 
-        return {
-          month: new Date(0, i).toLocaleString('pt-BR', { month: 'short' }),
-          tournaments: monthTournaments.length,
-          participants: totalParticipants,
-        };
-      });
+        const lastWeek = specificData.filter((tournament: any) => {
+          const tournamentDate = new Date(tournament.data_inicio);
+          return tournamentDate >= sevenDaysAgo && tournamentDate <= today;
+        });
 
-      const today = new Date();
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(today.getDate() - 7);
+        setLastWeekTournaments(lastWeek);
+        setMonthlyData(monthly);
+        setTorneiosSemana(torneiosEstaSemana.length);
+        setUltimos3Concluidos(ultimos3Concluidos)
+        setParticipantesSemana(totalParticipantes);
+        setTorneiosFinalizadosMes(finalizadosMes);
+        setTotalParticipantes(participantes);
+        setMediaParticipantes(media);
+        setTorneiosFuturos(futuros);
+        setTorneiosUltimaSemana(ultimaSemana);
 
-      const lastWeek = specificData.filter((tournament: any) => {
-        const tournamentDate = new Date(tournament.data_inicio);
-        return tournamentDate >= sevenDaysAgo && tournamentDate <= today;
-      });
-
-      setLastWeekTournaments(lastWeek);
-      setMonthlyData(monthly);
-      setTorneiosSemana(torneiosEstaSemana.length);
-      setUltimos3Concluidos(ultimos3Concluidos)
-      setParticipantesSemana(totalParticipantes);
-      setTorneiosFinalizadosMes(finalizadosMes);
-      setTotalParticipantes(participantes);
-      setMediaParticipantes(media);
-      setTorneiosFuturos(futuros);
-      setTorneiosUltimaSemana(ultimaSemana);
-
-    } catch (err) {
-      console.error(err);
+      } catch (err) {
+        console.error(err);
+      }
     }
-  }
 
-  fetchOrganizerTournaments();
-}, []);
+    fetchOrganizerTournaments();
+  }, []);
 
-useEffect(() => {
-  if (myTournaments.length === 0) return;
+  useEffect(() => {
+    if (myTournaments.length === 0) return;
 
-  const ativos = myTournaments.filter((t: any) => t.status !== 'finished').length;
-  const finalizados = myTournaments.filter((t: any) => t.status === 'finished').length;
+    const ativos = myTournaments.filter((t: any) => t.status !== 'finished').length;
+    const finalizados = myTournaments.filter((t: any) => t.status === 'finished').length;
 
-  setTorneiosAtivos(ativos);
-  setTorneiosFinalizados(finalizados);
-}, [myTournaments]);
+    setTorneiosAtivos(ativos);
+    setTorneiosFinalizados(finalizados);
+  }, [myTournaments]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -395,17 +416,22 @@ useEffect(() => {
             <CardTitle>Atividade Mensal do Torneio</CardTitle>
             <CardDescription>Torneios e participantes ao longo do tempo</CardDescription>
           </CardHeader>
+          {/* [ALTERAÇÃO APLICADA AQUI] */}
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="tournaments" fill="#2d1b69" name="Torneios" />
-                <Bar dataKey="participants" fill="#6366f1" name="Participantes" />
-              </BarChart>
-            </ResponsiveContainer>
+            {myTournaments.length === 0 ? (
+              <EmptyStateMessage />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="tournaments" fill="#2d1b69" name="Torneios" />
+                  <Bar dataKey="participants" fill="#6366f1" name="Participantes" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -414,26 +440,35 @@ useEffect(() => {
             <CardTitle>Distribuição de Formatos</CardTitle>
             <CardDescription>Formatos de torneios populares</CardDescription>
           </CardHeader>
+
+          {/* [ALTERAÇÃO APLICADA AQUI] */}
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={formatData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {formatData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {formatData.length === 0 ? (
+              <EmptyStateMessage />
+            ) : (
+              // ESTADO: Com Dados
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={formatData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
+                    labelLine={false}
+                    stroke="none"
+                  >
+                    {formatData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -444,6 +479,7 @@ useEffect(() => {
           <CardTitle>Próximos Torneios</CardTitle>
           <CardDescription>Gerencie seus eventos agendados</CardDescription>
         </CardHeader>
+        {/* [ALTERAÇÃO APLICADA AQUI] */}
         <CardContent>
           <div className="space-y-4">
             {torneiosFuturos.map((tournament: Tournament) => (
@@ -467,22 +503,22 @@ useEffect(() => {
                         </span>
                     </div>
                     <Badge 
-                      className={tournament.status === "finished" ? 'bg-gray-100 text-black' : 'bg-purple-100 text-purple-800'}
+                        className={tournament.status === "finished" ? 'bg-gray-100 text-black' : 'bg-purple-100 text-purple-800'}
+                      >
+                        {tournament.status === 'finished' ? 'Fechado' : 'Aberto'}
+                      </Badge>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => onNavigateToTournament(tournament.id.toString())}
                     >
-                      {tournament.status === 'finished' ? 'Fechado' : 'Aberto'}
-                    </Badge>
+                      Ver Detalhes
+                    </Button>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => onNavigateToTournament(tournament.id.toString())}
-                  >
-                    Ver Detalhes
-                  </Button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
         </CardContent>
       </Card>
 
@@ -492,32 +528,37 @@ useEffect(() => {
           <CardTitle>Torneios Recentes</CardTitle>
           <CardDescription>Seus últimos eventos concluídos</CardDescription>
         </CardHeader>
+        {/* [ALTERAÇÃO APLICADA AQUI] */}
         <CardContent>
-          <div className="space-y-4">
-            {ultimos3Concluidos.map((tournament) => (
-            <div
-              key={tournament.id}
-              className="flex items-center justify-between p-4 border rounded-lg"
-            >
-              <div className="flex items-center gap-4 min-w-0">
-                <Trophy className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <h3 className="font-semibold truncate">{tournament.name}</h3>
-                  <p className="text-sm text-muted-foreground"></p>
+          {ultimos3Concluidos.length === 0 ? (
+            <EmptyStateMessageLasts />
+          ) : (
+            <div className="space-y-4">
+              {ultimos3Concluidos.map((tournament) => (
+              <div
+                key={tournament.id}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <Trophy className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <h3 className="font-semibold truncate">{tournament.name}</h3>
+                    <p className="text-sm text-muted-foreground"></p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex flex-col items-end gap-1 text-right">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {tournament.participants?.length || 0} jogadores
-                  </span>
+                <div className="flex flex-col items-end gap-1 text-right">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">
+                      {tournament.participants?.length || 0} jogadores
+                    </span>
+                  </div>
                 </div>
               </div>
+                ))}
             </div>
-              ))}
-          </div>
+          )}
         </CardContent>
       </Card>
 

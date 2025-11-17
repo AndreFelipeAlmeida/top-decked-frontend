@@ -772,7 +772,7 @@ export function TournamentEdit({
                 </Label>
                 <Input
                   id="entryFee"
-                  placeholder="$15"
+                  placeholder="R$15"
                   value={formData.entryFee}
                   onChange={handleEntryFeeChange}
                   type="text" 
@@ -849,7 +849,7 @@ export function TournamentEdit({
               <Label htmlFor="prizes">Prémios</Label>
               <Textarea
                 id="prizes"
-                placeholder="1º Lugar: $100 crédito na loja, 2º Lugar: $50 crédito na loja..."
+                placeholder="1º Lugar: R$100 crédito na loja, 2º Lugar: R$50 crédito na loja..."
                 value={formData.prizes}
                 onChange={(e) =>
                   setFormData({

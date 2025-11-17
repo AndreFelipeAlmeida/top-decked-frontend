@@ -155,7 +155,10 @@ const mapBackendToFrontend = (backendData: BackendTournament[], storeDetailsMap?
       description: t.descricao || '',
       prizes: t.premios || '',
       maxParticipants: t.vagas ?? 0,
-      entryFee: `$${t.taxa ?? 0}`,
+      entryFee: `R$${(t.taxa ?? 0).toLocaleString('pt-BR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })}`,
       structure: t.estrutura || '',
       rounds: t.rodadas?.length || 0,
       status: status,
@@ -419,7 +422,9 @@ export function TournamentList({ onNavigate, onNavigateToTournament, currentUser
             </div>
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{tournament.participants.length}/{tournament.maxParticipants}</span>
+              <span>
+                {tournament.participants.length} {tournament.maxParticipants > 0 ? ` / ${tournament.maxParticipants}` : ''}
+              </span>
             </div>
           </div>
           

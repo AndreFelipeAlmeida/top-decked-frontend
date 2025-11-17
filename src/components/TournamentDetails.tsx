@@ -123,7 +123,9 @@ const mapBackendToFrontend = (backendData: BackendTournament): Tournament => {
       description: backendData.descricao || '',
       prizes: backendData.premios || '',
       maxParticipants: backendData.vagas,
-      entryFee: `$${backendData.taxa}`,
+      entryFee: `R$${(backendData.taxa ?? 0).toLocaleString('pt-BR', 
+        { minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 })}`,
       structure: backendData.estrutura || '',
       rounds: backendData.rodadas?.length || 0,
       status: status,
@@ -565,7 +567,7 @@ try {
           <Users className="h-5 w-5 text-muted-foreground" />
           <div>
             <div className="font-medium">
-              {tournament.participants.length}/{tournament.maxParticipants}
+                {tournament.participants.length} {tournament.maxParticipants > 0 ? ` / ${tournament.maxParticipants}` : ''}
             </div>
             <div className="text-sm text-muted-foreground">Participantes</div>
           </div>

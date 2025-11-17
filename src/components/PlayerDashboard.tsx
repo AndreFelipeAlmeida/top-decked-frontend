@@ -5,6 +5,7 @@ import { MainDashboard } from './dashboard/MainDashboard.tsx';
 import { DetailedStatistics } from './dashboard/DetailedStatistics.tsx';
 import { MatchHistory } from './dashboard/MatchHistory.tsx';
 import { User } from '../data/store.ts';
+import { Card } from './ui/card.tsx';
 
 const API_URL = process.env.REACT_APP_BACKEND_API_URL;
 
@@ -29,6 +30,20 @@ export interface Organizer {
   n_torneios: number;
 }
 
+interface EmptyStateProps {
+  icon: React.ElementType;
+  title: string;
+  message: string;
+}
+
+const EmptyStateMessage = ({ icon: Icon, title, message }: EmptyStateProps) => (
+  <Card className="h-[400px] flex flex-col justify-center items-center text-center text-gray-500 p-4 shadow-none border-dashed">
+    <Icon className="h-12 w-12 text-gray-300 mb-4" />
+    <p className="font-medium text-lg mb-1">{title}</p>
+    <p className="text-sm max-w-xs">{message}</p>
+  </Card>
+);
+
 export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUser }: PlayerDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [playerStats, setPlayerStats] = useState<any | null>(null);
@@ -39,7 +54,6 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
   const [performanceByFormatData, setPerformanceByFormatData] = useState<any[]>([]);
   const [frequentOpponentsData, setFrequentOpponentsData] = useState<any[]>([]);
   
-  // Novo estado para as estatísticas de colocação
   const [placementStats, setPlacementStats] = useState({
     firstPlace: 0,
     secondPlace: 0,
@@ -232,22 +246,39 @@ export function PlayerDashboard({ onNavigate, onNavigateToTournament, currentUse
             onNavigateToTournament={onNavigateToTournament}
             playerStats={playerStats}
             recentTournaments={recentTournaments}
-            placementStats={placementStats} // Passando as novas estatísticas
+            placementStats={placementStats}
             organizers={organizers}
           />
         </TabsContent>
 
+        {/* Lógica simplificada para checar apenas 'yearlyProgressionData', assim como "Histórico" checa 'matchHistory' */}
         <TabsContent value="statistics">
-          <DetailedStatistics
-            yearlyProgressionData={yearlyProgressionData}
-            availableYears={availableYears}
-            frequentOpponentsData={frequentOpponentsData}
-            performanceByFormatData={performanceByFormatData}
-          />
+          {yearlyProgressionData.length > 0 ? (
+            <DetailedStatistics
+              yearlyProgressionData={yearlyProgressionData}
+              availableYears={availableYears}
+              frequentOpponentsData={frequentOpponentsData}
+              performanceByFormatData={performanceByFormatData}
+            />
+          ) : (
+             <EmptyStateMessage
+              icon={Activity}
+              title="Sem Estatísticas Detalhadas :("
+              message="Conforme você joga, esta área será preenchida com gráficos sobre sua progressão anual, oponentes e mais."
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="history">
-          <MatchHistory matchHistory={matchHistory} />
+          {matchHistory.length > 0 ? (
+            <MatchHistory matchHistory={matchHistory} />
+          ) : (
+            <EmptyStateMessage
+              icon={History}
+              title="Nenhum Histórico de Partidas :("
+              message="Ainda não encontramos seu histórico de partidas. Complete alguns torneios para ver seus confrontos."
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

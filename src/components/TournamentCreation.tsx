@@ -360,7 +360,7 @@ export function TournamentCreation({ onNavigate, currentUser }: TournamentCreati
               <Label htmlFor="prizes">Prêmios</Label>
               <Textarea
                 id="prizes"
-                placeholder="1º Lugar: $100 em crédito na loja, 2º Lugar: $50 em crédito na loja..."
+                placeholder="1º Lugar: R$100 em crédito na loja, 2º Lugar: R$50 em crédito na loja..."
                 value={formData.prizes}
                 onChange={(e) => setFormData({ ...formData, prizes: e.target.value })}
               />
