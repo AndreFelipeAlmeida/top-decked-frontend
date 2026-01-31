@@ -1,28 +1,61 @@
-import { useState } from "react"
-import { AuthContext, type User } from "./AuthContext"
+import { useState, useEffect } from "react"
+import { AuthContext } from "./AuthContext"
+import { type User } from "@/types/user"
+import { useQuery } from "@tanstack/react-query"
+import { profile } from "@/services/loginService"
+import { queryClient } from "@/main"
+import { api } from "@/adapters/api"
 
 type AuthProviderProps = {
   children: React.ReactNode
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const storedUser = localStorage.getItem("user")
-    return storedUser ? JSON.parse(storedUser) : null
+  const [token, setToken] = useState<string | null>(() => {
+    const storedToken = localStorage.getItem("accessToken")
+    return storedToken ? JSON.parse(storedToken) : null
   })
 
-  const login = (user: User) => {
+  const isAuthenticated = !!token
+
+  useEffect(() => {
+    if (token) {
+      api.defaults.headers.common.Authorization = `Bearer ${token}`
+    } else {
+      delete api.defaults.headers.common.Authorization
+    }
+  }, [token])
+
+  const { data: user, isLoading } = useQuery<User>({
+    queryKey: ["profile"],
+    queryFn: profile,
+    enabled: !!token,
+  })
+
+  const handleLogin = (token: string) => {
     localStorage.setItem("user", JSON.stringify(user))
-    setUser(user)
+    setToken(token)
   }
 
-  const logout = () => {
-    localStorage.removeItem("user")
-    setUser(null)
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    queryClient.clear()
+    setToken(null)
+  }
+
+  if (isLoading && token) {
+    return null
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user: user ?? null,
+        isAuthenticated,
+        handleLogin,
+        handleLogout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

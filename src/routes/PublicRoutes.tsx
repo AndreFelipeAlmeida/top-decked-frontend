@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom"
 import { useAuthContext } from "@/hooks/useAuthContext"
 
-const AuthLayout = () => {
+const PublicRoutes = () => {
   const { user } = useAuthContext();
 
   if (user) {
@@ -11,4 +11,4 @@ const AuthLayout = () => {
   return (<Outlet />);
 }
 
-export default AuthLayout;
+export default PublicRoutes;
