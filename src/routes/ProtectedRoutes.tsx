@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom"
 import { useAuthContext } from "@/hooks/useAuthContext"
-import { type UserRole } from "@/types/user"
+import { type UserRole } from "@/types/User"
 import { useLocation } from "react-router-dom"
 import AppLayout from "@/components/AppLayout"
 
