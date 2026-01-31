@@ -19,8 +19,8 @@ export default function LoginPage() {
   const from = location.state?.from?.pathname || '/';
   const defaultRedirect =
   user?.tipo === 'loja'
-  ? '/organizer/dashboard'
-  : '/player/dashboard'
+  ? '/loja/dashboard'
+  : '/jogador/dashboard'
   
   const { mutate } = useMutation({
     mutationFn: () => login(email, password),

@@ -4,6 +4,7 @@ import PublicRoutes from '@/routes/PublicRoutes'
 import ProtectedRoutes from '@/routes/ProtectedRoutes'
 import LandingPage from '@/components/LandingPage'
 import LoginPage from './components/LoginPage'
+import OrganizerDashboard from './components/organizer/OrganizerDashboard'
 
 
 function App() {
@@ -33,6 +34,8 @@ function App() {
       </Route>
 
       <Route element={<ProtectedRoutes allowedRoles={["loja"]} />}>
+        <Route path="/loja/dashboard" element={<OrganizerDashboard />} />
+
       </Route>
     </Routes>
   );

@@ -23,7 +23,6 @@ export const login = async (username: string, password: string) => {
 }
 
 export const profile = async () => {
-    console.log(api.defaults.headers.common.Authorization)
     const response = await api.get(`${resource}/profile`)
     return response.data
 }
