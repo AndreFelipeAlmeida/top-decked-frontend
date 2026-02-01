@@ -8,6 +8,8 @@ import OrganizerDashboard from './components/organizer/OrganizerDashboard'
 import StockInventory from './components/organizer/StockInventory'
 import OrganizerRankings from './components/organizer/OrganizerRankings'
 import CreateTournament from './components/organizer/CreateTournament'
+import OrganizerProfile from './components/organizer/OrganizerProfile'
+import OrganizerTournaments from './components/organizer/OrganizerTournaments'
 
 
 function App() {
@@ -41,7 +43,9 @@ function App() {
         <Route path="/loja/estoque" element={<StockInventory />} />
         <Route path="/loja/rankings" element={<OrganizerRankings />} />
         <Route path="/loja/criar-torneio" element={<CreateTournament />} />
-
+        <Route path="/loja/perfil" element={<OrganizerProfile />} />
+        <Route path="/loja/torneios" element={<OrganizerTournaments />} />
+        {/* <Route path="/loja/editar-torneio/:id" element={<EditTournament />} /> */}
       </Route>
     </Routes>
   );
