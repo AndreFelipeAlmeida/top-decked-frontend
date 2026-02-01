@@ -1,6 +1,6 @@
 import { UserPlus, Award, ShoppingCart, CreditCard, Trash2, Search, Plus, Package, Coffee } from 'lucide-react';
 import { useState } from 'react';
-import { type JogadorLojaPublico } from '@/types/Players';
+import { type JogadorLojaPublico } from '@/types/Player';
 import { getStock, updateStock } from '@/services/stockService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Spinner from '../ui/Spinner';

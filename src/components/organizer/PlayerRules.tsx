@@ -1,5 +1,5 @@
-import { Plus, Edit, Trash2, Save, X, Award } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTiposJogador, criarTipoJogador, atualizarTipoJogador, deletarTipoJogador } from '@/services/tipoJogadorService';
 import Spinner from '@/components/ui/Spinner';

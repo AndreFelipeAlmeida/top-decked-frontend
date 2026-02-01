@@ -1,5 +1,5 @@
 import { api } from "@/adapters/api";
-import type { JogadorLojaPublico, JogadorPublico } from "@/types/Players";
+import type { JogadorLojaPublico, JogadorPublico } from "@/types/Player";
 import type { JogadorEstatisticas } from "@/types/Statistics";
 
 const resource = "/jogadores";

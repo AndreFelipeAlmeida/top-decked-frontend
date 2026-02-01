@@ -1,4 +1,4 @@
-import { ArrowLeft, Users, Trophy, Edit, Save, Upload } from 'lucide-react';
+import { ArrowLeft, Trophy, Edit, Save, Upload } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
