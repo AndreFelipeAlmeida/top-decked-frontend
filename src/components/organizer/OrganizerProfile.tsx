@@ -1,6 +1,5 @@
 import { Save, Upload, CreditCard, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useAuthContext } from '@/hooks/useAuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPerfilLoja, atualizarPerfilLoja, uploadFotoLoja } from '@/services/lojasService';
 import Spinner from '@/components/ui/Spinner';
@@ -11,7 +10,6 @@ const historicoFaturas = [
 ];
 
 export default function OrganizerProfile() {
-  const { user } = useAuthContext();
   const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({

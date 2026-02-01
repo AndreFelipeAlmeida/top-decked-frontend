@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Calendar, Trophy, TrendingUp, Award, Medal, Star, Crown } from 'lucide-react';
+import { Download, Trophy, Award, Medal, Star, Crown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getRankingMinhaLoja } from '@/services/rankingService';
 import Spinner from '@/components/ui/Spinner';
@@ -17,7 +17,7 @@ const DistintivoRank = ({ rank }: { rank: number }) => {
 
 export default function OrganizerRankings() {
   const [periodo, setPeriodo] = useState<PeriodoTempo>('mensal');
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [, setShowDatePicker] = useState(false);
 
   // Integração com o Backend
   const { data: rankingData, isLoading } = useQuery({
