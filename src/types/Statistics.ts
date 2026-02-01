@@ -1,8 +1,5 @@
 import type { TorneioJogadorPublico } from './Tournaments';
-
-export type MesEnum = 
-    | "Jan" | "Fev" | "Mar" | "Abr" | "Mai" | "Jun" 
-    | "Jul" | "Ago" | "Set" | "Out" | "Nov" | "Dez";
+import type { MesEnum} from './Enums'
     
 export interface EstatisticasAnuais {
     mes: MesEnum;

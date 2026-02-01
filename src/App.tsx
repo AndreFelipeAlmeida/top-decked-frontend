@@ -10,6 +10,9 @@ import OrganizerRankings from './components/organizer/OrganizerRankings'
 import CreateTournament from './components/organizer/CreateTournament'
 import OrganizerProfile from './components/organizer/OrganizerProfile'
 import OrganizerTournaments from './components/organizer/OrganizerTournaments'
+import PlayerCreditsPos from './components/organizer/PlayerCreditsPos'
+import PlayerRules from './components/organizer/PlayerRules'
+import TournamentEditDetails from './components/organizer/TournamentEditDetails'
 
 
 function App() {
@@ -45,6 +48,9 @@ function App() {
         <Route path="/loja/criar-torneio" element={<CreateTournament />} />
         <Route path="/loja/perfil" element={<OrganizerProfile />} />
         <Route path="/loja/torneios" element={<OrganizerTournaments />} />
+        <Route path="/loja/creditos" element={<PlayerCreditsPos />} />
+        <Route path="/loja/regras-jogadores" element={<PlayerRules />} />
+        <Route path="/loja/torneio/:id/configurar" element={<TournamentEditDetails />} />
         {/* <Route path="/loja/editar-torneio/:id" element={<EditTournament />} /> */}
       </Route>
     </Routes>
