@@ -33,7 +33,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { path: '/loja/regras-jogadores', icon: Settings, label: 'Player Rules' },
     { path: '/loja/estoque', icon: Package, label: 'Stock/Inventory' },
     { path: '/loja/creditos', icon: DollarSign, label: 'Credits/POS' },
-    { path: '/loja/perfil', icon: User, label: 'Profile' },
   ];
 
   const playerNav = [
