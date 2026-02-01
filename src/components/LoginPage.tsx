@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, Swords, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '@/services/loginService'
@@ -12,36 +12,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [accountType, setAccountType] = useState<'organizer' | 'player'>('player');
-  const { user, isAuthenticated,  handleLogin } = useAuthContext();
+  const { handleLogin } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/';
-  const defaultRedirect =
-  user?.tipo === 'loja'
-  ? '/loja/dashboard'
-  : '/jogador/dashboard'
-  
+  const from = location.state?.from?.pathname || "/login";
+
   const { mutate } = useMutation({
     mutationFn: () => login(email, password),
     onSuccess: (data) => {
       handleLogin(data.access_token)
-      navigate(from || defaultRedirect, { replace: true })
+      navigate(from, { replace: true })
     },
     onError: () => console.error('Erro ao fazer login')
   });
   
-  useEffect(() => {
-  if (isAuthenticated && user) {
-    navigate(
-      user.tipo === 'loja'
-        ? '/loja/dashboard'
-        : '/jogador/dashboard',
-      { replace: true }
-    )
-  }
-}, [isAuthenticated, user, navigate])
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     mutate()

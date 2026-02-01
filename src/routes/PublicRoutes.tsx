@@ -5,7 +5,9 @@ const PublicRoutes = () => {
   const { user } = useAuthContext();
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate 
+            to={`${user.tipo}/dashboard`} 
+            replace />;
   }
 
   return (<Outlet />);
