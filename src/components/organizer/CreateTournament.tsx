@@ -10,26 +10,25 @@ export default function CreateTournament() {
   const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({
-    name: '',
-    format: 'Standard',
-    date: '',
-    startTime: '',
-    rounds: 5,
-    timerDuration: 50,
-    cutToTop: 0,
-    prizeDescription: '',
-    entryFee: 15,
-    playerCap: 32,
+    nome: '',
+    formato: 'Standard',
+    data_inicio: '',
+    n_rodadas: 5,
+    tempo_por_rodada: 50,
+    premio: '',
+    taxa: 15,
+    vagas: 32,
   });
 
-  const { mutate, isPending } = useMutation<any, Error, any>({
-    mutationFn: createTournament,
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => {
+        return createTournament(formData)},
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["tournaments"] });
-        navigate('/organizer/dashboard');
+        navigate('/loja/dashboard');
     },
     onError: (error) => {
-        alert(`Erro: ${error.message}`);
+        alert(`Erro: ${error}`);
     }
 });
 
@@ -39,7 +38,7 @@ export default function CreateTournament() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutate(formData);
+    mutate();
   };
 
   if (isPending) return <Spinner />;
@@ -67,8 +66,8 @@ export default function CreateTournament() {
                 <label className="block text-sm font-medium mb-2 text-gray-700">Nome do Torneio</label>
                 <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    value={formData.nome}
+                    onChange={(e) => handleInputChange('nome', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
                     placeholder="Ex: PPTQ Modern"
                     required
@@ -79,8 +78,8 @@ export default function CreateTournament() {
                 <div>
                     <label className="block text-sm font-medium mb-2 text-gray-700">Formato</label>
                     <select
-                    value={formData.format}
-                    onChange={(e) => handleInputChange('format', e.target.value)}
+                    value={formData.formato}
+                    onChange={(e) => handleInputChange('formato', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
                     >
                     <option value="Standard">Standard</option>
@@ -95,8 +94,8 @@ export default function CreateTournament() {
                     <label className="block text-sm font-medium mb-2 text-gray-700">Data</label>
                     <input
                     type="date"
-                    value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
+                    value={formData.data_inicio}
+                    onChange={(e) => handleInputChange('data_inicio', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
                     required
                     />
@@ -117,8 +116,8 @@ export default function CreateTournament() {
                 <label className="block text-sm font-medium mb-2 text-gray-700">Rodadas</label>
                 <input
                     type="number"
-                    value={formData.rounds}
-                    onChange={(e) => handleInputChange('rounds', parseInt(e.target.value) || 0)}
+                    value={formData.n_rodadas}
+                    onChange={(e) => handleInputChange('n_rodadas', parseInt(e.target.value) || 0)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
                     min={1}
                 />
@@ -127,12 +126,12 @@ export default function CreateTournament() {
                 <label className="block text-sm font-medium mb-2 text-gray-700">Tempo (min)</label>
                 <input
                     type="number"
-                    value={formData.timerDuration}
-                    onChange={(e) => handleInputChange('timerDuration', parseInt(e.target.value) || 0)}
+                    value={formData.tempo_por_rodada}
+                    onChange={(e) => handleInputChange('tempo_por_rodada', parseInt(e.target.value) || 0)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
                 />
                 </div>
-                <div>
+                {/* <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700">Corte para Top</label>
                 <select
                     value={formData.cutToTop}
@@ -143,7 +142,7 @@ export default function CreateTournament() {
                     <option value={4}>Top 4</option>
                     <option value={8}>Top 8</option>
                 </select>
-                </div>
+                </div> */}
             </div>
             </section>
 
@@ -154,8 +153,8 @@ export default function CreateTournament() {
                 <h2 className="text-xl text-gray-900 font-semibold">Premiação</h2>
             </div>
             <textarea
-                value={formData.prizeDescription}
-                onChange={(e) => handleInputChange('prizeDescription', e.target.value)}
+                value={formData.premio}
+                onChange={(e) => handleInputChange('premio', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none min-h-[100px]"
                 placeholder="Descreva os prêmios por posição..."
             />
@@ -171,8 +170,8 @@ export default function CreateTournament() {
                 <label className="block text-sm font-medium mb-1 text-gray-700">Valor (R$)</label>
                 <input
                     type="number"
-                    value={formData.entryFee}
-                    onChange={(e) => handleInputChange('entryFee', parseFloat(e.target.value) || 0)}
+                    value={formData.taxa}
+                    onChange={(e) => handleInputChange('taxa', parseFloat(e.target.value) || 0)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
                     step="0.01"
                 />
@@ -181,8 +180,8 @@ export default function CreateTournament() {
                 <label className="block text-sm font-medium mb-1 text-gray-700">Capacidade Máxima</label>
                 <input
                     type="number"
-                    value={formData.playerCap}
-                    onChange={(e) => handleInputChange('playerCap', parseInt(e.target.value) || 0)}
+                    value={formData.vagas}
+                    onChange={(e) => handleInputChange('vagas', parseInt(e.target.value) || 0)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
                 />
                 </div>

@@ -149,7 +149,9 @@ export default function OrganizerDashboard() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="text-gray-900">{tournament.name}</h3>
-                    <p className="text-sm text-gray-600">{tournament.date.getDate()}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(tournament.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                    </p>
                   </div>
                   <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
                     {tournament.status}
@@ -172,7 +174,9 @@ export default function OrganizerDashboard() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="text-gray-900">{tournament.name}</h3>
-                    <p className="text-sm text-gray-600">{tournament.date.getDate()}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(tournament.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">

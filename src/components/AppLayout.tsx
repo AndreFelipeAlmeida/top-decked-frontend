@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Trophy, Plus, Settings, Package, 
-  DollarSign, LogOut, User, Sparkles, Flame, Zap
+  DollarSign, LogOut, User, Sparkles, Flame, Zap, TrendingUp
 } from 'lucide-react';
 import { useAuthContext } from '../hooks/useAuthContext';
 
@@ -27,6 +27,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const organizerNav = [
     { path: '/loja/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/loja/rankings', icon: TrendingUp, label: 'Rankings' },
     { path: '/loja/torneios', icon: Trophy, label: 'Tournaments' },
     { path: '/loja/criar-torneio', icon: Plus, label: 'Create Tournament' },
     { path: '/loja/regras-jogadores', icon: Settings, label: 'Player Rules' },

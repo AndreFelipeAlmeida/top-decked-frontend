@@ -6,6 +6,8 @@ import LandingPage from '@/components/LandingPage'
 import LoginPage from './components/LoginPage'
 import OrganizerDashboard from './components/organizer/OrganizerDashboard'
 import StockInventory from './components/organizer/StockInventory'
+import OrganizerRankings from './components/organizer/OrganizerRankings'
+import CreateTournament from './components/organizer/CreateTournament'
 
 
 function App() {
@@ -37,6 +39,9 @@ function App() {
       <Route element={<ProtectedRoutes allowedRoles={["loja"]} />}>
         <Route path="/loja/dashboard" element={<OrganizerDashboard />} />
         <Route path="/loja/estoque" element={<StockInventory />} />
+        <Route path="/loja/rankings" element={<OrganizerRankings />} />
+        <Route path="/loja/criar-torneio" element={<CreateTournament />} />
+
       </Route>
     </Routes>
   );
