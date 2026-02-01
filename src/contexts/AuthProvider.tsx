@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react"
 import { AuthContext } from "./AuthContext"
 import { type User } from "@/types/User"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { profile } from "@/services/loginService"
-import { queryClient } from "@/main"
 import { api } from "@/adapters/api"
 
 type AuthProviderProps = {
@@ -15,6 +14,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const storedToken = localStorage.getItem("accessToken")
     return storedToken ? JSON.parse(storedToken) : null
   })
+  const queryClient = useQueryClient(); 
 
   const isAuthenticated = !!token
 

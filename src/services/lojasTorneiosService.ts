@@ -3,7 +3,7 @@ import type { Tournament } from "@/types/Tournaments";
 import axios from "axios";
 
 
-const resource = "/lojas/torneios";
+const resource = "/lojas/torneios/";
 
 export const getTournaments = async (): Promise<Tournament[]> => {
   try {
