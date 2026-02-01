@@ -1,33 +1,40 @@
-import type { PlayerTournament } from "./Players"
-import type { Round } from "./Round"
+import { StatusTorneio } from "./Enums";
 
-export type StatusTorneio = "ABERTO" | "EM_ANDAMENTO" | "FINALIZADO"
-
-export interface Tournament {
-    id: string
-    nome: string
-    descricao: string
-    cidade: string
-    estado: string
-    tempo_por_rodada: number
-    data_inicio: Date
-    vagas: number
-    hora: string
-    formato: string
-    tipo: string
-    taxa: number
-    premio: string
-    n_rodadas: number
-    rodada_atual: number
-    regra_basica_id: number
-    pontuacao_de_participacao: number
-    status: StatusTorneio
-    jogadores: PlayerTournament[]
-    rodadas: Round[]
+export interface TorneioBase {
+  nome: string;
+  descricao?: string | null;
+  cidade: string;
+  estado: string;
+  data_inicio: string;
+  vagas: number;
+  hora?: string | null;
+  formato?: string | null;
+  tipo?: string | null;
+  taxa: number;
+  premio?: string | null;
+  n_rodadas: number;
+  tempo_por_rodada: number;
+  regra_basica_id?: number;
 }
 
-export interface TorneioJogadorPublico extends Omit<Tournament, 'jogadores' | 'rodadas'> {
-    colocacao: number
-    participantes: number
-    pontuacao: number
+export interface TorneioPublico extends TorneioBase {
+  id: string;
+  status: StatusTorneio;
+  rodada_atual: number;
+  jogadores: any[];
+  rodadas?: any[];
+  loja?: any;
+}
+
+export interface TorneioJogadorPublico extends TorneioBase {
+  id: string;
+  pontuacao: number;
+  status: StatusTorneio;
+  colocacao: number;
+  participantes: number;
+}
+
+export interface TorneioAtualizar extends Partial<TorneioBase> {
+  regra_basica_id?: number;
+  regras_adicionais?: Record<string, number>;
 }

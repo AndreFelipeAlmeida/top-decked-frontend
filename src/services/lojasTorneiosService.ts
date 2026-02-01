@@ -1,48 +1,33 @@
 import { api } from "@/adapters/api";
-import type { Tournament } from "@/types/Tournaments";
-import type { Round } from "@/types/Round";
-import axios from "axios";
-
+import type { TorneioPublico, TorneioAtualizar, TorneioBase } from "@/types/Tournaments";
 
 const resource = "/lojas/torneios";
 
-export const getTournaments = async (): Promise<Tournament[]> => {
-  try {
-    const response = await api.get<Tournament[]>(`${resource}/`)
-    return response.data
-  } catch (error: any) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return []
-    }
-    throw error
-  }
-}
-
-export const createTournament = async (data: any): Promise<Tournament> => {
-  const response = await api.post<Tournament>(`${resource}/criar`, data);
-  return response.data;
+export const getTournaments = async () => {
+  const res = await api.get<TorneioPublico[]>(`${resource}/loja`);
+  return res.data;
 };
 
-// Busca os dados de um torneio específico para o console
-export const getTournamentById = async (id: string): Promise<Tournament> => {
-  const response = await api.get<Tournament>(`${resource}/${id}`);
-  return response.data;
+export const getTorneioById = async (id: string) => {
+  const res = await api.get<TorneioPublico>(`${resource}/${id}`);
+  return res.data;
 };
 
-// Salva o resultado de uma partida (Round)
-export const updateMatchResult = async (
-  tournamentId: string, 
-  matchData: Partial<Round>
-): Promise<void> => {
-  await api.put(`${resource}/${tournamentId}/matches`, matchData);
+export const atualizarTorneio = async (id: string, dados: TorneioAtualizar) => {
+  const res = await api.put<TorneioPublico>(`${resource}/${id}`, dados);
+  return res.data;
 };
 
-// Gera os pareamentos da próxima rodada (Suíço)
-export const generateNextRound = async (tournamentId: string): Promise<void> => {
-  await api.post(`${resource}/${tournamentId}/next-round`);
+export const importarResultadosTorneio = async (id: string, file: File) => {
+  const formData = new FormData();
+  formData.append("arquivo", file);
+  const res = await api.post(`${resource}/${id}/importar`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
 };
 
-// Finaliza o torneio e define o vencedor
-export const endTournament = async (tournamentId: string): Promise<void> => {
-  await api.post(`${resource}/${tournamentId}/end`);
+export const criarTorneio = async (dados: TorneioBase) => {
+  const res = await api.post<TorneioPublico>(`${resource}/criar`, dados);
+  return res.data;
 };

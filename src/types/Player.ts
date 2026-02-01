@@ -1,9 +1,5 @@
 import type { UsuarioPublico } from './User';
 
-export type MesEnum = 
-    | "Jan" | "Fev" | "Mar" | "Abr" | "Mai" | "Jun" 
-    | "Jul" | "Ago" | "Set" | "Out" | "Nov" | "Dez";
-
 export interface JogadorBase {
     nome: string
     telefone: string | null
@@ -39,9 +35,20 @@ export interface PlayerTournament {
     deck?: string[];
 }
 
-export interface TipoJogador {
-  id: number;
+export interface TipoJogadorBase {
   nome: string;
-  bonus_pontuacao: number;
-  loja_id: number;
+  pt_vitoria: number;
+  pt_derrota: number;
+  pt_empate: number;
+  pt_oponente_perde?: number;
+  pt_oponente_ganha?: number;
+  pt_oponente_empate?: number;
+  tcg: string;
 }
+
+export interface TipoJogadorPublico extends TipoJogadorBase {
+  id: number;
+  loja: number;
+}
+
+export interface TipoJogadorAtualizar extends Partial<TipoJogadorBase> {}
