@@ -174,4 +174,5 @@ export default function OrganizerTournaments() {
       </div>
     </div>
   );
+  
 }
