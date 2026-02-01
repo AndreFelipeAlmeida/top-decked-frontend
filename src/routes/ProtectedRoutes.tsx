@@ -18,7 +18,7 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.tipo)) {
-    return <Navigate to={`${user.tipo}/dashboard` }replace />
+    return <Navigate to={`${user.tipo}/dashboard`} replace />
   }
 
   return (
