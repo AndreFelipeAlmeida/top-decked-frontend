@@ -4,11 +4,11 @@ import type { Round } from "@/types/Round";
 import axios from "axios";
 
 
-const resource = "/lojas/torneios/";
+const resource = "/lojas/torneios";
 
 export const getTournaments = async (): Promise<Tournament[]> => {
   try {
-    const response = await api.get<Tournament[]>(`${resource}/profile`)
+    const response = await api.get<Tournament[]>(`${resource}/`)
     return response.data
   } catch (error: any) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -19,7 +19,7 @@ export const getTournaments = async (): Promise<Tournament[]> => {
 }
 
 export const createTournament = async (data: any): Promise<Tournament> => {
-  const response = await api.post<Tournament>(`${resource}/`, data);
+  const response = await api.post<Tournament>(`${resource}/criar`, data);
   return response.data;
 };
 
