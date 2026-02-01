@@ -1,6 +1,6 @@
 import { ArrowRight, Trophy, Users, DollarSign, BarChart3, Zap, Shield, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { type UserRole } from '@/types/user';
+import { type UserRole } from '@/types/User';
 
 const LandingPage = () => {
   const navigate = useNavigate();

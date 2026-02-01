@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { AuthContext } from "./AuthContext"
-import { type User } from "@/types/user"
+import { type User } from "@/types/User"
 import { useQuery } from "@tanstack/react-query"
 import { profile } from "@/services/loginService"
 import { queryClient } from "@/main"
