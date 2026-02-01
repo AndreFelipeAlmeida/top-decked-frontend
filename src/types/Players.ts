@@ -16,6 +16,9 @@ export interface JogadorPublico extends JogadorBase {
     pokemon_id: string | null
 }
 
+export interface JogadorLojaPublico extends JogadorPublico {
+    creditos: number
+}
 export interface JogadorPublicoLoja extends JogadorBase {
     id: number
     pokemon_id: string | null

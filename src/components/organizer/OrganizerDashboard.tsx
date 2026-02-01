@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Plus, Download, Upload, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthContext } from '@/hooks/useAuthContext';
@@ -113,22 +113,19 @@ export default function OrganizerDashboard() {
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl mb-4 text-gray-900">Format Distribution</h2>
           <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
+            <PieChart width={400} height={300}>
               <Pie
                 data={formatData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent ?? 0 * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
                 dataKey="value"
+                label={false} // Desativa a label flutuante
+                outerRadius={80}
               >
                 {formatData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
               <Tooltip />
+              <Legend verticalAlign="bottom" height={36}/> 
             </PieChart>
           </ResponsiveContainer>
         </div>

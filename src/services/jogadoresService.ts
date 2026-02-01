@@ -1,5 +1,5 @@
 import { api } from "@/adapters/api";
-import type { JogadorPublico } from "@/types/Players";
+import type { JogadorLojaPublico, JogadorPublico } from "@/types/Players";
 import type { JogadorEstatisticas } from "@/types/Statistics";
 
 const resource = "/jogadores";
@@ -18,3 +18,8 @@ export const obterEstatisticas = async (id: number) => {
   const res = await api.get<JogadorEstatisticas>(`${resource}/${id}/estatisticas`);
   return res.data;
 };
+
+export const getPlayersByOrganizer = async () => {
+  const res = await api.get<JogadorLojaPublico[]>(`${resource}/loja`);
+  return res.data;
+}

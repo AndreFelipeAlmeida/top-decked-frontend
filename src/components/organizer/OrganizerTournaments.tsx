@@ -2,13 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Calendar, Users, Swords, MapPin } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useAuthContext } from '@/hooks/useAuthContext';
 import { getTournaments } from '@/services/lojasTorneiosService';
 import Spinner from '../ui/Spinner';
 import type { Tournament, StatusTorneio } from '@/types/Tournaments';
 
 export default function OrganizerTournaments() {
-  const { user } = useAuthContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusTorneio | ''>('');
   const [formatFilter, setFormatFilter] = useState('');
@@ -155,10 +153,8 @@ export default function OrganizerTournaments() {
             
             <div className="p-5 pt-0">
               <Link 
-                to={tournament.status === 'EM_ANDAMENTO' 
-                  ? `/organizer/console/${tournament.id}` 
-                  : `/organizer/edit-tournament/${tournament.id}`
-                }
+                key={tournament.id}
+                to={`/loja/editar-torneio/${tournament.id}`}
                 className={`block w-full text-center py-2.5 rounded-lg font-semibold transition-all shadow-sm ${
                   tournament.status === 'FINALIZADO' 
                     ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
