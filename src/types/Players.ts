@@ -38,3 +38,10 @@ export interface PlayerTournament {
     pontuacao_com_regras: number;
     deck?: string[];
 }
+
+export interface TipoJogador {
+  id: number;
+  nome: string;
+  bonus_pontuacao: number;
+  loja_id: number;
+}

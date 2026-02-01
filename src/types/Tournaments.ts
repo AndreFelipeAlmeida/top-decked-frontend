@@ -10,7 +10,7 @@ export interface Tournament {
     cidade: string
     estado: string
     tempo_por_rodada: number
-    data_inicio: Date | string
+    data_inicio: Date
     vagas: number
     hora: string
     formato: string
