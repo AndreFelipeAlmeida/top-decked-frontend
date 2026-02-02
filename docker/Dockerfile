@@ -11,7 +11,7 @@ RUN npm install
 COPY . .
 
 # Expõe a porta padrão do React (3000)
-EXPOSE 3000
+EXPOSE 5173
 
 # Comando de inicialização
 CMD ["npm", "start"]
