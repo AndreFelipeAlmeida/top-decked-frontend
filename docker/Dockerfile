@@ -1,17 +1,23 @@
-# Usa Node.js para desenvolvimento
-FROM node:20
+# 1. BUILD (Node só aqui)
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copia package.json e instala dependências
 COPY package*.json ./
+
 RUN npm install
 
-# Copia o restante do código
 COPY . .
 
-# Expõe a porta padrão do React (3000)
-EXPOSE 5173
+RUN npm run build
 
-# Comando de inicialização
-CMD ["npm", "run", "dev", "--host", "0.0.0.0"]
+FROM nginx:alpine
+
+# Remove config default do nginx
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Copia nossa config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copia o build do frontend
+COPY --from=build /app/dist /usr/share/nginx/html
