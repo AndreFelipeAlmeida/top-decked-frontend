@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { type JogadorLojaPublico } from '@/types/Player';
 import { getStock, updateStock } from '@/services/stockService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Spinner from '../ui/Spinner';
+import Spinner from '@/components/ui/Spinner';
 import type { Estoque } from '@/types/Stock';
 import { getPlayersByOrganizer } from '@/services/jogadoresService';
 import { updateCredits, addCredits } from '@/services/creditoService';
@@ -47,36 +47,47 @@ export default function PlayerCreditsPos() {
       },
       onError: () => console.error('Erro ao atualizar o item')
     });
-    const cartTotal = cartItems.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
-    const creditAmountNumber = Number(creditAmount) || 0;
-  
-    const remainingBalance = Math.max(0, cartTotal - creditAmountNumber);
-    const appliedCredit = Math.min(
-      creditAmountNumber,
-      selectedPlayer?.creditos ?? 0,
-      cartTotal
-    )
-    const remainingCredits = Math.max(
-      0,
-      (selectedPlayer?.creditos ?? 0) - appliedCredit
-    );
+    
+  const creditAmountNumber = Number(creditAmount) || 0;
+
+  const cartTotal = cartItems.reduce(
+    (sum, item) => sum + item.preco * item.quantidade,
+    0
+  );
+
+  const appliedCredit = Math.min(
+    creditAmountNumber,
+    selectedPlayer?.creditos ?? 0,
+    cartTotal
+  );
 
   const { mutate: mutateCredits, isPending: isCreditsPending } = useMutation({
-      mutationFn: () => {
-        if (!selectedPlayer?.id) {
-          throw new Error("Player ID is required to update credits");
-        }
-        return updateCredits(selectedPlayer.id, {quantidade: remainingCredits});
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['players'] });
-        setCartItems([]);
-        setCreditAmount("");
-        setSelectedPlayer(null);
-      },
-      onError: () => console.error('Erro ao debitar créditos')
-    });
+    mutationFn: () => {
+      if (!selectedPlayer?.id) {
+        throw new Error("Player ID is required to update credits");
+      }
 
+      const remainingCredits = Math.max(
+        0,
+        (selectedPlayer.creditos ?? 0) - appliedCredit
+      );
+      return updateCredits(selectedPlayer.id, {
+        quantidade: remainingCredits
+      });
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['players'] });
+      setCartItems([]);
+      setCreditAmount("");
+      setSelectedPlayer(null);
+    },
+
+    onError: () => console.error('Erro ao debitar créditos')
+  });
+
+
+  const remainingBalance = Math.max(0, cartTotal - appliedCredit);
 
   const filteredProducts = products?.filter(product => {
     const matchesSearch = product.nome.toLowerCase().includes(searchTerm.toLowerCase());
