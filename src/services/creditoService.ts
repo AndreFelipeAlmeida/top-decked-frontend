@@ -8,3 +8,10 @@ export const updateCredits = async (id: number, updatedStock: CreditoUpdate): Pr
     const response = await api.put<Credito>(`${resource}/${id}`, updatedStock)
     return response.data
 }
+
+
+export const addCredits = async (id: number, addCredits: number): Promise<Credito> => {
+    const response = await api.patch<Credito>(`${resource}/${id}/adicionar-credito`, 
+                                            {novos_creditos: addCredits})
+    return response.data
+}

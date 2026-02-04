@@ -7,13 +7,13 @@ import {
 import { useAuthContext } from '../hooks/useAuthContext';
 
 const tcgGames = [
-  { id: 'pokemon', name: 'Pokémon', icon: '⚡', color: 'bg-yellow-500' },
-  { id: 'yugioh', name: 'Yu-Gi-Oh!', icon: '👁️', color: 'bg-purple-500' },
-  { id: 'magic', name: 'Magic', icon: '🔮', color: 'bg-blue-500' },
-  { id: 'onepiece', name: 'One Piece', icon: '🏴‍☠️', color: 'bg-red-500' },
-  { id: 'vtes', name: 'VTES', icon: '🧛', color: 'bg-gray-700' },
-  { id: 'riftbound', name: 'Riftbound', icon: '🌀', color: 'bg-cyan-500' },
-  { id: 'fab', name: 'F&B', icon: '⚔️', color: 'bg-orange-500' },
+  { id: 'pokemon', name: 'Pokémon', icon: '⚡', color: 'bg-yellow-500', disabled: false },
+  { id: 'yugioh', name: 'Yu-Gi-Oh!', icon: '👁️', color: 'bg-purple-500', disabled: true },
+  { id: 'magic', name: 'Magic', icon: '🔮', color: 'bg-blue-500', disabled: true },
+  { id: 'onepiece', name: 'One Piece', icon: '🏴‍☠️', color: 'bg-red-500', disabled: true },
+  { id: 'vtes', name: 'VTES', icon: '🧛', color: 'bg-gray-700', disabled: true },
+  { id: 'riftbound', name: 'Riftbound', icon: '🌀', color: 'bg-cyan-500', disabled: true },
+  { id: 'fab', name: 'F&B', icon: '⚔️', color: 'bg-orange-500', disabled: true },
 ];
 
 interface AppLayoutProps {
@@ -21,7 +21,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const [selectedGame, setSelectedGame] = useState('magic');
+  const [selectedGame, setSelectedGame] = useState('pokemon');
   const location = useLocation();
   const { user, handleLogout } = useAuthContext();
 
@@ -55,12 +55,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {tcgGames.map((game) => (
           <button
             key={game.id}
-            onClick={() => setSelectedGame(game.id)}
+            onClick={() => !game.disabled && setSelectedGame(game.id)}
+            disabled={game.disabled}
             className={`w-12 h-12 rounded-lg flex items-center justify-center text-xl transition-all ${
               selectedGame === game.id
                 ? `${game.color} shadow-lg scale-110`
-                : 'bg-gray-800 hover:bg-gray-700'
-            }`}
+                  : 'bg-gray-800 hover:bg-gray-700'}
+                ${game.disabled ? 'opacity-40 cursor-not-allowed hover:bg-gray-800' : ''}
+                `}
             title={game.name}
           >
             {game.icon}

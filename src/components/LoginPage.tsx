@@ -11,7 +11,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [accountType, setAccountType] = useState<'organizer' | 'player'>('player');
   const { handleLogin } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
@@ -120,18 +119,6 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm mb-2 text-gray-700">Account Type</label>
-                <select
-                  value={accountType}
-                  onChange={(e) => setAccountType(e.target.value as 'organizer' | 'player')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
-                >
-                  <option value="jogador">Jogador</option>
-                  <option value="loja">Loja</option>
-                </select>
               </div>
 
               {activeTab === 'login' && (

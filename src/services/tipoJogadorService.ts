@@ -1,5 +1,5 @@
 import { api } from "@/adapters/api";
-import type { TipoJogadorPublico, TipoJogadorAtualizar, TipoJogadorBase } from "@/types/Player";
+import type { TipoJogadorPublico, TipoJogadorBase } from "@/types/Player";
 
 const resource = "/lojas/tipoJogador";
 
@@ -13,7 +13,7 @@ export const criarTipoJogador = async (dados: TipoJogadorBase) => {
   return res.data;
 };
 
-export const atualizarTipoJogador = async (id: number, dados: TipoJogadorAtualizar) => {
+export const atualizarTipoJogador = async (id: number, dados: TipoJogadorBase) => {
   const res = await api.put<TipoJogadorPublico>(`${resource}/${id}`, dados);
   return res.data;
 };

@@ -1,4 +1,3 @@
-import './App.css'
 import { Routes, Route } from 'react-router-dom'
 import PublicRoutes from '@/routes/PublicRoutes'
 import ProtectedRoutes from '@/routes/ProtectedRoutes'
@@ -16,21 +15,6 @@ import TournamentEditDetails from './components/organizer/TournamentEditDetails'
 
 
 function App() {
-  // const { user, handleLogin } = useAuthContext();
-  // const [showAuth, setShowAuth] = useState<'login' | 'register' | null>(null);
-
-  // const handleNavigateToAuth = (userType: 'organizer' | 'player') => {
-  //   if (userType === 'organizer') {
-  //     setShowAuth('register');
-  //   } else {
-  //     setShowAuth('login');
-  //   }
-  // };
-
-  // const handleBackToLanding = () => {
-  //   setShowAuth(null);
-  // };
-
   return (
     <Routes>
       <Route element={<PublicRoutes />}>

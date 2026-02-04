@@ -6,7 +6,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Spinner from '../ui/Spinner';
 import type { Estoque } from '@/types/Stock';
 import { getPlayersByOrganizer } from '@/services/jogadoresService';
-import { updateCredits } from '@/services/creditoService';
+import { updateCredits, addCredits } from '@/services/creditoService';
+import { criarJogadorLoja } from '@/services/lojasService';
 
 
 export default function PlayerCreditsPos() {
@@ -17,6 +18,12 @@ export default function PlayerCreditsPos() {
   const [creditAmount, setCreditAmount] = useState(0);
   const [secondaryPayment, setSecondaryPayment] = useState<'cash' | 'card'>('cash');
   const [productFilter, setProductFilter] = useState<'all' | 'products' | 'canteen'>('all');
+  const [awardCredits, setAwardCredits] = useState<string>("");
+  const [awardPosition, setAwardPosition] = useState<string>("");
+  const [awardPlayer, setAwardPlayer] = useState<string>("");
+  const [createPlayerName, setCreatePlayerName] = useState<string>("");
+  const [createPlayerTCGId, setCreatePlayerTCGId] = useState<string>("");
+
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: getStock,
@@ -84,21 +91,66 @@ export default function PlayerCreditsPos() {
     setCartItems(cartItems.filter(item => item.id !== id));
   };
 
-const handleCheckout = () => {
-  cartItems.forEach((product) => {
-    const stockProduct = products?.find((p) => p.id === product.id);
-    
-    if (stockProduct) {
-      const novaQuantidade = stockProduct.quantidade - product.quantidade;
+  const handleCheckout = () => {
+    cartItems.forEach((product) => {
+      const stockProduct = products?.find((p) => p.id === product.id);
       
-      mutate({
-        ...product,
-        quantidade: novaQuantidade
-      });
-    }
-  });
-  mutateCredits();
-};
+      if (stockProduct) {
+        const novaQuantidade = stockProduct.quantidade - product.quantidade;
+        
+        mutate({
+          ...product,
+          quantidade: novaQuantidade
+        });
+      }
+    });
+    mutateCredits();
+  };
+
+  const { mutate: mutateAward } = useMutation({
+    mutationFn: () => {
+        if (awardPlayer === null) {
+          throw new Error("Player ID is required to update credits");
+        }
+        if (awardCredits === null) {
+          throw new Error("Player ID is required to update credits");
+        }
+        return addCredits(Number(awardPlayer), Number(awardCredits));
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['players'] });
+        setAwardCredits("");
+        setAwardPosition("");
+        setAwardPlayer("");
+      },
+      onError: () => console.error('Erro ao adicionar créditos')
+    })
+
+  const { mutate: mutatecreatePlayer } = useMutation({
+    mutationFn: () => {
+        if (createPlayerName === null) {
+          throw new Error("Name Player is required to register a player");
+        }
+        if (createPlayerTCGId === null) {
+          throw new Error("Player ID is required to register a player");
+        }
+        return criarJogadorLoja({nome: createPlayerName, pokemon_id: createPlayerTCGId});
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['players'] });
+        setCreatePlayerName("");
+        setCreatePlayerTCGId("");
+      },
+      onError: () => console.error('Erro ao criar jogador')
+    })
+
+  const handleAwardPrize = () => {
+    mutateAward()
+  }
+
+  const handleRegisterPlayer = () => {
+    mutatecreatePlayer()
+  }
 
   if (isLoading || isPending || isPlayersLoading || isCreditsPending) 
     return <Spinner />
@@ -124,16 +176,21 @@ const handleCheckout = () => {
                 <input
                   type="text"
                   placeholder="Player Name"
+                  value={createPlayerName}
+                  onChange={(e) => {setCreatePlayerName(e.target.value)}}
                   className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
                 <input
                   type="text"
                   placeholder="TCG ID (e.g., MTG123456)"
+                  value={createPlayerTCGId}
+                  onChange={(e) => {setCreatePlayerTCGId(e.target.value)}}
                   className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-2">Email is no longer required for player registration</p>
-              <button className="mt-4 w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition-colors">
+              <button
+                className="mt-4 w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition-colors"
+                onClick={handleRegisterPlayer}>
                 Register Player
               </button>
             </div>
@@ -145,7 +202,10 @@ const handleCheckout = () => {
                 <h2 className="text-xl text-gray-900">Award Prize Credits</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <select className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600">
+                <select className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  value={awardPlayer ?? ""}
+                  onChange={(e) => setAwardPlayer(e.target.value)}
+                >
                   <option value="">Select Player</option>
                   {players?.map(player => (
                     <option key={player.id} value={player.id}>{player.nome}</option>
@@ -153,16 +213,21 @@ const handleCheckout = () => {
                 </select>
                 <input
                   type="number"
+                  value={awardCredits}
+                  onChange={(e) => setAwardCredits(e.target.value)}
                   placeholder="Prize Amount ($)"
                   className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
                 <input
                   type="number"
+                  value={awardPosition}
+                  onChange={(e) => setAwardPosition(e.target.value)}
                   placeholder="Ranking Position"
                   className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
               </div>
-              <button className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition-colors">
+              <button className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition-colors"
+                onClick={handleAwardPrize}>
                 Award Prize
               </button>
             </div>
