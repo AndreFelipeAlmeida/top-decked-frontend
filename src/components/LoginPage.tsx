@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Swords, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '@/services/loginService'
+import { login, registrate } from '@/services/loginService'
 import { useMutation } from '@tanstack/react-query'
 import { useAuthContext } from '@/hooks/useAuthContext';
 import { useLocation } from 'react-router-dom'
@@ -11,13 +11,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
   const { handleLogin } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || "/login";
 
-  const { mutate } = useMutation({
+  const { mutate: mutateLogin, isPending: isLoginPending } = useMutation({
     mutationFn: () => login(email, password),
     onSuccess: (data) => {
       handleLogin(data.access_token)
@@ -25,10 +26,22 @@ export default function LoginPage() {
     },
     onError: () => console.error('Erro ao fazer login')
   });
-  
+
+  const { mutate: mutateRegistration, isPending: isRegisterPending } = useMutation({
+    mutationFn: () => registrate({ nome: name, email: email, senha: password}),
+    onSuccess: () => {
+      navigate("/jogador/confirmar-email")
+    },
+    onError: () => console.error('Erro ao fazer Registro')
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutate()
+    if (activeTab === "login") {
+      mutateLogin();
+    } else {
+      mutateRegistration();
+    }
   };
 
   const handleBack = () => navigate("/")
@@ -81,13 +94,18 @@ export default function LoginPage() {
 
           {/* Form */}
           <div className="p-6">
-            {activeTab === 'register' && (
-              <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded text-sm text-purple-800">
-                <strong>Note:</strong> Registration is exclusive for Stores/Organizers. Players are manually registered by stores.
-              </div>
-            )}
-
             <form onSubmit={handleSubmit}>
+              { activeTab === "register" && <div className="mb-4">
+                <label className="block text-sm mb-2 text-gray-700">Nome</label>
+                <input
+                  type="string"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>}
               <div className="mb-4">
                 <label className="block text-sm mb-2 text-gray-700">Email</label>
                 <input
@@ -101,7 +119,7 @@ export default function LoginPage() {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm mb-2 text-gray-700">Password</label>
+                <label className="block text-sm mb-2 text-gray-700">Senha</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -124,16 +142,29 @@ export default function LoginPage() {
               {activeTab === 'login' && (
                 <div className="mb-6">
                   <a href="#" className="text-sm text-purple-600 hover:text-purple-700">
-                    Forgot Password?
+                    Esqueceu a senha?
                   </a>
                 </div>
               )}
 
               <button
                 type="submit"
-                className="w-full bg-purple-600 text-white py-3 rounded hover:bg-purple-700 transition-colors"
+                disabled={isLoginPending || isRegisterPending}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded transition-colors ${
+                  isLoginPending || isRegisterPending
+                    ? 'bg-purple-400 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                }`}
               >
-                {activeTab === 'login' ? 'Login' : 'Register'}
+                {isLoginPending || isRegisterPending && (
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+
+                <span>
+                  {activeTab === 'login'
+                    ? isLoginPending ? 'Entrando...' : 'Login'
+                    : isRegisterPending ? 'Registrando...' : 'Register'}
+                </span>
               </button>
             </form>
           </div>

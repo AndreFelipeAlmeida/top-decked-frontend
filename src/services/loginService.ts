@@ -1,4 +1,5 @@
 import { api } from "@/adapters/api";
+import type { JogadorCriar, JogadorPublico } from "@/types/Player";
 
 const resource = "/login";
 
@@ -18,6 +19,14 @@ export const login = async (username: string, password: string) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
     });
+    
+  return res.data;
+}
+
+export const registrate = async (novo_jogador: JogadorCriar) => {
+  console.log(novo_jogador)
+  const res = await api
+    .post<JogadorPublico>(`/jogadores/`, novo_jogador);
     
   return res.data;
 }

@@ -24,10 +24,10 @@ export interface JogadorPublicoLoja extends JogadorBase {
     tipo_jogador_id: number | null
 }
 
-export interface JogadorCriar extends JogadorBase {
+export interface JogadorCriar {
+    nome: string
     email: string
     senha: string
-    pokemon_id?: string | null
 }
 
 export type JogadorUpdate = Partial<JogadorCriar>
