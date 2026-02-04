@@ -12,6 +12,8 @@ import OrganizerTournaments from './components/organizer/OrganizerTournaments'
 import PlayerCreditsPos from './components/organizer/PlayerCreditsPos'
 import PlayerRules from './components/organizer/PlayerRules'
 import TournamentEditDetails from './components/organizer/TournamentEditDetails'
+import PlayerProfileWallet from './components/player/PlayerProfileWallet'
+import ConfirmEmailPage from './components/ConfirmEmailPage'
 
 
 function App() {
@@ -20,9 +22,11 @@ function App() {
       <Route element={<PublicRoutes />}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/jogador/confirmar-email" element={<ConfirmEmailPage />} />
       </Route>
 
       <Route element={<ProtectedRoutes allowedRoles={["jogador"]} />}>
+        <Route path="/jogador/dashboard" element={<PlayerProfileWallet />} />
       </Route>
 
       <Route element={<ProtectedRoutes allowedRoles={["loja"]} />}>

@@ -1,5 +1,5 @@
 import { api } from "@/adapters/api";
-import type { Credito, CreditoUpdate } from "@/types/Credito";
+import type { Credito, CreditoJogador, CreditoUpdate } from "@/types/Credito";
 
 
 const resource = "/creditos";
@@ -13,5 +13,10 @@ export const updateCredits = async (id: number, updatedStock: CreditoUpdate): Pr
 export const addCredits = async (id: number, addCredits: number): Promise<Credito> => {
     const response = await api.patch<Credito>(`${resource}/${id}/adicionar-credito`, 
                                             {novos_creditos: addCredits})
+    return response.data
+}
+
+export const getPlayerCredits = async (): Promise<CreditoJogador[]> => {
+    const response = await api.get<CreditoJogador[]>(`${resource}/jogador`)
     return response.data
 }

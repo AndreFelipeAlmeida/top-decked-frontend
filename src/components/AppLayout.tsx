@@ -26,21 +26,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { user, handleLogout } = useAuthContext();
 
   const organizerNav = [
-    { path: '/loja/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/loja/rankings', icon: TrendingUp, label: 'Rankings' },
-    { path: '/loja/torneios', icon: Trophy, label: 'Tournaments' },
-    { path: '/loja/criar-torneio', icon: Plus, label: 'Create Tournament' },
-    { path: '/loja/regras-jogadores', icon: Settings, label: 'Player Rules' },
-    { path: '/loja/estoque', icon: Package, label: 'Stock/Inventory' },
-    { path: '/loja/creditos', icon: DollarSign, label: 'Credits/POS' },
+    { path: '/loja/dashboard', icon: LayoutDashboard, label: 'Dashboard', disabled: false },
+    { path: '/loja/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
+    { path: '/loja/torneios', icon: Trophy, label: 'Tournaments', disabled: false },
+    { path: '/loja/criar-torneio', icon: Plus, label: 'Create Tournament', disabled: false },
+    { path: '/loja/regras-jogadores', icon: Settings, label: 'Player Rules', disabled: false },
+    { path: '/loja/estoque', icon: Package, label: 'Stock/Inventory', disabled: false },
+    { path: '/loja/creditos', icon: DollarSign, label: 'Credits/POS', disabled: false },
   ];
 
   const playerNav = [
-    { path: '/jogador/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/jogador/estatisticas', icon: Sparkles, label: 'Statistics' },
-    { path: '/jogador/historico', icon: Flame, label: 'Match History' },
-    { path: '/jogador/torneios', icon: Trophy, label: 'Tournaments' },
-    { path: '/jogador/perfil', icon: User, label: 'Profile & Wallet' },
+    { path: '/jogador/dashboard', icon: User, label: 'Profile & Wallet', disabled: false },
+    { path: '/jogador/estatisticas', icon: Sparkles, label: 'Statistics', disabled: true},
+    { path: '/jogador/historico', icon: Flame, label: 'Match History', disabled: true },
+    { path: '/jogador/torneios', icon: Trophy, label: 'Tournaments', disabled: true },
+    { path: '/jogador/perfil', icon: User, label: 'Profile & Wallet', disabled: true },
   ];
 
   const navItems = user?.tipo === 'loja' ? organizerNav : playerNav;
@@ -90,20 +90,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-purple-50 text-purple-600'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-sm">{item.label}</span>
-              </Link>
-            );
+            if (!item.disabled) {
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-purple-50 text-purple-600'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-sm">{item.label}</span>
+                </Link>
+              );
+          }
           })}
         </nav>
 

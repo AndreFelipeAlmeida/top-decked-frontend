@@ -9,6 +9,11 @@ export const obterPerfilJogador = async (id: number) => {
   return res.data;
 };
 
+export const editarPerfilJogador = async (pokemon_id: string) => {
+  const res = await api.put<JogadorPublico>(`${resource}/`, {pokemon_id: pokemon_id});
+  return res.data;
+};
+
 export const obterLojaPorUsuario = async (usuarioId: number) => {
     const res = await api.get<JogadorPublico>(`/lojas/usuario/${usuarioId}`);
     return res.data;
