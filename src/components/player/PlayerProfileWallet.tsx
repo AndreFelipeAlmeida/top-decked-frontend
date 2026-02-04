@@ -39,8 +39,8 @@ export default function PlayerProfileWallet() {
       <div className="p-8">
         Header
         <div className="mb-8">
-          <h1 className="text-3xl mb-2 text-gray-900">Profile & Wallet</h1>
-          <p className="text-gray-600">Manage your personal information and multi-store credits</p>
+          <h1 className="text-3xl mb-2 text-gray-900">Perfil & Carteira</h1>
+          <p className="text-gray-600">Organize suas informações pessoais e os seus créditos em múltiplas lojas</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -110,7 +110,7 @@ export default function PlayerProfileWallet() {
             {/* Game IDs */}
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl text-gray-900">Game IDs</h2>
+                <h2 className="text-xl text-gray-900">IDs dos Jogos</h2>
                 {!isEditingGameIds ? (
                   <button 
                     onClick={() => setIsEditingGameIds(true)}
@@ -160,7 +160,7 @@ export default function PlayerProfileWallet() {
                   />
                 </div> */}
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Pokémon Player ID</label>
+                  <label className="block text-sm text-gray-600 mb-1">ID do Jogador</label>
                   <input
                     type="text"
                     value={pokemonId}
@@ -193,7 +193,7 @@ export default function PlayerProfileWallet() {
             {/* Store Selector & Transaction History */}
             <div className="bg-white rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl mb-4 text-gray-900">Store Credit Wallet</h2>
+                <h2 className="text-xl mb-4 text-gray-900">Carteira de Créditos</h2>
                 <div className="flex items-center space-x-2 overflow-x-auto pb-2">
                   {/* {stores.map((store) => (
                     <button
@@ -296,14 +296,14 @@ export default function PlayerProfileWallet() {
           <div className="space-y-8">
             {/* Total Credits Across All Stores */}
             <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg shadow-lg p-6 text-white">
-              <h3 className="text-lg mb-4">Total Store Credits</h3>
-              <p className="text-5xl mb-2">${totalCredits.toFixed(2)}</p>
-              <p className="text-purple-100 text-sm">Across {stores.length} stores</p>
+              <h3 className="text-lg mb-4">Créditos Totais</h3>
+              <p className="text-5xl mb-2">R${totalCredits.toFixed(2)}</p>
+              <p className="text-purple-100 text-sm">Somando {stores.length} lojas</p>
             </div>
 
             {/* All Store Balances */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg mb-4 text-gray-900">Store Balances</h3>
+              <h3 className="text-lg mb-4 text-gray-900">Registro por Loja</h3>
               <div className="space-y-3">
                 {stores.map((store) => (
                   <div key={store.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

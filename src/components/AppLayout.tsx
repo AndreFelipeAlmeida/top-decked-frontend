@@ -36,7 +36,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   ];
 
   const playerNav = [
-    { path: '/jogador/dashboard', icon: User, label: 'Profile & Wallet', disabled: false },
+    { path: '/jogador/dashboard', icon: User, label: 'Perfil & Carteira', disabled: false },
     { path: '/jogador/estatisticas', icon: Sparkles, label: 'Statistics', disabled: true},
     { path: '/jogador/historico', icon: Flame, label: 'Match History', disabled: true },
     { path: '/jogador/torneios', icon: Trophy, label: 'Tournaments', disabled: true },

@@ -238,7 +238,7 @@ export default function PlayerCreditsPos() {
                   type="number"
                   value={awardCredits}
                   onChange={(e) => setAwardCredits(e.target.value)}
-                  placeholder="Prize Amount ($)"
+                  placeholder="Prize Amount (R$)"
                   className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
                 <input
@@ -319,7 +319,7 @@ export default function PlayerCreditsPos() {
                         <div className="text-sm text-gray-900">{product.nome}</div>
                         <div className="text-xs text-gray-500">{product.categoria}</div>
                       </div>
-                      <div className="text-sm text-gray-900">${product.preco.toFixed(2)}</div>
+                      <div className="text-sm text-gray-900">R${product.preco.toFixed(2)}</div>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-xs text-gray-500">Stock: {product.quantidade}</div>
@@ -363,7 +363,7 @@ export default function PlayerCreditsPos() {
               {selectedPlayer && (
                 <div className="mt-4 p-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg text-white">
                   <p className="text-sm text-purple-100 mb-1">Available Store Credit:</p>
-                  <p className="text-3xl">${selectedPlayer.creditos.toFixed(2)}</p>
+                  <p className="text-3xl">R${selectedPlayer.creditos.toFixed(2)}</p>
                 </div>
               )}
             </div>
@@ -389,11 +389,11 @@ export default function PlayerCreditsPos() {
                         <div className="flex-1">
                           <p className="text-sm text-gray-900">{item.nome}</p>
                           <p className="text-xs text-gray-600">
-                            ${item.preco.toFixed(2)} x {item.quantidade}
+                            R${item.preco.toFixed(2)} x {item.quantidade}
                           </p>
                         </div>
                         <div className="flex items-center space-x-3">
-                          <p className="text-sm text-gray-900">${(item.preco * item.quantidade).toFixed(2)}</p>
+                          <p className="text-sm text-gray-900">R${(item.preco * item.quantidade).toFixed(2)}</p>
                           <button 
                             onClick={() => removeFromCart(item.id)}
                             className="text-red-600 hover:text-red-700"
@@ -409,7 +409,7 @@ export default function PlayerCreditsPos() {
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex items-center justify-between text-lg mb-4">
                       <span className="text-gray-900">Total Due:</span>
-                      <span className="text-2xl text-gray-900">${cartTotal.toFixed(2)}</span>
+                      <span className="text-2xl text-gray-900">R${cartTotal.toFixed(2)}</span>
                     </div>
 
                     {/* Hybrid Payment System */}
@@ -447,7 +447,7 @@ export default function PlayerCreditsPos() {
                       />
                       {selectedPlayer && (
                         <p className="text-xs text-gray-600 mt-1">
-                          Max: ${Math.min(selectedPlayer.creditos, cartTotal).toFixed(2)}
+                          Max: R${Math.min(selectedPlayer.creditos, cartTotal).toFixed(2)}
                         </p>
                       )}
                     </div>
@@ -457,11 +457,11 @@ export default function PlayerCreditsPos() {
                       <div className="bg-gray-50 rounded-lg p-4 mb-4">
                         <div className="flex justify-between text-sm mb-2">
                           <span className="text-gray-600">Paid with Credit:</span>
-                          <span className="text-green-600">-${creditAmountNumber.toFixed(2)}</span>
+                          <span className="text-green-600">-R${creditAmountNumber.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
                           <span className="text-gray-900">Remaining Balance:</span>
-                          <span className="text-gray-900">${remainingBalance.toFixed(2)}</span>
+                          <span className="text-gray-900">R${remainingBalance.toFixed(2)}</span>
                         </div>
                       </div>
                     )}
