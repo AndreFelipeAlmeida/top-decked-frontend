@@ -314,7 +314,7 @@ export default function PlayerProfileWallet() {
                         <div className="text-xs text-gray-500">{store.endereco}</div>
                       </div>
                     </div>
-                    <div className="text-purple-600">${store.quantidade.toFixed(2)}</div>
+                    <div className="text-purple-600">R${store.quantidade.toFixed(2)}</div>
                   </div>
                 ))}
               </div>
