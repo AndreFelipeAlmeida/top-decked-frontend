@@ -34,11 +34,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const handleLogin = (token: string) => {
     localStorage.setItem("user", JSON.stringify(user))
+    localStorage.setItem("accessToken", JSON.stringify(token))
+
     setToken(token)
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('user')
     queryClient.clear()
     setToken(null)
   }
