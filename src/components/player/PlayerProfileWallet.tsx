@@ -1,32 +1,40 @@
-// import { useAuthContext } from '@/hooks/useAuthContext';
+import { useAuthContext } from '@/hooks/useAuthContext';
 import { getPlayerCredits } from '@/services/creditoService';
-import { editarPerfilJogador } from '@/services/jogadoresService';
-import type { JogadorPublico } from '@/types/Player';
+import { editarPerfilJogador, obterPerfilJogador } from '@/services/jogadoresService';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Edit, Save, Store } from 'lucide-react';
 import { useState } from 'react';
-// import { useState } from 'react';
 
 
 export default function PlayerProfileWallet() {
-  // const { user } = useAuthContext();
+  const { user } = useAuthContext();
   const queryClient = useQueryClient();
   const [isEditingGameIds, setIsEditingGameIds] = useState(false);
-  const [pokemonId, setPokemonId] = useState("");
+  const [editedPokemonId, setEditedPokemonId] = useState("");
+
+  useQuery({
+    queryKey: ["player", user?.id],
+    queryFn: () => obterPerfilJogador(user?.id ?? -1),
+    enabled: !!user?.id,
+    onSuccess: (data) => {
+      setEditedPokemonId(data.pokemon_id ?? "")
+    }
+  });
 
   const { data: stores = [] } = useQuery({
     queryKey: ["creditos"],
-    queryFn: getPlayerCredits
+    queryFn: getPlayerCredits,
   })
 
   const { mutate } = useMutation({
-    mutationFn: () => editarPerfilJogador(pokemonId),
-    onSuccess: (data: JogadorPublico) => {
+    mutationFn: () => editarPerfilJogador(editedPokemonId),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creditos'] });
-      setPokemonId(data.pokemon_id ?? "")
-      setIsEditingGameIds(false)
+      setEditedPokemonId("");
+      setIsEditingGameIds(false);
     }
   });
+  
   const handleSaveGameIds = () => {
     mutate()
   }
@@ -163,8 +171,8 @@ export default function PlayerProfileWallet() {
                   <label className="block text-sm text-gray-600 mb-1">ID do Jogador</label>
                   <input
                     type="text"
-                    value={pokemonId}
-                    onChange={(e) => setPokemonId(e.target.value )}
+                    value={editedPokemonId}
+                    onChange={(e) => setEditedPokemonId(e.target.value )}
                     disabled={!isEditingGameIds}
                     className={`w-full px-3 py-2 border border-gray-300 rounded ${
                       isEditingGameIds 
