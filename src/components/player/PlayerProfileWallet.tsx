@@ -12,7 +12,7 @@ export default function PlayerProfileWallet() {
   const [isEditingGameIds, setIsEditingGameIds] = useState(false);
   const [editedPokemonId, setEditedPokemonId] = useState("");
 
-  useQuery({
+  const { data: player } = useQuery({
     queryKey: ["player", user?.id],
     queryFn: () => obterPerfilJogador(user?.id ?? -1),
     enabled: !!user?.id,
@@ -29,13 +29,19 @@ export default function PlayerProfileWallet() {
   const { mutate } = useMutation({
     mutationFn: () => editarPerfilJogador(editedPokemonId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['creditos'] });
-      setEditedPokemonId("");
+      queryClient.invalidateQueries({ queryKey: ["player", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["creditos"] });
+
       setIsEditingGameIds(false);
     }
   });
   
   const handleSaveGameIds = () => {
+    if (editedPokemonId === "") {
+      setEditedPokemonId(player?.pokemon_id ?? "")
+      setIsEditingGameIds(false);
+      return
+    }
     mutate()
   }
 
