@@ -6,7 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Spinner from '../ui/Spinner';
 import type { Estoque } from '@/types/Stock';
 import { getPlayersByOrganizer } from '@/services/jogadoresService';
-import { updateCredits, addCredits } from '@/services/creditoService';
+import { updateCredits, addCredits, removeCredits } from '@/services/creditoService';
 import { criarJogadorLoja } from '@/services/lojasService';
 
 
@@ -16,13 +16,14 @@ export default function PlayerCreditsPos() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cartItems, setCartItems] = useState<Array<Estoque>>([]);
   const [creditAmount, setCreditAmount] = useState("");
-  const [secondaryPayment, setSecondaryPayment] = useState<'cash' | 'card'>('cash');
+  const [secondaryPayment, setSecondaryPayment] = useState<'cash' | 'card' | 'pix'>('cash');
   const [productFilter, setProductFilter] = useState<'all' | 'products' | 'canteen'>('all');
   const [awardCredits, setAwardCredits] = useState<string>("");
-  const [awardPosition, setAwardPosition] = useState<string>("");
   const [awardPlayer, setAwardPlayer] = useState<string>("");
   const [createPlayerName, setCreatePlayerName] = useState<string>("");
   const [createPlayerTCGId, setCreatePlayerTCGId] = useState<string>("");
+  const [removeCr, setRemoveCr] = useState("");
+  const [removeCrPlayer, setRemoveCrPlayer] = useState("");
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: getStock,
@@ -35,7 +36,7 @@ export default function PlayerCreditsPos() {
     retry: false
   });
 
-  const { mutate, isPending } = useMutation({
+  const { mutate } = useMutation({
       mutationFn: (product: Estoque | null) => {
         if (!product?.id) {
           throw new Error("Product ID is required to update stock");
@@ -61,7 +62,7 @@ export default function PlayerCreditsPos() {
       (selectedPlayer?.creditos ?? 0) - appliedCredit
     );
 
-  const { mutate: mutateCredits, isPending: isCreditsPending } = useMutation({
+  const { mutate: mutateCredits } = useMutation({
       mutationFn: () => {
         if (!selectedPlayer?.id) {
           throw new Error("Player ID is required to update credits");
@@ -131,7 +132,6 @@ export default function PlayerCreditsPos() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['players'] });
         setAwardCredits("");
-        setAwardPosition("");
         setAwardPlayer("");
       },
       onError: () => console.error('Erro ao adicionar créditos')
@@ -152,6 +152,24 @@ export default function PlayerCreditsPos() {
         setCreatePlayerName("");
         setCreatePlayerTCGId("");
       },
+      onError: () => console.error('Erro ao remover créditos')
+    })
+
+  const { mutate: mutateRemoveCredits } = useMutation({
+    mutationFn: () => {
+        if (removeCrPlayer === null) {
+          throw new Error("Player ID is required to update credits");
+        }
+        if (removeCr === null) {
+          throw new Error("Player ID is required to update credits");
+        }
+        return removeCredits(Number(removeCrPlayer), Number(removeCr));
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['players'] });
+        setRemoveCrPlayer("");
+        setRemoveCr("");
+      },
       onError: () => console.error('Erro ao criar jogador')
     })
 
@@ -163,7 +181,15 @@ export default function PlayerCreditsPos() {
     mutatecreatePlayer()
   }
 
-  if (isLoading || isPending || isPlayersLoading || isCreditsPending) 
+  const handleRemoveCredits = () => {
+    if (removeCrPlayer === "" || removeCr === "") {
+      return
+    }
+
+    mutateRemoveCredits();
+  }
+
+  if (isLoading) 
     return <Spinner />
 
 
@@ -171,8 +197,8 @@ export default function PlayerCreditsPos() {
       <div className="p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl mb-2 text-gray-900">Player Credits & POS</h1>
-          <p className="text-gray-600">Manage player credits and process sales</p>
+          <h1 className="text-3xl mb-2 text-gray-900">Créditos de Jogadores & Vendas</h1>
+          <p className="text-gray-600">Organize os créditos dos seus jogadores e suas vendas</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -182,7 +208,7 @@ export default function PlayerCreditsPos() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center space-x-2 mb-4">
                 <UserPlus className="w-5 h-5 text-purple-600" />
-                <h2 className="text-xl text-gray-900">Register New Player</h2>
+                <h2 className="text-xl text-gray-900">Registrar novo jogador</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
@@ -203,50 +229,75 @@ export default function PlayerCreditsPos() {
               <button
                 className="mt-4 w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition-colors"
                 onClick={handleRegisterPlayer}>
-                Register Player
+                Registrar jogador
               </button>
             </div>
 
-            {/* Award Prize Credits */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <Award className="w-5 h-5 text-purple-600" />
-                <h2 className="text-xl text-gray-900">Award Prize Credits</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Award Prize Credits */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Award className="w-5 h-5 text-purple-600" />
+                  <h2 className="text-xl text-gray-900">Premiar créditos
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <select className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    value={awardPlayer ?? ""}
+                    onChange={(e) => setAwardPlayer(e.target.value)}
+                  >
+                    <option value="">Jogador</option>
+                    {players?.map(player => (
+                      <option key={player.id} value={player.id}>{player.nome}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={awardCredits}
+                    onChange={(e) => setAwardCredits(e.target.value)}
+                    placeholder="R$"
+                    className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  />
+                </div>
+                <button className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition-colors"
+                  onClick={handleAwardPrize}>
+                  Premiar
+                </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <select className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  value={awardPlayer ?? ""}
-                  onChange={(e) => setAwardPlayer(e.target.value)}
-                >
-                  <option value="">Select Player</option>
-                  {players?.map(player => (
-                    <option key={player.id} value={player.id}>{player.nome}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  value={awardCredits}
-                  onChange={(e) => setAwardCredits(e.target.value)}
-                  placeholder="Prize Amount ($)"
-                  className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
-                <input
-                  type="number"
-                  value={awardPosition}
-                  onChange={(e) => setAwardPosition(e.target.value)}
-                  placeholder="Ranking Position"
-                  className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
+              {/* Remove Prize Credits */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Award className="w-5 h-5 text-purple-600" />
+                  <h2 className="text-xl text-gray-900">Retirar Créditos</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <select className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    value={removeCrPlayer ?? ""}
+                    onChange={(e) => setRemoveCrPlayer(e.target.value)}
+                  >
+                    <option value="">Jogador</option>
+                    {players?.map(player => (
+                      <option key={player.id} value={player.id}>{player.nome}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={removeCr}
+                    onChange={(e) => setRemoveCr(e.target.value)}
+                    placeholder="R$"
+                    className="px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
+                  />
+                </div>
+                <button className="mt-4 w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition-colors"
+                  onClick={handleRemoveCredits}>
+                  Retirar
+                </button>
               </div>
-              <button className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition-colors"
-                onClick={handleAwardPrize}>
-                Award Prize
-              </button>
             </div>
 
             {/* Available Stock - Product Selector */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl mb-4 text-gray-900">Available Stock</h2>
+              <h2 className="text-xl mb-4 text-gray-900">Estoque disponível</h2>
               
               {/* Filter Tabs */}
               <div className="flex space-x-2 mb-4">
@@ -258,7 +309,7 @@ export default function PlayerCreditsPos() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  <span>All</span>
+                  <span>Todos</span>
                 </button>
                 <button
                   onClick={() => setProductFilter('products')}
@@ -269,7 +320,7 @@ export default function PlayerCreditsPos() {
                   }`}
                 >
                   <Package className="w-4 h-4" />
-                  <span>Products</span>
+                  <span>Produtos</span>
                 </button>
                 <button
                   onClick={() => setProductFilter('canteen')}
@@ -280,7 +331,7 @@ export default function PlayerCreditsPos() {
                   }`}
                 >
                   <Coffee className="w-4 h-4" />
-                  <span>Canteen</span>
+                  <span>Cantina</span>
                 </button>
               </div>
 
@@ -291,14 +342,14 @@ export default function PlayerCreditsPos() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search products..."
+                  placeholder="Procure Produtos"
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
               </div>
 
               {/* Product Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-                {filteredProducts.map((product) => (
+                {filteredProducts.map(( product) => (
                   <div 
                     key={product.id} 
                     className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
@@ -314,7 +365,7 @@ export default function PlayerCreditsPos() {
                       <div className="text-xs text-gray-500">Stock: {product.quantidade}</div>
                       <button 
                         onClick={() => addToCart(product)}
-                        disabled={!selectedPlayer}
+                        disabled={!selectedPlayer || product.quantidade <= 0}
                         className="flex items-center space-x-1 px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                       >
                         <Plus className="w-3 h-3" />
@@ -331,7 +382,7 @@ export default function PlayerCreditsPos() {
           <div className="space-y-6">
             {/* Player Selection */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl mb-4 text-gray-900">Identify Customer</h2>
+              <h2 className="text-xl mb-4 text-gray-900">Identifique o Jogador</h2>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <select 
@@ -343,7 +394,7 @@ export default function PlayerCreditsPos() {
                   value={selectedPlayer?.id || ''}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
                 >
-                  <option value="">Search by Name or ID...</option>
+                  <option value="">Procurar Jogador</option>
                   {players?.map(player => (
                     <option key={player.id} value={player.id}>{player.nome} ({player.pokemon_id})</option>
                   ))}
@@ -351,7 +402,7 @@ export default function PlayerCreditsPos() {
               </div>
               {selectedPlayer && (
                 <div className="mt-4 p-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg text-white">
-                  <p className="text-sm text-purple-100 mb-1">Available Store Credit:</p>
+                  <p className="text-sm text-purple-100 mb-1">Créditos Disponíveis na Loja:</p>
                   <p className="text-3xl">${selectedPlayer.creditos.toFixed(2)}</p>
                 </div>
               )}
@@ -361,14 +412,14 @@ export default function PlayerCreditsPos() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center space-x-2 mb-4">
                 <ShoppingCart className="w-5 h-5 text-purple-600" />
-                <h2 className="text-xl text-gray-900">Shopping Cart</h2>
+                <h2 className="text-xl text-gray-900">Carrinho</h2>
               </div>
               
               {cartItems.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <ShoppingCart className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                  <p>Cart is empty</p>
-                  <p className="text-xs mt-1">Select a customer and add products</p>
+                  <p>Carrinho vazio</p>
+                  <p className="text-xs mt-1">Selecione um jogador e adicione produtos</p>
                 </div>
               ) : (
                 <>
@@ -397,13 +448,13 @@ export default function PlayerCreditsPos() {
                   {/* Payment Section */}
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex items-center justify-between text-lg mb-4">
-                      <span className="text-gray-900">Total Due:</span>
+                      <span className="text-gray-900">Valor Total:</span>
                       <span className="text-2xl text-gray-900">${cartTotal.toFixed(2)}</span>
                     </div>
 
                     {/* Hybrid Payment System */}
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                      <label className="block text-sm mb-2 text-gray-700">Use Store Credit:</label>
+                      <label className="block text-sm mb-2 text-gray-700">Use Créditos da Loja:</label>
                       <input
                         type="number"
                         value={creditAmount}
@@ -445,11 +496,11 @@ export default function PlayerCreditsPos() {
                     {creditAmountNumber > 0 && (
                       <div className="bg-gray-50 rounded-lg p-4 mb-4">
                         <div className="flex justify-between text-sm mb-2">
-                          <span className="text-gray-600">Paid with Credit:</span>
+                          <span className="text-gray-600">Pago com Créditos:</span>
                           <span className="text-green-600">-${creditAmountNumber.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
-                          <span className="text-gray-900">Remaining Balance:</span>
+                          <span className="text-gray-900">Valor restante:</span>
                           <span className="text-gray-900">${remainingBalance.toFixed(2)}</span>
                         </div>
                       </div>
@@ -459,7 +510,7 @@ export default function PlayerCreditsPos() {
                     {remainingBalance > 0 && (
                       <div className="mb-4">
                         <label className="block text-sm mb-2 text-gray-700">
-                          Pay Remaining with:
+                          Pagar o resto com:
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                           <button
@@ -470,7 +521,17 @@ export default function PlayerCreditsPos() {
                                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                             }`}
                           >
-                            Cash
+                            Dinheiro
+                          </button>
+                          <button
+                            onClick={() => setSecondaryPayment('pix')}
+                            className={`py-2 px-4 rounded-lg border-2 transition-colors ${
+                              secondaryPayment === 'pix'
+                                ? 'border-purple-600 bg-purple-50 text-purple-600'
+                                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            Pix
                           </button>
                           <button
                             onClick={() => setSecondaryPayment('card')}
@@ -480,7 +541,7 @@ export default function PlayerCreditsPos() {
                                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                             }`}
                           >
-                            Card
+                            Cartão
                           </button>
                         </div>
                       </div>
@@ -489,11 +550,11 @@ export default function PlayerCreditsPos() {
                     {/* Checkout Button */}
                     <button 
                       onClick={handleCheckout}
-                      disabled={!selectedPlayer || cartItems.length === 0}
+                      disabled={!selectedPlayer || cartItems.length === 0 || isPlayersLoading}
                       className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
                     >
                       <CreditCard className="w-5 h-5" />
-                      <span>Complete Purchase</span>
+                      <span>{isPlayersLoading ? <Spinner/> : "Comprar"}</span>
                     </button>
                   </div>
                 </>
