@@ -16,6 +16,12 @@ export const addCredits = async (id: number, addCredits: number): Promise<Credit
     return response.data
 }
 
+export const removeCredits = async (id: number, removeCredits: number): Promise<Credito> => {
+    const response = await api.patch<Credito>(`${resource}/${id}/remover-credito`, 
+                                            {retirar_creditos: removeCredits})
+    return response.data
+}
+
 export const getPlayerCredits = async (): Promise<CreditoJogador[]> => {
     const response = await api.get<CreditoJogador[]>(`${resource}/jogador`)
     return response.data
