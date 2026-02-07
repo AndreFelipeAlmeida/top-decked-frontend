@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, Trophy, Plus, Settings, Package, 
-  DollarSign, LogOut, User, Sparkles, Flame, Zap, TrendingUp
+  DollarSign, User, Sparkles, Flame, Zap, TrendingUp,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAuthContext } from '../hooks/useAuthContext';
+import { Sidebar } from './components/Sidebar';
 
 const tcgGames = [
   { id: 'pokemon', name: 'Pokémon', icon: '⚡', color: 'bg-yellow-500', disabled: false },
@@ -22,8 +24,8 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const [selectedGame, setSelectedGame] = useState('pokemon');
-  const location = useLocation();
   const { user, handleLogout } = useAuthContext();
+  const [isOpen, setIsOpen] = useState(false);
 
   const organizerNav = [
     { path: '/loja/dashboard', icon: LayoutDashboard, label: 'Dashboard', disabled: false },
@@ -71,73 +73,64 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
 
       {/* Main Navigation Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* User Info */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <div className="text-sm text-gray-900">{user?.nome}</div>
-              <div className="text-xs text-gray-500 capitalize">{user?.tipo}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            if (!item.disabled) {
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-purple-50 text-purple-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-sm">{item.label}</span>
-                </Link>
-              );
-          }
-          })}
-        </nav>
-
-        {/* Profile & Logout */}
-        <div className="p-4 border-t border-gray-200 space-y-1">
-          {user?.tipo === 'loja' && (
-            <Link
-              to="/loja/perfil"
-              className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                location.pathname === "/loja/perfil"
-                  ? 'bg-purple-50 text-purple-600'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-sm">Profile</span>
-            </Link>
-          )}
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-3 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 w-full transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="text-sm">Logout</span>
-          </button>
-        </div>
+      <div className="hidden md:flex w-64 border-r border-gray-200">
+        <Sidebar
+          user={user}
+          navItems={navItems}
+          handleLogout={handleLogout}
+        />
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto">
-        {children}
+      <div className="flex-1 flex flex-col overflow-auto">
+
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
+          <button onClick={() => setIsOpen(true)}>
+            <Menu className="w-6 h-6" />
+          </button>
+
+          <span className="font-semibold text-gray-900">
+            {user?.nome}
+          </span>
+        </div>
+
+        {/* Page Content */}
+        <div className="flex-1">
+          {children}
+        </div>
       </div>
+      {/* Mobile Sidebar */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black/40"
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Drawer */}
+          <div className="relative w-64 bg-white h-full shadow-xl">
+            <div className="p-4 border-b flex justify-between items-center">
+              <span className="font-semibold">Menu</span>
+              <button onClick={() => setIsOpen(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Aqui você pode extrair sua sidebar para um componente */}
+            <div className="relative w-64 h-screen shadow-xl">
+              <Sidebar
+                user={user}
+                navItems={navItems}
+                handleLogout={handleLogout}
+                onNavigate={() => setIsOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
