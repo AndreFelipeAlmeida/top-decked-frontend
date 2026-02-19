@@ -88,7 +88,7 @@ export default function LoginPage() {
                   : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Register
+              Cadastre-se
             </button>
           </div>
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  placeholder="Enter your email"
+                  placeholder="Digite seu nome"
                   required
                 />
               </div>}
@@ -113,7 +113,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  placeholder="Enter your email"
+                  placeholder="Digite seu e-mail"
                   required
                 />
               </div>
@@ -126,7 +126,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-600 pr-10"
-                    placeholder="Enter your password"
+                    placeholder="Digite sua senha"
                     required
                   />
                   <button
@@ -163,7 +163,7 @@ export default function LoginPage() {
                 <span>
                   {activeTab === 'login'
                     ? isLoginPending ? 'Entrando...' : 'Login'
-                    : isRegisterPending ? 'Registrando...' : 'Register'}
+                    : isRegisterPending ? 'Cadastrando...' : 'Cadastre-se'}
                 </span>
               </button>
             </form>
