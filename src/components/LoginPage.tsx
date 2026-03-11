@@ -62,7 +62,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-full mb-4">
             <Swords className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl mb-2 text-gray-900">TopDecked</h1>
+          <h1 className="text-4xl mb-2 text-gray-900">Brickei</h1>
           <p className="text-gray-600">A plataforma amiga de gerenciamento de torneios.</p>
         </div>
 

@@ -20,7 +20,7 @@ const LandingPage = () => {
             <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
               <Zap className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-2xl text-gray-900">TopDecked</h1>
+            <h1 className="text-2xl text-gray-900">Brickei</h1>
           </div>
           <div className="flex items-center space-x-4">
             <button 
@@ -254,7 +254,7 @@ const LandingPage = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Zap className="w-6 h-6" />
-                <span className="text-xl">TopDecked</span>
+                <span className="text-xl">Brickei</span>
               </div>
               <p className="text-gray-400 text-sm">
                 A plataforma perfeita para o gerenciamento de torneios TCG.
@@ -285,7 +285,7 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-            © 2026 TopDecked. Todos os direitos reservados.
+            © 2026 Brickei. Todos os direitos reservados.
           </div>
         </div>
       </footer>
