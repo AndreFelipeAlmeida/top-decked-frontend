@@ -10,6 +10,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { JogadorPublico } from '@/types/Player';
+import { addCreditsById } from '@/services/creditoService';
+import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const schema = z.object({
   nickname: z.string().optional(),
@@ -28,23 +31,34 @@ export default function LinkPlayerToStoreModal({
   onClose,
   player,
 }: Props) {
+  const queryClient = useQueryClient();
+
+  const { mutate } = useMutation({
+    mutationFn: addCreditsById,
+    onSuccess: () => {
+      toast.success('Jogador vinculado com sucesso');
+      queryClient.invalidateQueries({
+        queryKey: ['players'],
+      });
+      onClose();
+    },
+  });
+
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
   const onSubmit = (data: FormData) => {
-    console.log('Vincular jogador:', {
-      player,
-      nickname: data.nickname,
-    });
+    if (!player) return;
 
-    reset();
-    onClose();
+    mutate({
+      jogadorId: player.id,
+      apelido: data.nickname,
+    });
   };
 
   if (!player) return null;

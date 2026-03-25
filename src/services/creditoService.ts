@@ -9,6 +9,19 @@ export const updateCredits = async (id: number, updatedStock: CreditoUpdate): Pr
     return response.data
 }
 
+export const addCreditsById = async ({
+  jogadorId,
+  apelido,
+}: {
+  jogadorId: number;
+  apelido?: string;
+}): Promise<Credito> => {
+  const response = await api.post<Credito>(`${resource}/${jogadorId}`, null, {
+    params: { apelido },
+  });
+
+  return response.data;
+};
 
 export const addCredits = async (id: number, addCredits: number): Promise<Credito> => {
     const response = await api.patch<Credito>(`${resource}/${id}/adicionar-credito`, 
