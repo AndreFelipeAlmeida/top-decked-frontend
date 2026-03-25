@@ -8,17 +8,18 @@ import PlayersTable from './components/PlayersTable';
 import { useDebounce } from 'use-debounce';
 import { AppCard } from '@/components/ui/AppCard';
 import { User, UserPlus } from 'lucide-react';
-import type { JogadorPublico } from '@/types/Player';
+import type { PaginatedJogadorPublico } from '@/types/Player';
 import LinkPlayerToStoreModal from './components/LinkPlayerModal';
+import UnlinkPlayerToStoreModal from './components/UnlinkPlayerModal';
 
 export default function PlayerManagement() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 400);
-  const [selectedPlayer, setSelectedPlayer] = useState<JogadorPublico | null>(
-    null,
-  );
-  const [open, setOpen] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] =
+    useState<PaginatedJogadorPublico | null>(null);
+  const [isLinkPlayerOpen, setIsLinkPlayerOpen] = useState(false);
+  const [isUnlinkPlayerOpen, setIsUnlinkPlayerOpen] = useState(false);
 
   const { isLoading, data } = useQuery({
     queryKey: ['players', page, debouncedSearch],
@@ -38,9 +39,14 @@ export default function PlayerManagement() {
   const players = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
 
-  const handleLinkPlayer = (player: JogadorPublico) => {
+  const handleLinkPlayer = (player: PaginatedJogadorPublico) => {
     setSelectedPlayer(player);
-    setOpen(true);
+    setIsLinkPlayerOpen(true);
+  };
+
+  const handleUnlinkPlayer = (player: PaginatedJogadorPublico) => {
+    setSelectedPlayer(player);
+    setIsUnlinkPlayerOpen(true);
   };
 
   return (
@@ -82,13 +88,18 @@ export default function PlayerManagement() {
             page={page}
             isLoading={isLoading || isTCGLoading}
             onLinkPlayer={handleLinkPlayer}
+            onUnlinkPlayer={handleUnlinkPlayer}
           />
           <LinkPlayerToStoreModal
-            open={open}
-            onClose={() => setOpen(false)}
+            open={isLinkPlayerOpen}
+            onClose={() => setIsLinkPlayerOpen(false)}
             player={selectedPlayer}
           />
-
+          <UnlinkPlayerToStoreModal
+            open={isUnlinkPlayerOpen}
+            onClose={() => setIsUnlinkPlayerOpen(false)}
+            player={selectedPlayer}
+          />
           {/* Paginação */}
           <div className="flex items-center justify-between p-4">
             <Button

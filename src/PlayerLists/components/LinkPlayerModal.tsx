@@ -102,7 +102,12 @@ export default function LinkPlayerToStoreModal({
               Cancelar
             </Button>
 
-            <Button type="submit">Vincular jogador</Button>
+            <Button
+              className="bg-purple-600 text-white hover:bg-purple-700"
+              type="submit"
+            >
+              Vincular jogador
+            </Button>
           </div>
         </form>
       </DialogContent>
