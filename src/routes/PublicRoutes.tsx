@@ -10,7 +10,9 @@ const PublicRoutes = () => {
             replace />;
   }
 
-  return (<Outlet />);
+  return (
+    <Outlet />
+    );
 }
 
 export default PublicRoutes;

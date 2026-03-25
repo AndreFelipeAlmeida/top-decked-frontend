@@ -1,23 +1,38 @@
 import axios from "axios";
+import { toast } from "sonner";
+
 
 export const api = axios.create({
-  baseURL: "/api",
+    baseURL: "/api",
 });
 
+let isRedirecting = false;
+
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error.response?.status;
+    (response) => response,
+    (error) => {
+        const status = error.response?.status;
 
-    if (status === 401) {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
+        const message =
+            error.response?.data?.detail || error.message || "Erro inesperado";
 
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
-      }
-    }
+        if (status === 401) {
+            if (!isRedirecting) {
+                isRedirecting = true;
 
-    return Promise.reject(error);
-  }
+                toast.error("Sessão expirada. Faça login novamente.");
+
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("user");
+
+                if (window.location.pathname !== "/login") {
+                    window.location.href = "/login";
+                }
+            }
+            return Promise.reject(error);
+        }
+
+        toast.error(message);
+        return Promise.reject(error);
+    },
 );

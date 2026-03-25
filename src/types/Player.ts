@@ -1,3 +1,4 @@
+import type { GameIDPublico } from './GameID';
 import type { UsuarioPublico } from './User';
 
 export interface JogadorBase {
@@ -6,10 +7,18 @@ export interface JogadorBase {
     data_nascimento: string | Date | null
 }
 
+export type GetPlayersResponse = {
+    data: JogadorPublico[];
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+};
+
 export interface JogadorPublico extends JogadorBase {
-    id: number
-    usuario: UsuarioPublico | null
-    pokemon_id: string | null
+    id: number;
+    usuario: UsuarioPublico | null;
+    tcgs: GameIDPublico[];
 }
 
 export interface JogadorLojaPublico {
@@ -58,6 +67,6 @@ export interface TipoJogadorPublico extends TipoJogadorBase {
 }
 
 export interface LojaCriarJogador {
-    nome: string
-    pokemon_id: string
+    apelido: string
+    game_id: GameIDPublico
 }

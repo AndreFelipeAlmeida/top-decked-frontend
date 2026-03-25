@@ -47,3 +47,8 @@ export const getMesAbreviado = (mes: number): string => {
   };
   return meses[mes] || "Desconhecido";
 };
+
+export type TcgOption = {
+    label: string;
+    value: string;
+};

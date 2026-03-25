@@ -46,8 +46,7 @@ export default function PlayerProfileWallet() {
   }
 
   // const storeTransactions = getTransactionsForStore(selectedStore.id);
-  const totalCredits = stores.reduce((sum, store) => sum + store.quantidade, 0);
-
+  const totalCredits = stores.reduce((sum, store) => sum + store.creditos, 0);
 
   return (
       <div className="p-8">
@@ -131,7 +130,7 @@ export default function PlayerProfileWallet() {
                     className="text-purple-600 hover:text-purple-700 flex items-center space-x-1"
                   >
                     <Edit className="w-4 h-4" />
-                    <span className="text-sm">Edit</span>
+                    <span className="text-sm">Editar</span>
                   </button>
                 ) : (
                   <button 
@@ -139,7 +138,7 @@ export default function PlayerProfileWallet() {
                     className="text-green-600 hover:text-green-700 flex items-center space-x-1"
                   >
                     <Save className="w-4 h-4" />
-                    <span className="text-sm">Save</span>
+                    <span className="text-sm">Salvar</span>
                   </button>
                 )}
               </div>
@@ -328,7 +327,7 @@ export default function PlayerProfileWallet() {
                         <div className="text-xs text-gray-500">{store.endereco}</div>
                       </div>
                     </div>
-                    <div className="text-purple-600">R${store.quantidade.toFixed(2)}</div>
+                    <div className="text-purple-600">R${store.creditos.toFixed(2)}</div>
                   </div>
                 ))}
               </div>

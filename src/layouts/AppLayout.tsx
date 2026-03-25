@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Trophy, Plus, Settings, Package, 
   DollarSign, User, Sparkles, Flame, Zap, TrendingUp,
   Menu,
-  X
+  X,
+  User2
 } from 'lucide-react';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { Sidebar } from './components/Sidebar';
@@ -30,19 +31,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const organizerNav = [
     { path: '/loja/dashboard', icon: LayoutDashboard, label: 'Dashboard', disabled: false },
     { path: '/loja/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
-    { path: '/loja/torneios', icon: Trophy, label: 'Tournaments', disabled: false },
-    { path: '/loja/criar-torneio', icon: Plus, label: 'Create Tournament', disabled: false },
-    { path: '/loja/regras-jogadores', icon: Settings, label: 'Player Rules', disabled: false },
-    { path: '/loja/estoque', icon: Package, label: 'Stock/Inventory', disabled: false },
-    { path: '/loja/creditos', icon: DollarSign, label: 'Credits/POS', disabled: false },
+    { path: '/loja/torneios', icon: Trophy, label: 'Torneios', disabled: false },
+    { path: '/loja/criar-torneio', icon: Plus, label: 'Criar Torneio', disabled: false },
+    { path: '/loja/regras-jogadores', icon: Settings, label: 'Regras de Jogos', disabled: false },
+    { path: '/loja/estoque', icon: Package, label: 'Estoque', disabled: false },
+    { path: '/loja/jogadores', icon: User2, label: 'Gerenciar Jogadores', disabled: false },
+    { path: '/loja/creditos', icon: DollarSign, label: 'Créditos/Vendas', disabled: false },
   ];
 
   const playerNav = [
-    { path: '/jogador/dashboard', icon: User, label: 'Perfil & Carteira', disabled: false },
-    { path: '/jogador/estatisticas', icon: Sparkles, label: 'Statistics', disabled: true},
-    { path: '/jogador/historico', icon: Flame, label: 'Match History', disabled: true },
-    { path: '/jogador/torneios', icon: Trophy, label: 'Tournaments', disabled: true },
-    { path: '/jogador/perfil', icon: User, label: 'Profile & Wallet', disabled: true },
+    { path: '/jogador/dashboard', icon: User, label: 'Dashboard', disabled: false },
+    { path: '/jogador/estatisticas', icon: Sparkles, label: 'Estatísticas', disabled: true},
+    { path: '/jogador/historico', icon: Flame, label: 'Histórico de Partidas', disabled: true },
+    { path: '/jogador/torneios', icon: Trophy, label: 'Torneios', disabled: true },
+    { path: '/jogador/perfil', icon: User, label: 'Perfil & Carteira', disabled: true },
   ];
 
   const navItems = user?.tipo === 'loja' ? organizerNav : playerNav;

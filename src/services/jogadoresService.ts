@@ -1,8 +1,18 @@
 import { api } from "@/adapters/api";
-import type { JogadorLojaPublico, JogadorPublico } from "@/types/Player";
+import type { GetPlayersResponse, JogadorLojaPublico, JogadorPublico } from "@/types/Player";
 import type { JogadorEstatisticas } from "@/types/Statistics";
 
 const resource = "/jogadores";
+
+
+export const obterJogadores = async ({ page = 1, limit = 10, search = "" }) => {
+    const res = await api.get<GetPlayersResponse>(`${resource}/`, {
+        params: { page, limit, search },
+    });
+
+    return res.data;
+};
+
 
 export const obterPerfilJogador = async (id: number) => {
   const res = await api.get<JogadorPublico>(`${resource}/${id}`);
