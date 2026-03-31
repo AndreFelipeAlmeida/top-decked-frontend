@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -68,6 +69,7 @@ export default function LinkPlayerToStoreModal({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Vincular {player.nome} à loja</DialogTitle>
+          <DialogDescription>Confirme a ação abaixo.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

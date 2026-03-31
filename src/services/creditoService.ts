@@ -1,5 +1,6 @@
 import { api } from '@/adapters/api';
-import type { Credito, CreditoJogador, CreditoUpdate } from '@/types/Credito';
+import type { Credito, CreditoJogador, CreditoPublico, CreditoUpdate } from '@/types/Credito';
+import type { LojaCriarJogador } from '@/types/Player';
 
 const resource = '/creditos';
 
@@ -54,5 +55,17 @@ export const getPlayerCredits = async (): Promise<CreditoJogador[]> => {
 
 export const unlinkPlayer = async (jogadorId: number) => {
   const res = await api.delete(`${resource}/${jogadorId}`);
+  return res.data;
+};
+
+export const getPlayersStoreLink = async ({ search = '' }) => {
+  const res = await api.get<CreditoPublico[]>(`${resource}/`, {
+    params: { search },
+  });
+  return res.data;
+};
+
+export const criarJogadorLoja = async (novo_jogador: LojaCriarJogador) => {
+  const res = await api.post<CreditoPublico>(`${resource}/`, novo_jogador);
   return res.data;
 };

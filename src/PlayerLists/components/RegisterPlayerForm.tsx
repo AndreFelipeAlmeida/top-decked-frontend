@@ -1,4 +1,3 @@
-import { criarJogadorLoja } from "@/services/lojasService";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -6,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TcgOption } from "@/types/Enums";
+import { criarJogadorLoja } from "@/services/creditoService";
 
 
 type Props = {

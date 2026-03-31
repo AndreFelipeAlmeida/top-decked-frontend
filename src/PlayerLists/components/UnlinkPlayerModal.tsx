@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -48,6 +49,7 @@ export default function UnlinkPlayerToStoreModal({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Desvincular jogador</DialogTitle>
+          <DialogDescription>Confirme a ação abaixo.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
