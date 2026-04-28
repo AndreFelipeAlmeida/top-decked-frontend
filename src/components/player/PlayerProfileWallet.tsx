@@ -13,12 +13,13 @@ export default function PlayerProfileWallet() {
   const [editedPokemonId, setEditedPokemonId] = useState("");
 
   const { data: player } = useQuery({
-    queryKey: ["player", user?.id],
+    queryKey: ['player', user?.id],
     queryFn: () => obterPerfilJogador(user?.id ?? -1),
     enabled: !!user?.id,
     onSuccess: (data) => {
-      setEditedPokemonId(data.pokemon_id ?? "")
-    }
+      const pokemon = data.tcgs?.find((t) => t.tcg === 'POKEMON');
+      setEditedPokemonId(pokemon?.id ?? '');
+    },
   });
 
   const { data: stores = [] } = useQuery({
@@ -38,7 +39,9 @@ export default function PlayerProfileWallet() {
   
   const handleSaveGameIds = () => {
     if (editedPokemonId === "") {
-      setEditedPokemonId(player?.pokemon_id ?? "")
+      const pokemon = player?.tcgs?.find((t) => t.tcg === 'POKEMON')?.id;
+
+      setEditedPokemonId(pokemon ?? '');
       setIsEditingGameIds(false);
       return
     }

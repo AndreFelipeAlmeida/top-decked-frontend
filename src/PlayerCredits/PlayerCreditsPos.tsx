@@ -8,11 +8,14 @@ import PlayerInfoCardContent from './components/PlayerInfoContent';
 import { useQuery } from '@tanstack/react-query';
 import { getPlayersStoreLink } from '@/services/creditoService';
 import { useDebounce } from 'use-debounce';
+import StoreProductsCard from './components/StoreProductsCard';
+import { usePlayerCart } from './hooks/usePlayerCart';
 
 export default function PlayerCreditsPos() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 300);
+  const { addItem } = usePlayerCart();
 
   const { data: players = [] } = useQuery<CreditoPublico[]>({
     queryKey: ['creditos-players', debouncedSearch],
@@ -23,7 +26,7 @@ export default function PlayerCreditsPos() {
     () => players.find((player) => player.id === selectedPlayerId) ?? null,
     [players, selectedPlayerId],
   );
-
+  console.log(selectedPlayer)
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -71,15 +74,15 @@ export default function PlayerCreditsPos() {
             icon={<Coins className="w-5 h-5" />}
           >
             <CreditActionsCard
-              playerName={selectedPlayer.jogador?.nome}
               creditId={selectedPlayer.id}
             />
           </AppCard>
 
           <AppCard title="Em breve" icon={<ShoppingCart className="w-5 h-5" />}>
-            <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-300 text-sm text-gray-500">
-              Próximo card será implementado aqui.
-            </div>
+            <StoreProductsCard
+              onAddToCart={addItem}>
+
+            </StoreProductsCard>
           </AppCard>
 
           <AppCard title="Em breve" icon={<ShoppingCart className="w-5 h-5" />}>

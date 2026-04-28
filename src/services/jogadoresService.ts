@@ -20,7 +20,15 @@ export const obterPerfilJogador = async (id: number) => {
 };
 
 export const editarPerfilJogador = async (pokemon_id: string) => {
-  const res = await api.put<JogadorPublico>(`${resource}/`, {pokemon_id: pokemon_id});
+  const res = await api.put<JogadorPublico>(`${resource}/`, {
+    tcgs: [
+      {
+        tcg: 'POKEMON',
+        id: pokemon_id,
+      },
+    ],
+  });
+
   return res.data;
 };
 

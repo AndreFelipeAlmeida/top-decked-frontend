@@ -43,7 +43,14 @@ export interface JogadorCriar {
   senha: string;
 }
 
-export type JogadorUpdate = Partial<JogadorCriar>;
+export interface JogadorUpdate {
+  nome?: string | null;
+  senha?: string | null;
+  tcgs?: GameIDPublico[] | null;
+  telefone?: string | null;
+  email?: string | null;
+  data_nascimento?: string | null;
+}
 
 export interface PlayerTournament {
   jogador_id: string;

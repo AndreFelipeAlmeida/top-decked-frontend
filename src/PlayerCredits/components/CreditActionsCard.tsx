@@ -4,10 +4,9 @@ import { useCreditActions } from '../hooks/useCreditActions';
 
 type Props = {
   creditId?: number;
-  playerName?: string;
 };
 
-export default function CreditActionsCard({ creditId, playerName }: Props) {
+export default function CreditActionsCard({ creditId }: Props) {
   const [value, setValue] = useState('');
 
   const { addCreditsMutation, removeCreditsMutation } = useCreditActions({
@@ -15,7 +14,6 @@ export default function CreditActionsCard({ creditId, playerName }: Props) {
   });
 
   const disabled =
-    !playerName ||
     !creditId ||
     !value ||
     addCreditsMutation.isPending ||
@@ -23,12 +21,6 @@ export default function CreditActionsCard({ creditId, playerName }: Props) {
 
   return (
     <div className="space-y-4">
-      <p className="mb-2 text-xs text-gray-500">
-        {playerName
-          ? `Gerencie os créditos de ${playerName}`
-          : 'Selecione um jogador para continuar'}
-      </p>
-
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <label className="mb-2 block text-sm font-medium text-gray-700">
           Valor
@@ -40,7 +32,6 @@ export default function CreditActionsCard({ creditId, playerName }: Props) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="R$ 0,00"
-          disabled={!playerName}
           className="mb-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
         />
 

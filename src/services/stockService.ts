@@ -9,7 +9,7 @@ export const getStock = async (): Promise<Estoque[]> => {
   try {
     const response = await api.get<Estoque[]>(`${resource}/`)
     return response.data
-  } catch (error: any) {
+  } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return []
     }
