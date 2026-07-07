@@ -7,3 +7,9 @@ export const sessionKeys = {
 export const authKeys = {
   all: ["me"],
 };
+
+// Validação do token de "esqueci minha senha" (GET /login/validar-token-redefinicao).
+export const resetPasswordKeys = {
+  all: ["reset-password"],
+  validarToken: (token: string | null) => [...resetPasswordKeys.all, "validar-token", token],
+};

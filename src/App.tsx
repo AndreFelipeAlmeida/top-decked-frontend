@@ -16,6 +16,8 @@ import PlayerProfileWallet from './components/player/PlayerProfileWallet';
 import PlayerDashboard from './components/player/PlayerDashboard';
 import PlayerAchievements from './components/player/PlayerAchievements';
 import ConfirmEmailPage from './components/ConfirmEmailPage';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 import PlayerManagement from './PlayerLists/PlayerManagement';
 import { Toaster } from './components/ui/sonner';
 import Tournaments from './components/organizer/Tournaments';
@@ -32,6 +34,8 @@ function App() {
             path="/jogador/confirmar-email"
             element={<ConfirmEmailPage />}
           />
+          <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+          <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
         </Route>
 
         <Route element={<ProtectedRoutes allowedRoles={['jogador']} />}>

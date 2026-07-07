@@ -30,3 +30,23 @@ export const getSession = async () => {
   const response = await api.get<User>(`${resource}/profile`);
   return response.data;
 };
+
+export const esqueciSenha = async (email: string) => {
+  const response = await api.post<{ detail: string }>(`${resource}/esqueci-senha`, { email });
+  return response.data;
+};
+
+export const validarTokenRedefinicao = async (token: string) => {
+  const response = await api.get<{ valido: boolean }>(`${resource}/validar-token-redefinicao`, {
+    params: { token },
+  });
+  return response.data;
+};
+
+export const redefinirSenha = async (token: string, novaSenha: string) => {
+  const response = await api.post<{ detail: string }>(`${resource}/redefinir-senha`, {
+    token,
+    nova_senha: novaSenha,
+  });
+  return response.data;
+};
