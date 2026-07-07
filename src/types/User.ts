@@ -1,12 +1,12 @@
 export type UserRole = 'loja' | 'jogador'
 
 export type User = {
-    id : number
+    id: number
     tipo: UserRole
     nome: string
     email: string
     usuario_id: number
-    endereco: string
+    endereco?: string | null
 }
 
 export interface UsuarioPublico {

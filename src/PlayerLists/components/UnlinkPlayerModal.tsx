@@ -8,10 +8,9 @@ import {
 
 import { Button } from '@/components/ui/button';
 import type { PaginatedJogadorPublico } from '@/types/Player';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { unlinkPlayer } from '@/services/creditoService';
+import { useUnlinkPlayer } from '@/hooks/credits.hooks';
 import { toast } from 'sonner';
-import { useAuthContext } from '@/hooks/useAuthContext';
+import { useAuthContext } from '@/hooks/authContext.hooks';
 
 type Props = {
   open: boolean;
@@ -24,22 +23,19 @@ export default function UnlinkPlayerToStoreModal({
   onClose,
   player,
 }: Props) {
-  const queryClient = useQueryClient();
   const { user } = useAuthContext();
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: unlinkPlayer,
-    onSuccess: () => {
-      toast.success('Jogador desvinculado');
-      queryClient.invalidateQueries({ queryKey: ['players'] });
-      onClose();
-    },
-  });
+  const { mutate, isPending } = useUnlinkPlayer();
 
   if (!player) return null;
 
   const handleConfirm = (player: PaginatedJogadorPublico) => {
-    mutate(player.id);
+    mutate(player.id, {
+      onSuccess: () => {
+        toast.success('Jogador desvinculado');
+        onClose();
+      },
+    });
   };
 
   const credito = player.lojas?.find((c) => c.loja_id === user?.id)?.creditos;
@@ -53,20 +49,20 @@ export default function UnlinkPlayerToStoreModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Créditos atuais:{' '}
-            <span className="font-semibold text-purple-600">
+            <span className="font-semibold text-primary">
               {credito ?? 0}
             </span>
           </p>
 
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Tem certeza que deseja desvincular{' '}
-            <span className="font-semibold text-gray-900">{player.nome}</span>{' '}
+            <span className="font-semibold text-foreground">{player.nome}</span>{' '}
             da loja?
           </p>
 
-          <p className="text-xs text-red-500">
+          <p className="text-xs text-destructive">
             Essa ação não pode ser desfeita.
           </p>
 

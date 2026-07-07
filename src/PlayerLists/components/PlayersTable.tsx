@@ -1,3 +1,4 @@
+import { ShieldCheck, ShieldMinus } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -6,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useAuthContext } from '@/hooks/useAuthContext';
+import { useAuthContext } from '@/hooks/authContext.hooks';
 
 import type { PaginatedJogadorPublico } from '@/types/Player';
 
@@ -22,6 +23,8 @@ type Props = {
   isLoading: boolean;
   onLinkPlayer: (player: PaginatedJogadorPublico) => void;
   onUnlinkPlayer: (player: PaginatedJogadorPublico) => void;
+  onPromoteOrganizer: (player: PaginatedJogadorPublico, tcg: string) => void;
+  onDemoteOrganizer: (player: PaginatedJogadorPublico, tcg: string) => void;
 };
 
 export default function PlayersTable({
@@ -30,29 +33,31 @@ export default function PlayersTable({
   page,
   isLoading,
   onLinkPlayer,
-  onUnlinkPlayer
+  onUnlinkPlayer,
+  onPromoteOrganizer,
+  onDemoteOrganizer,
 }: Props) {
   const { user } = useAuthContext();
 
   return (
     <Table className="w-full text-sm">
-      <TableHeader className="bg-gray-50 border-b">
+      <TableHeader className="bg-muted/40 border-b">
         <TableRow>
-          <TableHead className="px-6 py-3 text-center font-bold text-gray-500 uppercase">
+          <TableHead className="px-6 py-3 text-center font-bold text-muted-foreground uppercase">
             Numeração
           </TableHead>
-          <TableHead className="px-6 py-3 text-center font-bold text-gray-500 uppercase">
+          <TableHead className="px-6 py-3 text-center font-bold text-muted-foreground uppercase">
             Jogador
           </TableHead>
           {tcgs.map((tcg) => (
             <TableHead
               key={tcg.value}
-              className="px-6 py-3 text-center font-bold text-gray-500 uppercase"
+              className="px-6 py-3 text-center font-bold text-muted-foreground uppercase"
             >
               {tcg.label}
             </TableHead>
           ))}
-          <TableHead className="px-6 py-3 text-center font-bold text-gray-500 uppercase">
+          <TableHead className="px-6 py-3 text-center font-bold text-muted-foreground uppercase">
             Ações
           </TableHead>
         </TableRow>
@@ -70,9 +75,10 @@ export default function PlayersTable({
         {!isLoading &&
           players.map((player, index) => {
             const globalIndex = (page - 1) * 10 + index;
-            const isLinked = player.lojas?.some(
+            const linkAtual = player.lojas?.find(
               (credito) => credito.loja_id === user?.id,
             );
+            const isLinked = Boolean(linkAtual);
 
             return (
               <TableRow key={player.id}>
@@ -81,10 +87,42 @@ export default function PlayersTable({
 
                 {tcgs.map((tcg) => {
                   const game = player.tcgs?.find((g) => g.tcg === tcg.value);
+                  const isOrganizerForTcg = linkAtual?.organizacoes?.some(
+                    (org) => org.tcg === tcg.value,
+                  );
 
                   return (
                     <TableCell className="text-center" key={tcg.value}>
-                      {game?.id ?? '—'}
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span>{game?.game_id ?? '—'}</span>
+
+                        {isLinked && (
+                          <button
+                            type="button"
+                            title={
+                              isOrganizerForTcg
+                                ? `Remover como organizador de ${tcg.label}`
+                                : `Promover a organizador de ${tcg.label}`
+                            }
+                            onClick={() =>
+                              isOrganizerForTcg
+                                ? onDemoteOrganizer(player, tcg.value)
+                                : onPromoteOrganizer(player, tcg.value)
+                            }
+                            className={`rounded p-1 transition ${
+                              isOrganizerForTcg
+                                ? 'text-primary hover:bg-primary/15'
+                                : 'text-muted-foreground hover:bg-accent'
+                            }`}
+                          >
+                            {isOrganizerForTcg ? (
+                              <ShieldMinus className="w-4 h-4" />
+                            ) : (
+                              <ShieldCheck className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </TableCell>
                   );
                 })}
@@ -100,8 +138,8 @@ export default function PlayersTable({
                     }}
                     className={`px-3 py-1 text-xs font-medium text-white rounded transition ${
                       isLinked
-                        ? 'bg-red-600 hover:bg-red-700'
-                        : 'bg-purple-600 hover:bg-purple-700'
+                        ? 'bg-destructive hover:bg-destructive/90'
+                        : 'bg-primary hover:bg-primary/90'
                     }`}
                   >
                     {isLinked ? 'Desvincular' : 'Vincular'}

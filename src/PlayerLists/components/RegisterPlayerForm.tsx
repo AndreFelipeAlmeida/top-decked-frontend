@@ -1,11 +1,17 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TcgOption } from "@/types/Enums";
-import { criarJogadorLoja } from "@/services/creditoService";
+import { useCreateStorePlayer } from "@/hooks/credits.hooks";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 type Props = {
@@ -21,9 +27,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function RegisterPlayerForm({ tcgs }: Props) {
-  const queryClient = useQueryClient();
-
-  const { register, handleSubmit, reset, formState: { errors }, } = 
+  const { register, control, handleSubmit, reset, formState: { errors }, } =
     useForm<FormData>({
       resolver: zodResolver(schema),
       defaultValues: {
@@ -33,24 +37,21 @@ export default function RegisterPlayerForm({ tcgs }: Props) {
       },
     });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: (data: FormData) =>
-        criarJogadorLoja({
-            apelido: data.name,
-            game_id: {
-                tcg: data.tcg,
-                id: data.tcgId,
-            },
-        }),
-    onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["players"] });
-        toast.success("Jogador criado com sucesso");
-        reset();
-    },
-  });
+  const { mutate, isPending } = useCreateStorePlayer();
 
   const onSubmit = (data: FormData) => {
-      mutate(data);
+      mutate(
+        {
+          apelido: data.name,
+          game_id: { tcg: data.tcg, id: data.tcgId },
+        },
+        {
+          onSuccess: () => {
+            toast.success("Jogador vinculado com sucesso");
+            reset();
+          },
+        },
+      );
   };
 
   return (
@@ -65,12 +66,12 @@ export default function RegisterPlayerForm({ tcgs }: Props) {
                         {...register("name")}
                         className={`px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 ${
                             errors.name
-                                ? "border-red-500 focus:ring-red-500"
-                                : "border-gray-300 focus:ring-purple-600"
+                                ? "border-destructive focus:ring-destructive"
+                                : "border-border focus:ring-primary"
                         }`}
                     />
                     {errors.name && (
-                        <p className="text-sm text-red-500 mt-1">
+                        <p className="text-sm text-destructive mt-1">
                             {errors.name.message}
                         </p>
                     )}
@@ -78,22 +79,28 @@ export default function RegisterPlayerForm({ tcgs }: Props) {
 
                 {/* TCG */}
                 <div>
-                    <select
-                        {...register("tcg")}
-                        className={`px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 ${
-                            errors.tcg
-                                ? "border-red-500 focus:ring-red-500"
-                                : "border-gray-300 focus:ring-purple-600"
-                        }`}
-                    >
-                        {tcgs.map((tcg) => (
-                          <option key={tcg.value} value={tcg.value}>
-                              {tcg.label}
-                          </option>
-                        ))}
-                    </select>
+                    <Controller
+                        name="tcg"
+                        control={control}
+                        render={({ field }) => (
+                            <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger
+                                    className={`w-full ${errors.tcg ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                >
+                                    <SelectValue placeholder="Selecione um TCG" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {tcgs.map((tcg) => (
+                                        <SelectItem key={tcg.value} value={tcg.value}>
+                                            {tcg.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
                     {errors.tcg && (
-                        <p className="text-sm text-red-500 mt-1">
+                        <p className="text-sm text-destructive mt-1">
                             {errors.tcg.message}
                         </p>
                     )}
@@ -107,12 +114,12 @@ export default function RegisterPlayerForm({ tcgs }: Props) {
                         {...register("tcgId")}
                         className={`px-3 py-2 border rounded w-full focus:outline-none focus:ring-2 ${
                             errors.tcgId
-                                ? "border-red-500 focus:ring-red-500"
-                                : "border-gray-300 focus:ring-purple-600"
+                                ? "border-destructive focus:ring-destructive"
+                                : "border-border focus:ring-primary"
                         }`}
                     />
                     {errors.tcgId && (
-                        <p className="text-sm text-red-500 mt-1">
+                        <p className="text-sm text-destructive mt-1">
                             {errors.tcgId.message}
                         </p>
                     )}
@@ -124,8 +131,8 @@ export default function RegisterPlayerForm({ tcgs }: Props) {
                 disabled={isPending}
                 className={`mt-4 w-full py-2 rounded flex items-center justify-center gap-2 transition-colors ${
                     isPending
-                        ? "bg-purple-400 cursor-not-allowed"
-                        : "bg-purple-600 hover:bg-purple-700 text-white"
+                        ? "bg-primary cursor-not-allowed"
+                        : "bg-primary hover:bg-primary/90 text-white"
                 }`}
             >
                 {isPending && (

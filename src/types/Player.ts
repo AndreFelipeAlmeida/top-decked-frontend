@@ -1,5 +1,6 @@
-import type { Credito } from './Credito';
+import type { LojaJogadorLink, LojaJogadorPublico } from './Credito';
 import type { GameIDPublico } from './GameID';
+import type { JogadorCriadoPublico } from './JogadorCriado';
 import type { UsuarioPublico } from './User';
 
 export interface JogadorBase {
@@ -16,31 +17,31 @@ export type GetPlayersResponse = {
   totalPages: number;
 };
 export interface PaginatedJogadorPublico extends JogadorPublico {
-  lojas: Credito[];
+  lojas: LojaJogadorLink[];
 }
 
 export interface JogadorPublico extends JogadorBase {
   id: number;
   usuario: UsuarioPublico | null;
-  tcgs: GameIDPublico[];
+  tcgs: JogadorCriadoPublico[];
 }
 
 export interface JogadorLojaPublico {
   id: number;
   nome: string;
-  pokemon_id: string | null;
+  game_id: GameIDPublico;
   creditos: number;
 }
 export interface JogadorPublicoLoja extends JogadorBase {
   id: number;
-  pokemon_id: string | null;
+  tcgs: JogadorCriadoPublico[] | null;
   tipo_jogador_id: number | null;
 }
 
 export interface JogadorCriar {
-  nome: string;
-  email: string;
-  senha: string;
+  nome?: string;
+  email?: string;
+  senha?: string;
 }
 
 export interface JogadorUpdate {
@@ -58,7 +59,7 @@ export interface PlayerTournament {
   tipo_jogador_id: number;
   pontuacao: number;
   pontuacao_com_regras: number;
-  deck?: string[];
+  composicao?: string[];
 }
 
 export interface TipoJogadorBase {
@@ -74,10 +75,19 @@ export interface TipoJogadorBase {
 
 export interface TipoJogadorPublico extends TipoJogadorBase {
   id: number;
-  loja: number;
 }
 
 export interface LojaCriarJogador {
   apelido: string;
   game_id: GameIDPublico;
+}
+
+export interface JogadorCompleto extends JogadorPublico {
+  lojas: LojaJogadorPublico[]
+}
+
+export interface ImpactoTrocaGameId {
+  tcg: string;
+  game_id_atual: string | null;
+  torneios_importados: number;
 }

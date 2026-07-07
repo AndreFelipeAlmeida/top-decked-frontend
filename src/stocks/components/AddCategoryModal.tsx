@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { CategoriaCadastro } from '@/types/Stock';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { categorySchema, type CategoryForm } from '@/schemas/stock.schemas';
 import { useCategoryActions } from '../hooks/useCategoryActions';
 
 
@@ -20,22 +21,15 @@ export function RegisterCategoryModal({
 }: RegisterProductModalProps) {
   const { createCategoryMutation } = useCategoryActions();
 
-  const [newCategory, setNewCategory] = useState<CategoriaCadastro>({
-    nome: '',
+  const { register, handleSubmit, reset } = useForm<CategoryForm>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: { nome: '' },
   });
 
-  const resetForm = () => {
-    setNewCategory({
-      nome: '',
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log(newCategory)
-    createCategoryMutation.mutate(newCategory, {
+  const onSubmit = (data: CategoryForm) => {
+    createCategoryMutation.mutate(data, {
       onSuccess: () => {
-        resetForm();
+        reset();
         onClose();
       },
     });
@@ -44,44 +38,40 @@ export function RegisterCategoryModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md w-full p-0 overflow-hidden border-none shadow-xl">
-        <DialogHeader className="p-6 border-b border-gray-200 flex flex-row items-center justify-between">
-          <DialogTitle className="text-xl font-medium text-gray-900">
+        <DialogHeader className="p-6 border-b border-border flex flex-row items-center justify-between">
+          <DialogTitle className="text-xl font-medium text-foreground">
             Cadastrar Nova Categoria
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">
+              <label className="block text-sm font-medium mb-2 text-muted-foreground">
                 Nome da Categoria *
               </label>
               <input
-                required
                 type="text"
-                value={newCategory.nome}
-                onChange={(e) =>
-                  setNewCategory({ ...newCategory, nome: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
+                {...register('nome')}
+                className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none"
                 placeholder="Pacote de Booster"
               />
             </div>
           </div>
 
           {/* Footer com Botões */}
-          <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-muted/40">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white transition-colors"
+              className="px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-card transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={createCategoryMutation.isPending}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md disabled:opacity-50"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-md disabled:opacity-50"
             >
               {createCategoryMutation.isPending
                 ? 'Cadastrando...'

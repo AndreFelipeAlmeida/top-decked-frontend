@@ -1,16 +1,17 @@
+import { categoryKeys, stockKeys } from '@/keys/stock.keys';
+import { getCategories } from '@/services/category.service';
+import { getStock } from '@/services/product.service';
 import { useQueries } from '@tanstack/react-query';
-import { getCategories } from '../service/category.service';
-import { getStock } from '../service/product.service';
 
 export function useStockData() {
   const [productsQuery, categoriesQuery] = useQueries({
     queries: [
       {
-        queryKey: ['products'],
+        queryKey: stockKeys.all,
         queryFn: getStock,
       },
       {
-        queryKey: ['categories'],
+        queryKey: categoryKeys.all,
         queryFn: getCategories,
       },
     ],

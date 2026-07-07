@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom"
-import { useAuthContext } from "@/hooks/useAuthContext"
+import { useAuthContext } from "@/hooks/authContext.hooks"
 
 const PublicRoutes = () => {
   const { user } = useAuthContext();

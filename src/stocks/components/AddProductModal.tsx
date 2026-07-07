@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Estoque, EstoqueCadastro, Categoria } from '@/types/Stock';
+import type { Estoque, Categoria } from '@/types/Stock';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { productSchema, type ProductForm } from '@/schemas/stock.schemas';
 import { useProductActions } from '../hooks/useProductActions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface RegisterProductModalProps {
   isOpen: boolean;
@@ -24,24 +33,25 @@ export function RegisterProductModal({
   const { createProductMutation, updateProductMutation } = useProductActions();
   const isEditing = !!initialData;
 
-  const [product, setProduct] = useState<EstoqueCadastro>(() => ({
-    nome: initialData?.nome ?? '',
-    categoria: initialData?.categoria ?? 0,
-    quantidade: initialData?.quantidade ?? 0,
-    min_quantidade: initialData?.min_quantidade ?? 0,
-    preco: initialData?.preco ?? 0,
-  }));
+  const { register, control, handleSubmit } = useForm<ProductForm>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      nome: initialData?.nome ?? '',
+      categoria: initialData?.categoria ?? 0,
+      quantidade: initialData?.quantidade ?? 0,
+      min_quantidade: initialData?.min_quantidade ?? 0,
+      preco: initialData?.preco ?? 0,
+    },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = (data: ProductForm) => {
     if (isEditing && initialData) {
       updateProductMutation.mutate(
-        { id: initialData.id, data: product },
+        { id: initialData.id, data },
         { onSuccess: onClose },
       );
     } else {
-      createProductMutation.mutate(product, {
+      createProductMutation.mutate(data, {
         onSuccess: () => {
           onClose();
         },
@@ -52,25 +62,21 @@ export function RegisterProductModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md w-full p-0 overflow-hidden border-none shadow-xl">
-        <DialogHeader className="p-6 border-b border-gray-200">
-          <DialogTitle className="text-xl font-medium text-gray-900">
+        <DialogHeader className="p-6 border-b border-border">
+          <DialogTitle className="text-xl font-medium text-foreground">
             {isEditing ? 'Editar Produto' : 'Cadastrar Novo Produto'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="p-6 space-y-4">
             {/* Nome */}
             <div>
               <label className="block text-sm font-medium mb-1">Nome *</label>
               <input
-                required
                 type="text"
-                value={product.nome}
-                onChange={(e) =>
-                  setProduct({ ...product, nome: e.target.value })
-                }
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
+                {...register('nome')}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
               />
             </div>
 
@@ -79,23 +85,27 @@ export function RegisterProductModal({
               <label className="block text-sm font-medium mb-1">
                 Categoria *
               </label>
-              <select
-                required
-                value={product.categoria || ''}
-                onChange={(e) =>
-                  setProduct({ ...product, categoria: Number(e.target.value) })
-                }
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600 outline-none bg-white"
-              >
-                <option value="" disabled hidden>
-                  Selecione uma categoria
-                </option>
-                {categories?.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nome}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                name="categoria"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? String(field.value) : ''}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={String(cat.id)}>
+                          {cat.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -106,14 +116,8 @@ export function RegisterProductModal({
                 </label>
                 <input
                   type="number"
-                  value={product.quantidade}
-                  onChange={(e) =>
-                    setProduct({
-                      ...product,
-                      quantidade: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
+                  {...register('quantidade', { valueAsNumber: true })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
               {/* Preço */}
@@ -124,39 +128,30 @@ export function RegisterProductModal({
                 <input
                   type="number"
                   step="0.01"
-                  value={product.preco}
-                  onChange={(e) =>
-                    setProduct({ ...product, preco: Number(e.target.value) })
-                  }
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-600 outline-none"
+                  {...register('preco', { valueAsNumber: true })}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
             </div>
 
             {/* Estoque Mínimo */}
             <div>
-              <label className="block text-sm font-medium mb-1 text-red-600">
+              <label className="block text-sm font-medium mb-1 text-destructive">
                 Mínimo para Alerta
               </label>
               <input
                 type="number"
-                value={product.min_quantidade}
-                onChange={(e) =>
-                  setProduct({
-                    ...product,
-                    min_quantidade: Number(e.target.value),
-                  })
-                }
-                className="w-full px-4 py-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+                {...register('min_quantidade', { valueAsNumber: true })}
+                className="w-full px-4 py-2 border border-destructive/40 rounded-lg focus:ring-2 focus:ring-destructive outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-end space-x-3 p-6 border-t border-border bg-muted/40">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white"
+              className="px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-card"
             >
               Cancelar
             </button>
@@ -166,7 +161,7 @@ export function RegisterProductModal({
                 createProductMutation.isPending ||
                 updateProductMutation.isPending
               }
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md disabled:opacity-50"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-md disabled:opacity-50"
             >
               {isEditing ? 'Salvar Alterações' : 'Cadastrar Produto'}
             </button>

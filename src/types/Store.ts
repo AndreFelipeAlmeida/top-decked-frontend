@@ -2,27 +2,31 @@ import type { UsuarioPublico } from "./User";
 
 export interface LojaBase {
   nome: string;
-  endereco: string;
+  endereco?: string | null;
   telefone?: string | null;
   site?: string | null;
   banner?: string | null;
 }
 
-export interface Loja extends LojaBase {
+export interface LojaPublico extends LojaBase {
   id: number;
   usuario: UsuarioPublico;
 }
 
-export interface LojaPublicoTorneios extends Loja {
+export interface LojaPublicoTorneios extends LojaPublico {
   n_torneios: number;
 }
 
 export interface LojaCriar extends LojaBase {
-  email: string;
-  senha: string;
-}
-
-export interface LojaAtualizar extends Partial<LojaBase> {
   email?: string;
   senha?: string;
+}
+
+export interface LojaAtualizar {
+  nome?: string;
+  endereco?: string;
+  email?: string;
+  senha?: string;
+  telefone?: string;
+  site?: string;
 }

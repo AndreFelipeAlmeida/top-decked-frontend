@@ -43,20 +43,20 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
   };
 
   return (
-    <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+    <div className="rounded-md border bg-card shadow-sm overflow-hidden">
       <Table>
-        <TableHeader className="bg-gray-50/50">
+        <TableHeader className="bg-muted/40">
           <TableRow>
-            <TableHead className="w-[30%] text-gray-700">
+            <TableHead className="w-[30%] text-muted-foreground">
               Nome do Item
             </TableHead>
-            <TableHead className="text-gray-700">Categoria</TableHead>
-            <TableHead className="text-center text-gray-700">
+            <TableHead className="text-muted-foreground">Categoria</TableHead>
+            <TableHead className="text-center text-muted-foreground">
               Quantidade
             </TableHead>
-            <TableHead className="text-gray-700">Preço Unitário</TableHead>
-            <TableHead className="text-gray-700">Status</TableHead>
-            <TableHead className="text-right text-gray-700">Ações</TableHead>
+            <TableHead className="text-muted-foreground">Preço Unitário</TableHead>
+            <TableHead className="text-muted-foreground">Status</TableHead>
+            <TableHead className="text-right text-muted-foreground">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -66,16 +66,16 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
             return (
               <TableRow
                 key={item.id}
-                className={`transition-colors ${isLowStock ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-gray-50'}`}
+                className={`transition-colors ${isLowStock ? 'bg-destructive/10 hover:bg-destructive/15' : 'hover:bg-accent'}`}
               >
                 {/* Nome */}
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {isLowStock && (
-                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                      <AlertTriangle className="w-4 h-4 text-destructive" />
                     )}
                     <span
-                      className={isLowStock ? 'text-red-900' : 'text-gray-900'}
+                      className={isLowStock ? 'text-destructive' : 'text-foreground'}
                     >
                       {item.nome}
                     </span>
@@ -84,7 +84,7 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
 
                 {/* Categoria */}
                 <TableCell>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {categories.find(c => c.id === item.categoria)?.nome}
                   </span>
                 </TableCell>
@@ -106,12 +106,12 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
 
                     <div className="flex flex-col items-center min-w-11.25">
                       <span
-                        className={`text-sm font-bold ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}
+                        className={`text-sm font-bold ${isLowStock ? 'text-destructive' : 'text-foreground'}`}
                       >
                         {item.quantidade}
                       </span>
                       {isLowStock && (
-                        <span className="text-[10px] text-red-500 font-bold">
+                        <span className="text-[10px] text-destructive font-bold">
                           MIN: {item.min_quantidade}
                         </span>
                       )}
@@ -120,7 +120,7 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
                     <Button
                       variant="default"
                       size="icon"
-                      className="h-7 w-7 bg-purple-600 hover:bg-purple-700"
+                      className="h-7 w-7 bg-primary hover:bg-primary/90"
                       onClick={() => handleStockMovement(item, 'UP')}
                       disabled={moveStockMutation.isPending}
                     >
@@ -155,7 +155,7 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
                       onClick={() => onEdit(item)}
                       title="Editar"
                     >
@@ -165,7 +165,7 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/15"
                       onClick={() => handleDelete(item)}
                       disabled={deleteProductMutation.isPending}
                       title="Excluir"

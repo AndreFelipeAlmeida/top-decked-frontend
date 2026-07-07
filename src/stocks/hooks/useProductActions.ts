@@ -1,22 +1,21 @@
+import { stockKeys } from '@/keys/stock.keys';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   createStock,
   deleteStock,
   updateQuantity,
   updateStock,
-} from '../service/product.service';
+} from '@/services/product.service';
 import type { EstoqueCadastro, EstoqueMovimentacao } from '@/types/Stock';
 import { toast } from 'sonner';
 
 export function useProductActions() {
   const queryClient = useQueryClient();
 
-  const PRODUCTS_QUERY_KEY = ['products'];
-
   const createProductMutation = useMutation({
     mutationFn: (newProduct: EstoqueCadastro) => createStock(newProduct),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: stockKeys.all });
       toast.success('Produto registrado com sucesso!');
     },
     onError: () => {
@@ -28,7 +27,7 @@ export function useProductActions() {
     mutationFn: ({ id, data }: { id: number; data: EstoqueMovimentacao }) =>
       updateQuantity(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: stockKeys.all });
       toast.success("Estoque atualizado!")
     },
   });
@@ -37,14 +36,14 @@ export function useProductActions() {
     mutationFn: ({ id, data }: { id: number; data: EstoqueCadastro }) =>
       updateStock(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: stockKeys.all });
     },
   });
 
   const deleteProductMutation = useMutation({
     mutationFn: (id: number) => deleteStock(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PRODUCTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: stockKeys.all });
     },
   });
 

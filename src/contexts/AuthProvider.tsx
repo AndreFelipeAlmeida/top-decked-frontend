@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react"
 import { AuthContext } from "./AuthContext"
-import { type User } from "@/types/User"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { profile } from "@/services/loginService"
+import { useQueryClient } from "@tanstack/react-query"
+import { useSession } from "@/hooks/auth.hooks"
 import { api } from "@/adapters/api"
 
 type AuthProviderProps = {
@@ -26,11 +25,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [token])
 
-  const { data: user, isLoading } = useQuery<User>({
-    queryKey: ["profile"],
-    queryFn: profile,
-    enabled: !!token,
-  })
+  const { data: user, isLoading } = useSession(!!token)
 
   const handleLogin = (token: string) => {
     localStorage.setItem("user", JSON.stringify(user))

@@ -16,6 +16,13 @@ interface ConfirmDeleteModalProps {
   title: string;
   description: string;
   isLoading?: boolean;
+  // Por padrão o modal assume uma exclusão (variante destrutiva, textos de
+  // "Excluir"); outras confirmações sensíveis mas não-destrutivas (ex.: trocar
+  // um ID vinculado a histórico) podem sobrescrever esses três para reaproveitar
+  // o mesmo modal sem herdar o vocabulário/estilo de "exclusão".
+  variant?: 'destructive' | 'default';
+  confirmLabel?: string;
+  loadingLabel?: string;
 }
 
 export function ConfirmDeleteModal({
@@ -25,16 +32,19 @@ export function ConfirmDeleteModal({
   title,
   description,
   isLoading,
+  variant = 'destructive',
+  confirmLabel,
+  loadingLabel,
 }: ConfirmDeleteModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-red-600 mb-2">
+          <div className={`flex items-center gap-2 mb-2 ${variant === 'destructive' ? 'text-destructive' : 'text-primary'}`}>
             <AlertTriangle className="h-5 w-5" />
             <DialogTitle>{title}</DialogTitle>
           </div>
-          <DialogDescription className="text-gray-600">
+          <DialogDescription className="text-muted-foreground">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -44,23 +54,23 @@ export function ConfirmDeleteModal({
             variant="outline"
             onClick={onClose}
             disabled={isLoading}
-            className="border-gray-200"
+            className="border-border"
           >
             Cancelar
           </Button>
           <Button
-            variant="destructive"
+            variant={variant}
             onClick={onConfirm}
             disabled={isLoading}
-            className="bg-red-600 hover:bg-red-700"
+            className={variant === 'destructive' ? 'bg-destructive hover:bg-destructive/90' : ''}
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Excluindo...
+                {loadingLabel ?? (variant === 'destructive' ? 'Excluindo...' : 'Confirmando...')}
               </>
             ) : (
-              'Confirmar Exclusão'
+              confirmLabel ?? (variant === 'destructive' ? 'Confirmar Exclusão' : 'Confirmar')
             )}
           </Button>
         </DialogFooter>

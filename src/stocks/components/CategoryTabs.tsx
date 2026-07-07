@@ -82,7 +82,7 @@ export function CategoryTabs({
             <button
               onClick={(e) => handleOpenConfirm(e, cat)}
               disabled={deleteCategoryMutation.isPending}
-              className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm disabled:bg-gray-400"
+              className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm disabled:bg-muted-foreground/40"
             >
               <X className="w-3 h-3" />
             </button>
@@ -95,7 +95,7 @@ export function CategoryTabs({
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-gray-500 h-9"
+                className="gap-2 text-muted-foreground h-9"
               >
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -105,20 +105,20 @@ export function CategoryTabs({
                 {extraCategories.map((cat) => (
                   <div
                     key={cat.id}
-                    className="flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-gray-100 group transition-colors"
+                    className="flex items-center justify-between w-full px-3 py-2 text-sm rounded-md hover:bg-accent group transition-colors"
                   >
                     <button
                       onClick={() => onSelect(cat.id)}
-                      className="flex items-center flex-1 text-left font-medium text-gray-700"
+                      className="flex items-center flex-1 text-left font-medium text-muted-foreground"
                     >
-                      <Tag className="w-3 h-3 mr-2 text-gray-400" />
+                      <Tag className="w-3 h-3 mr-2 text-muted-foreground" />
                       {cat.nome}
                     </button>
 
                     <button
                       onClick={(e) => handleOpenConfirm(e, cat)}
                       disabled={deleteCategoryMutation.isPending}
-                      className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                      className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity p-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -132,7 +132,7 @@ export function CategoryTabs({
         variant="outline"
         size="sm"
         onClick={onAddCategory}
-        className="border-dashed border-purple-300 text-purple-600 hover:bg-purple-50 gap-2 ml-4"
+        className="border-dashed border-primary/40 text-primary hover:bg-primary/10 gap-2 ml-4"
       >
         <Plus className="w-4 h-4" />
       </Button>
@@ -165,8 +165,8 @@ function TabButton({
       onClick={onClick}
       className={`px-4 py-2 text-sm font-semibold rounded-md transition-all whitespace-nowrap ${
         isActive
-          ? 'bg-purple-600 text-white shadow-sm'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          ? 'bg-primary text-white shadow-sm'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
       }`}
     >
       {label}

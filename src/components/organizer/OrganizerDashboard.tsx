@@ -1,20 +1,25 @@
+import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Plus, Download, Upload, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuthContext } from '@/hooks/useAuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { getTournaments } from '@/services/lojasTorneiosService';
-import { getMonthlyTournaments, getFormatData, getRecentTournaments, getUpcomingTournaments } from '@/selectors/tournaments.selectors'; 
-import Spinner from '../ui/Spinner';
+import { useAuthContext } from '@/hooks/authContext.hooks';
+import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
+import { getMonthlyTournaments, getFormatData, getRecentTournaments, getUpcomingTournaments } from '@/selectors/tournaments.selectors';
+import Spinner from '../ui/spinner';
+import { useTournaments } from '@/hooks/tournaments.hooks';
 
 export default function OrganizerDashboard() {
   const { user } = useAuthContext();
-  
-  const { data: tournaments = [], isLoading } = useQuery({
-    queryKey: ["tournaments"],
-    queryFn: getTournaments,
-    retry: false
-  });
+  const { selectedTcg } = useTcgSelection();
+
+  const { data: tournamentsRaw = [], isLoading } = useTournaments('loja');
+
+  // A barra lateral de jogos filtra o dashboard pelo jogo selecionado (mesmo
+  // padrão de Tournaments.tsx/OrganizerRankings.tsx).
+  const tournaments = useMemo(
+    () => tournamentsRaw.filter((t) => t.jogo === selectedTcg),
+    [tournamentsRaw, selectedTcg],
+  );
 
   const monthlyData = getMonthlyTournaments(tournaments);
   const formatData = getFormatData(tournaments);
@@ -27,31 +32,31 @@ export default function OrganizerDashboard() {
     <div className="p-8">
       {/* Cabeçalho */}
       <div className="mb-8">
-        <h1 className="text-3xl mb-2 text-gray-900 font-bold">Painel de Controle</h1>
-        <p className="text-gray-600">Bem-vindo de volta, {user?.nome}!</p>
+        <h1 className="text-3xl mb-2 text-foreground font-bold">Painel de Controle</h1>
+        <p className="text-muted-foreground">Bem-vindo de volta, {user?.nome}!</p>
       </div>
 
       {/* Ações Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Link 
           to="/loja/criar-torneio"
-          className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 font-medium"
+          className="bg-primary text-white p-4 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center space-x-2 font-medium"
         >
           <Plus className="w-5 h-5" />
           <span>Criar Novo Torneio</span>
         </Link>
-        <button className="bg-white border border-gray-300 text-gray-700 p-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+        <button className="bg-card border border-border text-muted-foreground p-4 rounded-lg hover:bg-accent transition-colors flex items-center justify-center space-x-2">
           <Download className="w-5 h-5" />
           <span>Exportar Dados</span>
         </button>
         <Link
-          to="/loja/rankings"
-          className="bg-white border border-gray-300 text-gray-700 p-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2"
+          to="/loja/jogadores"
+          className="bg-card border border-border text-muted-foreground p-4 rounded-lg hover:bg-accent transition-colors flex items-center justify-center space-x-2"
         >
           <Users className="w-5 h-5" />
           <span>Gerenciar Jogadores</span>
         </Link>
-        <button className="bg-white border border-gray-300 text-gray-700 p-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2">
+        <button className="bg-card border border-border text-muted-foreground p-4 rounded-lg hover:bg-accent transition-colors flex items-center justify-center space-x-2">
           <Upload className="w-5 h-5" />
           <span>Gerenciar Anúncios</span>
         </button>
@@ -60,40 +65,40 @@ export default function OrganizerDashboard() {
       {/* KPIs (Indicadores) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Link
-          to="/loja/torneios"
-          className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
+          to="/torneios"
+          className="bg-card p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer"
         >
-          <div className="text-sm text-gray-600 mb-1">Torneios Ativos</div>
-          <div className="text-3xl text-gray-900 font-bold">{upcomingTournaments.length}</div>
-          <div className="text-xs text-green-600 mt-1">+2 desde a última semana</div>
+          <div className="text-sm text-muted-foreground mb-1">Torneios Ativos</div>
+          <div className="text-3xl text-foreground font-bold">{upcomingTournaments.length}</div>
+          <div className="text-xs text-success mt-1">+2 desde a última semana</div>
         </Link>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-1">Total de Participantes</div>
-          <div className="text-3xl text-gray-900 font-bold">
+        <div className="bg-card p-6 rounded-lg shadow">
+          <div className="text-sm text-muted-foreground mb-1">Total de Participantes</div>
+          <div className="text-3xl text-foreground font-bold">
             {tournaments.reduce((acc, t) => acc + (t.jogadores?.length || 0), 0)}
           </div>
-          <div className="text-xs text-green-600 mt-1">+15% este mês</div>
+          <div className="text-xs text-success mt-1">+15% este mês</div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-1">Eventos Finalizados</div>
-          <div className="text-3xl text-gray-900 font-bold">{recentTournaments.length}</div>
-          <div className="text-xs text-gray-600 mt-1">Total acumulado</div>
+        <div className="bg-card p-6 rounded-lg shadow">
+          <div className="text-sm text-muted-foreground mb-1">Eventos Finalizados</div>
+          <div className="text-3xl text-foreground font-bold">{recentTournaments.length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Total acumulado</div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-1">Média de Público</div>
-          <div className="text-3xl text-gray-900 font-bold">
+        <div className="bg-card p-6 rounded-lg shadow">
+          <div className="text-sm text-muted-foreground mb-1">Média de Público</div>
+          <div className="text-3xl text-foreground font-bold">
             {tournaments.length > 0 
               ? Math.round(tournaments.reduce((acc, t) => acc + (t.jogadores?.length || 0), 0) / tournaments.length) 
               : 0}
           </div>
-          <div className="text-xs text-gray-600 mt-1">por torneio</div>
+          <div className="text-xs text-muted-foreground mt-1">por torneio</div>
         </div>
       </div>
 
       {/* Gráficos de Análise */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl mb-4 text-gray-900 font-bold">Atividade Mensal de Torneios</h2>
+        <div className="bg-card p-6 rounded-lg shadow">
+          <h2 className="text-xl mb-4 text-foreground font-bold">Atividade Mensal de Torneios</h2>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -105,8 +110,8 @@ export default function OrganizerDashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl mb-4 text-gray-900 font-bold">Distribuição por Formato</h2>
+        <div className="bg-card p-6 rounded-lg shadow">
+          <h2 className="text-xl mb-4 text-foreground font-bold">Distribuição por Formato</h2>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart width={400} height={300}>
               <Pie
@@ -128,53 +133,53 @@ export default function OrganizerDashboard() {
 
       {/* Listas de Torneios */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl mb-4 text-gray-900 font-bold">Próximos Torneios</h2>
+        <div className="bg-card p-6 rounded-lg shadow">
+          <h2 className="text-xl mb-4 text-foreground font-bold">Próximos Torneios</h2>
           <div className="space-y-3">
             {upcomingTournaments.length > 0 ? upcomingTournaments.map((tournament) => (
               <Link
                 key={tournament.id}
-                to={`/loja/torneio/${tournament.id}/configurar`}
-                className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors block"
+                to={`/loja/torneio/${tournament.id}/editar`}
+                className="border border-border rounded-lg p-4 hover:border-primary/40 transition-colors block"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="text-gray-900 font-bold">{tournament.nome}</h3>
-                    <p className="text-sm text-gray-600">
-                      {new Date(tournament.data_inicio).toLocaleDateString('pt-BR')}
+                    <h3 className="text-foreground font-bold">{tournament.nome}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(tournament.data_planejada).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-bold">
+                  <span className="px-2 py-1 bg-success/15 text-success text-xs rounded font-bold">
                     {tournament.status}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{tournament.jogadores?.length || 0} jogadores inscritos</span>
+                  <span className="text-sm text-muted-foreground">{tournament.jogadores?.length || 0} jogadores inscritos</span>
                 </div>
               </Link>
-            )) : <p className="text-gray-500 text-sm">Nenhum torneio agendado.</p>}
+            )) : <p className="text-muted-foreground text-sm">Nenhum torneio agendado.</p>}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl mb-4 text-gray-900 font-bold">Torneios Recentes</h2>
+        <div className="bg-card p-6 rounded-lg shadow">
+          <h2 className="text-xl mb-4 text-foreground font-bold">Torneios Recentes</h2>
           <div className="space-y-3">
             {recentTournaments.length > 0 ? recentTournaments.map((tournament) => (
-              <div key={tournament.id} className="border border-gray-200 rounded-lg p-4">
+              <div key={tournament.id} className="border border-border rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="text-gray-900 font-bold">{tournament.nome}</h3>
-                    <p className="text-sm text-gray-600">
-                      {new Date(tournament.data_inicio).toLocaleDateString('pt-BR')}
+                    <h3 className="text-foreground font-bold">{tournament.nome}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(tournament.data_planejada).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{tournament.jogadores?.length || 0} jogadores</span>
-                  <span className="text-purple-600 font-bold italic">Vencedor: {tournament.vencedor}</span>
+                  <span className="text-muted-foreground">{tournament.jogadores?.length || 0} jogadores</span>
+                  <span className="text-primary font-bold italic">Vencedor: {tournament.vencedor}</span>
                 </div>
               </div>
-            )) : <p className="text-gray-500 text-sm">Nenhum torneio finalizado recentemente.</p>}
+            )) : <p className="text-muted-foreground text-sm">Nenhum torneio finalizado recentemente.</p>}
           </div>
         </div>
       </div>

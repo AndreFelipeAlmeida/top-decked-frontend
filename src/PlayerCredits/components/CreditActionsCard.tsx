@@ -1,6 +1,6 @@
 import { MinusCircle, PlusCircle } from 'lucide-react';
 import { useState } from 'react';
-import { useCreditActions } from '../hooks/useCreditActions';
+import { useCreditActions } from '@/hooks/credits.hooks';
 
 type Props = {
   creditId?: number;
@@ -21,8 +21,8 @@ export default function CreditActionsCard({ creditId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+      <div className="rounded-lg border border-border bg-muted/40 p-4">
+        <label className="mb-2 block text-sm font-medium text-muted-foreground">
           Valor
         </label>
 
@@ -32,7 +32,7 @@ export default function CreditActionsCard({ creditId }: Props) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="R$ 0,00"
-          className="mb-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+          className="mb-3 w-full rounded-md border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-muted"
         />
 
         <div className="grid grid-cols-2 gap-2">
@@ -44,7 +44,7 @@ export default function CreditActionsCard({ creditId }: Props) {
                 onSuccess: () => setValue(''),
               });
             }}
-            className="flex items-center justify-center gap-2 rounded-md bg-green-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-green-700 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-md bg-success px-3 py-2 text-xs font-medium text-white transition hover:bg-success/90 disabled:opacity-50"
           >
             <PlusCircle className="h-4 w-4" />
             {addCreditsMutation.isPending ? 'Adicionando...' : 'Adicionar'}
@@ -58,7 +58,7 @@ export default function CreditActionsCard({ creditId }: Props) {
                 onSuccess: () => setValue(''),
               });
             }}
-            className="flex items-center justify-center gap-2 rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-md bg-destructive px-3 py-2 text-xs font-medium text-white transition hover:bg-destructive/90 disabled:opacity-50"
           >
             <MinusCircle className="h-4 w-4" />
             {removeCreditsMutation.isPending ? 'Retirando...' : 'Retirar'}

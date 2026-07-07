@@ -1,22 +1,27 @@
 import { useState, type ReactNode } from 'react';
-import { 
-  LayoutDashboard, Trophy, Plus, Settings, Package, 
+import { useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard, Trophy, Plus, Settings, Package,
   DollarSign, User, Sparkles, Flame, Zap, TrendingUp,
   Menu,
   X,
-  User2
+  User2,
+  Award
 } from 'lucide-react';
-import { useAuthContext } from '../hooks/useAuthContext';
+import { useAuthContext } from '../hooks/authContext.hooks';
+import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { Sidebar } from './components/Sidebar';
 
-const tcgGames = [
-  { id: 'pokemon', name: 'Pokémon', icon: '⚡', color: 'bg-yellow-500', disabled: false },
-  { id: 'yugioh', name: 'Yu-Gi-Oh!', icon: '👁️', color: 'bg-purple-500', disabled: true },
-  { id: 'magic', name: 'Magic', icon: '🔮', color: 'bg-blue-500', disabled: true },
-  { id: 'onepiece', name: 'One Piece', icon: '🏴‍☠️', color: 'bg-red-500', disabled: true },
-  { id: 'vtes', name: 'VTES', icon: '🧛', color: 'bg-gray-700', disabled: true },
-  { id: 'riftbound', name: 'Riftbound', icon: '🌀', color: 'bg-cyan-500', disabled: true },
-  { id: 'fab', name: 'F&B', icon: '⚔️', color: 'bg-orange-500', disabled: true },
+import { tcgGames } from '@/lib/tcgGames';
+
+// A barra de jogos só faz sentido nas telas que ela de fato filtra —
+// Dashboard, Torneios e Rankings (ver Tournaments.tsx/OrganizerRankings.tsx/
+// OrganizerDashboard.tsx). Nas demais telas ela ficaria sem efeito nenhum.
+const PAGINAS_COM_BARRA_DE_JOGOS = [
+  '/loja/dashboard',
+  '/jogador/dashboard',
+  '/torneios',
+  '/rankings',
 ];
 
 interface AppLayoutProps {
@@ -24,14 +29,16 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const [selectedGame, setSelectedGame] = useState('pokemon');
+  const { selectedTcg, setSelectedTcg } = useTcgSelection();
   const { user, handleLogout } = useAuthContext();
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const mostrarBarraDeJogos = PAGINAS_COM_BARRA_DE_JOGOS.includes(location.pathname);
 
   const organizerNav = [
     { path: '/loja/dashboard', icon: LayoutDashboard, label: 'Dashboard', disabled: false },
-    { path: '/loja/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
-    { path: '/loja/torneios', icon: Trophy, label: 'Torneios', disabled: false },
+    { path: '/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
+    { path: '/torneios', icon: Trophy, label: 'Torneios', disabled: false },
     { path: '/loja/criar-torneio', icon: Plus, label: 'Criar Torneio', disabled: false },
     { path: '/loja/regras-jogadores', icon: Settings, label: 'Regras de Jogos', disabled: false },
     { path: '/loja/estoque', icon: Package, label: 'Estoque', disabled: false },
@@ -41,41 +48,46 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const playerNav = [
     { path: '/jogador/dashboard', icon: User, label: 'Dashboard', disabled: false },
+    { path: '/torneios', icon: Trophy, label: 'Torneios', disabled: false },
+    { path: '/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
+    { path: '/jogador/conquistas', icon: Award, label: 'Conquistas', disabled: false },
     { path: '/jogador/estatisticas', icon: Sparkles, label: 'Estatísticas', disabled: true},
     { path: '/jogador/historico', icon: Flame, label: 'Histórico de Partidas', disabled: true },
     { path: '/jogador/torneios', icon: Trophy, label: 'Torneios', disabled: true },
-    { path: '/jogador/perfil', icon: User, label: 'Perfil & Carteira', disabled: true },
+    { path: '/jogador/perfil', icon: User, label: 'Perfil & Carteira', disabled: false },
   ];
 
   const navItems = user?.tipo === 'loja' ? organizerNav : playerNav;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Left Sidebar - Game Selector */}
-      <div className="w-20 bg-gray-900 flex flex-col items-center py-4 space-y-3">
-        <div className="mb-4">
-          <Zap className="w-8 h-8 text-purple-400" />
+    <div className="min-h-screen bg-background flex">
+      {/* Left Sidebar - Game Selector (só nas telas que ela filtra) */}
+      {mostrarBarraDeJogos && (
+        <div className="w-20 bg-brand-gradient flex flex-col items-center py-4 space-y-3 shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)]">
+          <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          {tcgGames.map((game) => (
+            <button
+              key={game.id}
+              onClick={() => !game.disabled && setSelectedTcg(game.id)}
+              disabled={game.disabled}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-center text-white text-[9px] font-bold leading-tight px-1 transition-all ${
+                selectedTcg === game.id
+                  ? `${game.color} shadow-lg scale-110 ring-2 ring-white/50`
+                    : 'bg-white/10 hover:bg-white/20'}
+                  ${game.disabled ? 'opacity-40 cursor-not-allowed hover:bg-white/10' : ''}
+                  `}
+              title={game.name}
+            >
+              {game.name}
+            </button>
+          ))}
         </div>
-        {tcgGames.map((game) => (
-          <button
-            key={game.id}
-            onClick={() => !game.disabled && setSelectedGame(game.id)}
-            disabled={game.disabled}
-            className={`w-12 h-12 rounded-lg flex items-center justify-center text-xl transition-all ${
-              selectedGame === game.id
-                ? `${game.color} shadow-lg scale-110`
-                  : 'bg-gray-800 hover:bg-gray-700'}
-                ${game.disabled ? 'opacity-40 cursor-not-allowed hover:bg-gray-800' : ''}
-                `}
-            title={game.name}
-          >
-            {game.icon}
-          </button>
-        ))}
-      </div>
+      )}
 
       {/* Main Navigation Sidebar */}
-      <div className="hidden md:flex w-64 border-r border-gray-200">
+      <div className="hidden md:flex w-64 border-r border-border">
         <Sidebar
           user={user}
           navItems={navItems}
@@ -87,12 +99,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div className="flex-1 flex flex-col overflow-auto">
 
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
+        <div className="md:hidden flex items-center justify-between p-4 bg-card border-b border-border">
           <button onClick={() => setIsOpen(true)}>
             <Menu className="w-6 h-6" />
           </button>
 
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-foreground">
             {user?.nome}
           </span>
         </div>
@@ -113,9 +125,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
           />
           
           {/* Drawer */}
-          <div className="relative w-64 bg-white h-full shadow-xl">
-            <div className="p-4 border-b flex justify-between items-center">
-              <span className="font-semibold">Menu</span>
+          <div className="relative w-64 bg-card h-full shadow-xl">
+            <div className="p-4 border-b border-border flex justify-between items-center">
+              <span className="font-semibold text-foreground">Menu</span>
               <button onClick={() => setIsOpen(false)}>
                 <X className="w-5 h-5" />
               </button>

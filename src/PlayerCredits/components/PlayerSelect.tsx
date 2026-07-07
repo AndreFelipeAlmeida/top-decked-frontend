@@ -7,12 +7,12 @@ import {
 } from '@/components/ui/command';
 
 import { useState } from 'react';
-import type { CreditoPublico } from '@/types/Credito';
+import type { LojaJogadorPublico } from '@/types/Credito';
 
 
 type Props = {
   value: number | null;
-  players: CreditoPublico[];
+  players: LojaJogadorPublico[];
   search: string;
   onSearchChange: (value: string) => void;
   onChange: (playerId: number | null) => void;
@@ -46,8 +46,8 @@ export default function PlayerSelect({
         />
 
         {open && (
-          <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-white shadow-lg">
-            <CommandEmpty className="p-2 text-sm text-gray-500">
+          <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-card shadow-lg">
+            <CommandEmpty className="p-2 text-sm text-muted-foreground">
               Nenhum jogador encontrado.
             </CommandEmpty>
 
@@ -63,15 +63,11 @@ export default function PlayerSelect({
                 >
                   <div className="flex flex-col">
                     <span className="font-medium">
-                      {player.jogador?.nome ?? '--'}
-                    </span>
-
-                    <span className="text-xs text-gray-500">
                       {player.apelido ?? '--'}
                     </span>
                   </div>
 
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted-foreground">
                     {player.game_id ?? '--'}
                   </span>
                 </CommandItem>

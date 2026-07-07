@@ -34,8 +34,8 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
           onClick={() => setCategory('todos')}
           className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
             category === 'todos'
-              ? 'bg-purple-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-primary text-white'
+              : 'bg-muted text-muted-foreground hover:bg-accent'
           }`}
         >
           Todos
@@ -46,8 +46,8 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
           onClick={() => setCategory('produtos')}
           className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
             category === 'produtos'
-              ? 'bg-purple-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-primary text-white'
+              : 'bg-muted text-muted-foreground hover:bg-accent'
           }`}
         >
           <Package className="h-3.5 w-3.5" />
@@ -59,8 +59,8 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
           onClick={() => setCategory('cantina')}
           className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
             category === 'cantina'
-              ? 'bg-purple-600 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-primary text-white'
+              : 'bg-muted text-muted-foreground hover:bg-accent'
           }`}
         >
           <Utensils className="h-3.5 w-3.5" />
@@ -70,27 +70,27 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
 
       {/* Busca */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar item..."
-          className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="w-full rounded-md border border-border py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
       {/* Lista */}
       <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
         {isLoading && (
-          <div className="rounded-md border border-gray-200 p-6 text-center text-sm text-gray-500">
+          <div className="rounded-md border border-border p-6 text-center text-sm text-muted-foreground">
             Carregando produtos...
           </div>
         )}
 
         {!isLoading && filteredProducts.length === 0 && (
-          <div className="rounded-md border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+          <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
             Nenhum item encontrado.
           </div>
         )}
@@ -101,19 +101,19 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
           return (
             <div
               key={product.id}
-              className="flex items-center justify-between rounded-lg border border-gray-200 p-3 transition hover:border-purple-200 hover:bg-purple-50/30"
+              className="flex items-center justify-between rounded-lg border border-border p-3 transition hover:border-primary/30 hover:bg-primary/5"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">
+                <p className="truncate text-sm font-medium text-foreground">
                   {product.nome}
                 </p>
 
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span>R$ {product.preco.toFixed(2)}</span>
                   <span>•</span>
 
                   <span
-                    className={outOfStock ? 'text-red-500' : 'text-gray-500'}
+                    className={outOfStock ? 'text-destructive' : 'text-muted-foreground'}
                   >
                     {outOfStock
                       ? 'Sem estoque'
@@ -136,7 +136,7 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
                     quantidade: 1,
                   })
                 }
-                className="ml-3 inline-flex shrink-0 items-center gap-1 rounded-md bg-purple-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="ml-3 inline-flex shrink-0 items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Adicionar

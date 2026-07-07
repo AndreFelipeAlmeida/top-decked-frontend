@@ -1,17 +1,16 @@
+import { categoryKeys } from '@/keys/stock.keys';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createCategory, deleteCategory, updateCategory } from '../service/category.service';
+import { createCategory, deleteCategory, updateCategory } from '@/services/category.service';
 import { toast } from 'sonner';
 import type { ApiError } from '@/types/Error';
 
 export function useCategoryActions() {
   const queryClient = useQueryClient();
 
-  const CATEGORIES_QUERY_KEY = ['categories'];
-
   const createCategoryMutation = useMutation({
     mutationFn: (newCategory: { nome: string }) => createCategory(newCategory),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       toast.success("Categoria criada com sucesso")
     },
     onError: () => toast.error("Erro durante a criação da Categoria")
@@ -21,7 +20,7 @@ export function useCategoryActions() {
     mutationFn: ({ id, data }: { id: number; data: { nome: string } }) =>
       updateCategory(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
     },
   });
 
@@ -30,7 +29,7 @@ export function useCategoryActions() {
       return await deleteCategory(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: CATEGORIES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
       toast.success('Categoria removida com sucesso!', { id: 'delete-cat' });
     },
     onError: (error: ApiError) => {

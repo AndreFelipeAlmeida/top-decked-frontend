@@ -1,12 +1,12 @@
 import type { TorneioPublico } from "@/types/Tournaments";
+import { nomeDoFormato } from "@/lib/pokemonFormats";
 
+// Chaves em sincronia com o enum `FormatoTorneio` do backend (Pokémon TCG —
+// ver docs/DIVIDA_TECNICA.md item 43), não com formatos de Magic.
 const FORMAT_COLORS: Record<string, string> = {
-  Standard: '#8b5cf6',
-  Modern: '#ec4899',
-  Commander: '#3b82f6',
-  Pioneer: '#10b981',
-  Legacy: '#f59e0b',
-  Pauper: '#6366f1',
+  PADRAO: '#8b5cf6',
+  GLC: '#ec4899',
+  DRAFT: '#3b82f6',
   Desconhecido: '#94a3b8'
 };
 
@@ -14,7 +14,7 @@ export const getMonthlyTournaments = (tournaments: TorneioPublico[]) => {
   const monthMap: Record<string, number> = {};
 
   tournaments.forEach((t) => {
-    const month = new Date(t.data_inicio).toLocaleString('pt-BR', {
+    const month = new Date(t.data_planejada).toLocaleString('pt-BR', {
       month: 'short',
     }).replace('.', '');
 
@@ -35,10 +35,10 @@ export const getFormatData = (tournaments: TorneioPublico[]) => {
     formatMap[formato] = (formatMap[formato] ?? 0) + 1;
   });
 
-  return Object.entries(formatMap).map(([name, value]) => ({
-    name,
+  return Object.entries(formatMap).map(([id, value]) => ({
+    name: nomeDoFormato(id === "Desconhecido" ? null : id) || "Desconhecido",
     value,
-    color: FORMAT_COLORS[name] || FORMAT_COLORS.Desconhecido,
+    color: FORMAT_COLORS[id] || FORMAT_COLORS.Desconhecido,
   }));
 };
 
@@ -47,16 +47,16 @@ export const getRecentTournaments = (tournaments: TorneioPublico[]) => {
     .filter((t) => t.status === 'FINALIZADO')
     .sort(
       (a, b) =>
-        new Date(b.data_inicio).getTime() -
-        new Date(a.data_inicio).getTime()
+        new Date(b.data_planejada).getTime() -
+        new Date(a.data_planejada).getTime()
     )
     .slice(0, 5)
     .map((t) => ({
       id: t.id,
       nome: t.nome,
-      data_inicio: t.data_inicio,
+      data_planejada: t.data_planejada,
       jogadores: t.jogadores,
-      vencedor: t.jogadores?.sort((a, b) => b.pontuacao - a.pontuacao)[0]?.nome ?? '—',
+      vencedor: t.jogadores?.slice().sort((a, b) => b.pontuacao - a.pontuacao)[0]?.apelido ?? '—',
       status: t.status
     }));
 };
@@ -69,12 +69,12 @@ export const getUpcomingTournaments = (tournaments: TorneioPublico[]) => {
     .filter(
       (t) =>
         t.status === 'ABERTO' &&
-        new Date(t.data_inicio) >= today
+        new Date(t.data_planejada) >= today
     )
     .map((t) => ({
       id: t.id,
       nome: t.nome,
-      data_inicio: t.data_inicio,
+      data_planejada: t.data_planejada,
       jogadores: t.jogadores,
       status: t.status,
     }));

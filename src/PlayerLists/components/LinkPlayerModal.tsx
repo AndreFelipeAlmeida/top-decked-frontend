@@ -11,9 +11,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { JogadorPublico } from '@/types/Player';
-import { addCreditsById } from '@/services/creditoService';
+import { useLinkExistingPlayer } from '@/hooks/credits.hooks';
 import { toast } from 'sonner';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const schema = z.object({
   nickname: z.string().optional(),
@@ -32,18 +31,7 @@ export default function LinkPlayerToStoreModal({
   onClose,
   player,
 }: Props) {
-  const queryClient = useQueryClient();
-
-  const { mutate } = useMutation({
-    mutationFn: addCreditsById,
-    onSuccess: () => {
-      toast.success('Jogador vinculado com sucesso');
-      queryClient.invalidateQueries({
-        queryKey: ['players'],
-      });
-      onClose();
-    },
-  });
+  const { mutate } = useLinkExistingPlayer();
 
   const {
     register,
@@ -56,10 +44,15 @@ export default function LinkPlayerToStoreModal({
   const onSubmit = (data: FormData) => {
     if (!player) return;
 
-    mutate({
-      jogadorId: player.id,
-      apelido: data.nickname,
-    });
+    mutate(
+      { jogadorId: player.id, apelido: data.nickname },
+      {
+        onSuccess: () => {
+          toast.success('Jogador vinculado com sucesso');
+          onClose();
+        },
+      },
+    );
   };
 
   if (!player) return null;
@@ -74,25 +67,25 @@ export default function LinkPlayerToStoreModal({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Info do jogador */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <p className="text-sm text-gray-600">Jogador</p>
-            <p className="font-medium text-gray-900">{player.nome}</p>
+          <div className="bg-muted/40 p-4 rounded-lg">
+            <p className="text-sm text-muted-foreground">Jogador</p>
+            <p className="font-medium text-foreground">{player.nome}</p>
           </div>
 
           {/* Apelido */}
           <div>
-            <label className="block text-sm mb-2 text-gray-700">
+            <label className="block text-sm mb-2 text-muted-foreground">
               Apelido (opcional)
             </label>
             <input
               type="text"
               placeholder="Ex: Joãozinho"
               {...register('nickname')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
 
             {errors.nickname && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-sm text-destructive mt-1">
                 {errors.nickname.message}
               </p>
             )}
@@ -105,7 +98,7 @@ export default function LinkPlayerToStoreModal({
             </Button>
 
             <Button
-              className="bg-purple-600 text-white hover:bg-purple-700"
+              className="bg-primary text-white hover:bg-primary/90"
               type="submit"
             >
               Vincular jogador

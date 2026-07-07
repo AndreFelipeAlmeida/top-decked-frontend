@@ -1,0 +1,279 @@
+import { ArrowLeft, Trophy, Award, Medal, Edit } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { useTournamentById } from '@/hooks/tournaments.hooks';
+import { useMe } from '@/hooks/auth.hooks';
+import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
+import type { JogadorTorneioLinkPublico } from '@/types/Tournaments';
+import { AppCard } from '@/components/ui/app-card';
+import Spinner from '@/components/ui/spinner';
+import { nomeDoFormato } from '@/lib/pokemonFormats';
+import { nomeDoFormatoMD } from '@/lib/formatoMD';
+import { pokemonSpriteUrl } from '@/lib/pokemon';
+
+const rowKey = (link: JogadorTorneioLinkPublico, index: number) =>
+  String(link.id ?? link.jogador_id ?? index);
+
+export default function TournamentView() {
+  const { id } = useParams<{ id: string }>();
+  const user = useAuthenticatedUser();
+  const isJogador = user.tipo === 'jogador';
+
+  const { data: torneio, isLoading } = useTournamentById(id);
+  const { data: jogador } = useMe(isJogador);
+
+  if (isLoading) return <Spinner />;
+
+  const rankingRows = (torneio?.jogadores ?? [])
+    .map((link, index) => ({
+      key: rowKey(link, index),
+      apelido: link.apelido,
+      jogador_id: link.jogador_id,
+      pontuacao: link.pontuacao,
+      pontuacao_com_regras: link.pontuacao_com_regras,
+      vitorias: link.vitorias ?? 0,
+      derrotas: link.derrotas ?? 0,
+      empates: link.empates ?? 0,
+      byes: link.byes ?? 0,
+      // Fallback de composição: representação (ícone de arquétipo) tem
+      // prioridade; sem ela, mostra a composição completa; sem nenhuma das
+      // duas, a linha não ganha essa seção (ver docs/COMPOSICAO.md).
+      composicaoRepresentacao: link.composicao_representacao ?? null,
+      composicaoUnidades: link.composicao_unidades ?? [],
+    }))
+    .sort((a, b) => b.pontuacao_com_regras - a.pontuacao_com_regras);
+
+  // Mesma regra de permissão usada em Tournaments.tsx: loja sempre pode
+  // editar o que é seu; jogador só se organizar o TCG do torneio nessa loja.
+  const podeEditar = !isJogador || (
+    jogador?.lojas?.some((loja) =>
+      loja.loja_id === torneio?.loja?.id &&
+      loja.organizacoes?.some((org) => org.tcg === torneio?.jogo)
+    ) ?? false
+  );
+
+  return (
+    <div className="p-4 md:p-8">
+      <div className="mb-8">
+        <Link to="/torneios" className="inline-flex items-center space-x-2 text-primary hover:text-primary mb-4">
+          <ArrowLeft className="w-5 h-5" />
+          <span>Voltar para Torneios</span>
+        </Link>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl mb-2 text-foreground">{torneio?.nome}</h1>
+            <p className="text-muted-foreground">Informações e ranking de pontuação do torneio</p>
+          </div>
+          {podeEditar && (
+            <Link
+              to={`/loja/torneio/${id}/editar`}
+              className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Edit className="w-4 h-4" />
+              <span>Editar Torneio</span>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <AppCard title="Informações do Torneio" icon={<Trophy className="w-5 h-5" />}>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Data Planejada</label>
+                  <p className="text-foreground">
+                    {torneio?.data_planejada ? new Date(torneio.data_planejada).toLocaleDateString('pt-BR') : '—'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Horário Planejado</label>
+                  <p className="text-foreground">{torneio?.hora_planejada || '--:--'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Início Real</label>
+                  <p className="text-foreground">
+                    {torneio?.inicio_real ? new Date(torneio.inicio_real).toLocaleString('pt-BR') : 'Não registrado'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Fim Real</label>
+                  <p className="text-foreground">
+                    {torneio?.fim_real ? new Date(torneio.fim_real).toLocaleString('pt-BR') : 'Não registrado'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Formato</label>
+                  <p className="text-foreground">{nomeDoFormato(torneio?.formato)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Vagas Máximas</label>
+                  <p className="text-foreground">{torneio?.vagas} jogadores</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Melhor de</label>
+                  <p className="text-foreground">{nomeDoFormatoMD(torneio?.melhor_de)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Taxa de Inscrição</label>
+                  <p className="text-foreground">R$ {(torneio?.taxa ?? 0).toFixed(2)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Premiação</label>
+                  <p className="text-foreground">{torneio?.premio || 'Não informada'}</p>
+                </div>
+              </div>
+
+              {torneio?.descricao && (
+                <div>
+                  <label className="block text-sm mb-1 text-muted-foreground">Descrição</label>
+                  <p className="text-foreground text-sm">{torneio.descricao}</p>
+                </div>
+              )}
+
+              <div className="rounded-lg border-2 border-primary/40 bg-primary/10 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Award className="w-5 h-5 text-primary" />
+                  <label className="text-sm font-bold text-primary">Regra Básica</label>
+                </div>
+                <p className="text-primary font-semibold">
+                  {torneio?.regra_basica_id ? 'Regra configurada' : 'Nenhuma regra definida'}
+                </p>
+              </div>
+            </div>
+          </AppCard>
+
+          <AppCard title="Ranking & Pontuações" icon={<Trophy className="w-5 h-5" />}>
+            {rankingRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">Nenhum jogador inscrito neste torneio.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {rankingRows.map((row, index) => {
+                  const temComposicao = row.composicaoRepresentacao || row.composicaoUnidades.length > 0;
+
+                  return (
+                    <div
+                      key={row.key}
+                      className="flex flex-col gap-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                            index < 3 ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {index < 3 ? <Medal className="w-3.5 h-3.5" /> : index + 1}
+                        </span>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {row.apelido || `Jogador #${row.jogador_id}`}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 pl-10 sm:pl-0 sm:gap-6 sm:shrink-0 text-sm">
+                        <div className="text-center">
+                          <p className="font-bold text-success">{row.vitorias}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vit.</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-destructive">{row.derrotas}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Der.</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-foreground">{row.empates}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Emp.</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-foreground">{row.byes}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Byes</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-foreground">{row.pontuacao}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pontuação</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-primary">{row.pontuacao_com_regras}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Com Regras</p>
+                        </div>
+                      </div>
+
+                      {temComposicao && (
+                        <div className="pl-10 sm:pl-0 sm:basis-full">
+                          {row.composicaoRepresentacao ? (
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center -space-x-4">
+                                {row.composicaoRepresentacao.unidades.map((unidade) => (
+                                  <img
+                                    key={unidade.id}
+                                    src={pokemonSpriteUrl(unidade.external_id)}
+                                    alt={unidade.nome}
+                                    title={unidade.nome}
+                                    className="w-16 h-16 rounded-full bg-muted object-contain border-2 border-border"
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-sm text-muted-foreground truncate">
+                                {row.composicaoRepresentacao.nome}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {row.composicaoUnidades.map((cu) => (
+                                <span
+                                  key={cu.unidade_catalogo_id}
+                                  className="flex items-center gap-2 rounded-full border border-border bg-muted/40 pl-1 pr-3 py-1 text-sm text-muted-foreground"
+                                >
+                                  <img
+                                    src={pokemonSpriteUrl(cu.unidade.external_id)}
+                                    alt={cu.unidade.nome}
+                                    className="w-10 h-10 rounded-full object-contain"
+                                  />
+                                  {cu.unidade.nome} ×{cu.quantidade}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </AppCard>
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-card rounded-lg shadow p-4 md:p-6">
+            <h3 className="text-lg mb-4 text-foreground font-bold">Estatísticas Rápidas</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <span className="px-2 py-1 bg-success/15 text-success text-xs rounded-full font-bold">{torneio?.status}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Jogadores</span>
+                <span className="text-foreground font-bold">{rankingRows.length} / {torneio?.vagas}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Receita Total</span>
+                <span className="text-foreground font-bold">R$ {(rankingRows.length * (torneio?.taxa ?? 0)).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
