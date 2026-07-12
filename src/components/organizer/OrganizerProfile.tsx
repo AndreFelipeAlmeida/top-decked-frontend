@@ -70,7 +70,7 @@ export default function OrganizerProfile() {
                   <div className="flex items-center space-x-4">
                     <div className="w-20 h-20 bg-primary/15 rounded-lg flex items-center justify-center overflow-hidden">
                       {loja?.usuario?.foto ? (
-                        <img src={`${import.meta.env.VITE_API_URL}/uploads/${loja.usuario.foto}`} alt="Logo" className="w-full h-full object-cover" />
+                        <img src={`/uploads/${loja.usuario.foto}`} alt="Logo" className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-2xl">🏪</span>
                       )}

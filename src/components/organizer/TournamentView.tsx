@@ -1,14 +1,22 @@
-import { ArrowLeft, Trophy, Award, Medal, Edit } from 'lucide-react';
+import { ArrowLeft, Trophy, Award, Medal, Edit, Gavel } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTournamentById } from '@/hooks/tournaments.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
+import { usePontuacaoExtraDoTorneio } from '@/hooks/pontuacaoExtra.hooks';
 import type { JogadorTorneioLinkPublico } from '@/types/Tournaments';
 import { AppCard } from '@/components/ui/app-card';
 import Spinner from '@/components/ui/spinner';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { nomeDoFormato } from '@/lib/pokemonFormats';
 import { nomeDoFormatoMD } from '@/lib/formatoMD';
 import { pokemonSpriteUrl } from '@/lib/pokemon';
+import { jogoTemRepresentacaoDeck } from '@/lib/pokemonModalidade';
+import { formatarDataBR } from '@/lib/dateUtils';
+import { PontuacaoExtraHistorico } from './PontuacaoExtraHistorico';
+
+type TipoPontuacao = 'padrao' | 'com_regras';
 
 const rowKey = (link: JogadorTorneioLinkPublico, index: number) =>
   String(link.id ?? link.jogador_id ?? index);
@@ -20,27 +28,40 @@ export default function TournamentView() {
 
   const { data: torneio, isLoading } = useTournamentById(id);
   const { data: jogador } = useMe(isJogador);
+  const { data: pontuacaoExtraDoTorneio, isLoading: isLoadingPontuacaoExtra } = usePontuacaoExtraDoTorneio(id);
+  const [tipoPontuacao, setTipoPontuacao] = useState<TipoPontuacao>('com_regras');
 
   if (isLoading) return <Spinner />;
 
-  const rankingRows = (torneio?.jogadores ?? [])
-    .map((link, index) => ({
-      key: rowKey(link, index),
-      apelido: link.apelido,
-      jogador_id: link.jogador_id,
-      pontuacao: link.pontuacao,
-      pontuacao_com_regras: link.pontuacao_com_regras,
-      vitorias: link.vitorias ?? 0,
-      derrotas: link.derrotas ?? 0,
-      empates: link.empates ?? 0,
-      byes: link.byes ?? 0,
-      // Fallback de composição: representação (ícone de arquétipo) tem
-      // prioridade; sem ela, mostra a composição completa; sem nenhuma das
-      // duas, a linha não ganha essa seção (ver docs/COMPOSICAO.md).
-      composicaoRepresentacao: link.composicao_representacao ?? null,
-      composicaoUnidades: link.composicao_unidades ?? [],
-    }))
-    .sort((a, b) => b.pontuacao_com_regras - a.pontuacao_com_regras);
+  // TCG só exibe a representação (ícone de arquétipo); VGC/GO só exibem a
+  // composição completa (o time) — nunca as duas juntas.
+  const temRepresentacaoDeck = jogoTemRepresentacaoDeck(torneio?.jogo);
+
+  const linkRows = (torneio?.jogadores ?? []).map((link, index) => ({
+    key: rowKey(link, index),
+    apelido: link.apelido,
+    jogador_id: link.jogador_id,
+    tipo: link.tipo ?? 'JOGADOR',
+    pontuacao: link.pontuacao,
+    pontuacao_com_regras: link.pontuacao_com_regras,
+    vitorias: link.vitorias ?? 0,
+    derrotas: link.derrotas ?? 0,
+    empates: link.empates ?? 0,
+    byes: link.byes ?? 0,
+    composicaoRepresentacao: link.composicao_representacao ?? null,
+    composicaoUnidades: link.composicao_unidades ?? [],
+  }));
+
+  // Um jogador que também atuou como Juiz do torneio aparece nos dois
+  // lugares: no Ranking normal (com a pontuação que ele de fato fez/ganhou)
+  // e na lista separada de Juízes, só pra deixar claro quem arbitrou.
+  const pontuacaoDoToggle = (row: { pontuacao: number; pontuacao_com_regras: number }) =>
+    tipoPontuacao === 'padrao' ? row.pontuacao : row.pontuacao_com_regras;
+  const rankingRows = [...linkRows].sort((a, b) => pontuacaoDoToggle(b) - pontuacaoDoToggle(a));
+  const juizesRows = linkRows.filter((row) => row.tipo === 'JUIZ' || row.tipo === 'JOGADOR_E_JUIZ');
+  // Vagas/receita contam só jogadores de verdade — um Juiz não ocupa vaga
+  // nem paga inscrição, mesmo aparecendo no ranking.
+  const jogadoresCount = linkRows.filter((row) => row.tipo !== 'JUIZ').length;
 
   // Mesma regra de permissão usada em Tournaments.tsx: loja sempre pode
   // editar o que é seu; jogador só se organizar o TCG do torneio nessa loja.
@@ -83,7 +104,7 @@ export default function TournamentView() {
                 <div>
                   <label className="block text-sm mb-1 text-muted-foreground">Data Planejada</label>
                   <p className="text-foreground">
-                    {torneio?.data_planejada ? new Date(torneio.data_planejada).toLocaleDateString('pt-BR') : '—'}
+                    {formatarDataBR(torneio?.data_planejada)}
                   </p>
                 </div>
                 <div>
@@ -155,17 +176,47 @@ export default function TournamentView() {
             </div>
           </AppCard>
 
-          <AppCard title="Ranking & Pontuações" icon={<Trophy className="w-5 h-5" />}>
+          {juizesRows.length > 0 && (
+            <AppCard title="Juízes" icon={<Gavel className="w-5 h-5" />}>
+              <p className="text-xs text-muted-foreground mb-3">
+                Responsáveis pela arbitragem deste torneio.
+              </p>
+              <div className="divide-y divide-border">
+                {juizesRows.map((row) => (
+                  <div key={`${row.key}-juiz`} className="py-2">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {row.apelido || `Jogador #${row.jogador_id}`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </AppCard>
+          )}
+
+          <AppCard
+            title="Ranking & Pontuações"
+            icon={<Trophy className="w-5 h-5" />}
+            action={
+              <Tabs value={tipoPontuacao} onValueChange={(v) => setTipoPontuacao(v as TipoPontuacao)}>
+                <TabsList>
+                  <TabsTrigger value="com_regras">Com Regras Extras</TabsTrigger>
+                  <TabsTrigger value="padrao">Pontuação Normal</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            }
+          >
             {rankingRows.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Nenhum jogador inscrito neste torneio.</p>
             ) : (
               <div className="divide-y divide-border">
                 {rankingRows.map((row, index) => {
-                  const temComposicao = row.composicaoRepresentacao || row.composicaoUnidades.length > 0;
+                  const temComposicao = temRepresentacaoDeck
+                    ? Boolean(row.composicaoRepresentacao)
+                    : row.composicaoUnidades.length > 0;
 
                   return (
                     <div
-                      key={row.key}
+                      key={`${row.key}-jogador`}
                       className="flex flex-col gap-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -199,18 +250,16 @@ export default function TournamentView() {
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Byes</p>
                         </div>
                         <div className="text-center">
-                          <p className="font-bold text-foreground">{row.pontuacao}</p>
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pontuação</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="font-bold text-primary">{row.pontuacao_com_regras}</p>
-                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Com Regras</p>
+                          <p className="font-bold text-primary">{pontuacaoDoToggle(row)}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {tipoPontuacao === 'padrao' ? 'Pontuação' : 'Com Regras'}
+                          </p>
                         </div>
                       </div>
 
                       {temComposicao && (
                         <div className="pl-10 sm:pl-0 sm:basis-full">
-                          {row.composicaoRepresentacao ? (
+                          {temRepresentacaoDeck && row.composicaoRepresentacao ? (
                             <div className="flex items-center gap-3">
                               <div className="flex items-center -space-x-4">
                                 {row.composicaoRepresentacao.unidades.map((unidade) => (
@@ -252,6 +301,10 @@ export default function TournamentView() {
               </div>
             )}
           </AppCard>
+
+          <AppCard title="Pontuação Extra" icon={<Award className="w-5 h-5" />}>
+            <PontuacaoExtraHistorico itens={pontuacaoExtraDoTorneio} isLoading={isLoadingPontuacaoExtra} />
+          </AppCard>
         </div>
 
         <div className="space-y-6">
@@ -264,11 +317,11 @@ export default function TournamentView() {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Jogadores</span>
-                <span className="text-foreground font-bold">{rankingRows.length} / {torneio?.vagas}</span>
+                <span className="text-foreground font-bold">{jogadoresCount} / {torneio?.vagas}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Receita Total</span>
-                <span className="text-foreground font-bold">R$ {(rankingRows.length * (torneio?.taxa ?? 0)).toFixed(2)}</span>
+                <span className="text-foreground font-bold">R$ {(jogadoresCount * (torneio?.taxa ?? 0)).toFixed(2)}</span>
               </div>
             </div>
           </div>

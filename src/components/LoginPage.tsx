@@ -90,7 +90,7 @@ export default function LoginPage() {
 
         <div className="p-6">
           {activeTab === 'login' ? (
-            <form onSubmit={onSubmitLogin} className="space-y-4">
+            <form key="login" onSubmit={onSubmitLogin} className="space-y-4">
               <div>
                 <label className="block text-sm mb-2 text-muted-foreground">Email</label>
                 <div className="relative">
@@ -148,7 +148,7 @@ export default function LoginPage() {
               </button>
             </form>
           ) : (
-            <form onSubmit={onSubmitCadastro} className="space-y-4">
+            <form key="register" onSubmit={onSubmitCadastro} className="space-y-4">
               <div>
                 <label className="block text-sm mb-2 text-muted-foreground">Nome</label>
                 <div className="relative">

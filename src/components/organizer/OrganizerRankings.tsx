@@ -1,15 +1,37 @@
-import { useMemo } from 'react';
-import { Medal, Trophy } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Medal, TriangleAlert, Trophy } from 'lucide-react';
 
 import Spinner from '@/components/ui/spinner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TournamentFiltersBar } from './TournamentFiltersBar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { useTournaments } from '@/hooks/tournaments.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { useTournamentFilters } from '@/hooks/useTournamentFilters';
+import { useTemporadas, useTemporadasLoja } from '@/hooks/temporadas.hooks';
 import { nomeDoJogo } from '@/lib/tcgGames';
+import { dataEstaNaTemporada } from '@/lib/temporadaUtils';
+import { momentoEfetivoTorneio } from '@/lib/dateUtils';
 import { StatusTorneio } from '@/types/Enums';
+
+// Mesmas 3 variantes de Pokémon que têm Temporada cadastrável (ver
+// TemporadasPokemon.tsx) — só nelas faz sentido oferecer o filtro de
+// categoria/temporada no Ranking, já que categoria só é calculada quando
+// existe uma Temporada pro jogo/período do torneio.
+const JOGOS_POKEMON = ['POKEMON', 'POKEMON_VGC', 'POKEMON_GO'];
+
+const CATEGORIAS = ['Junior', 'Senior', 'Master'];
+
+type TipoPontuacao = 'padrao' | 'com_regras';
 
 type JogadorRanking = {
   jogadorId: number;
@@ -18,6 +40,7 @@ type JogadorRanking = {
   gameId: string | null;
   torneios: number;
   pontuacao: number;
+  pontuacaoComRegras: number;
   vitorias: number;
   derrotas: number;
   empates: number;
@@ -41,6 +64,12 @@ export default function OrganizerRankings() {
   const { data: jogador, isLoading: isMeLoading } = useMe(isJogador);
   const { data: torneios, isLoading: isTournamentsLoading } = useTournaments(user.tipo);
 
+  const ehJogoPokemon = JOGOS_POKEMON.includes(selectedTcg ?? '');
+
+  const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
+  const [temporadaFiltro, setTemporadaFiltro] = useState('todas');
+  const [tipoPontuacao, setTipoPontuacao] = useState<TipoPontuacao>('com_regras');
+
   // O ranking é sempre de um jogo específico (o selecionado na barra lateral)
   // — os filtros abaixo (busca/formato/loja/período) refinam dentro desse
   // jogo, igual à página de Torneios. Só torneios já finalizados entram no
@@ -61,8 +90,31 @@ export default function OrganizerRankings() {
     formatosDisponiveis, lojasDisponiveis,
     torneiosFiltrados,
   } = useTournamentFilters(torneiosDoJogo, isJogador);
-  
+
+  // Temporada é escopada por loja (ver docs/TEMPORADAS.md) — uma loja usa seu
+  // próprio token (GET /lojas/temporadas/), mas um jogador vê torneios de
+  // várias lojas ao mesmo tempo (ver lojaFiltro acima), então só dá pra
+  // buscar temporadas quando ele filtrou pra uma loja específica — e mesmo
+  // assim só funciona se ele for organizador dela (GET /lojas/temporadas/loja/{id}).
+  const { data: temporadasLoja } = useTemporadas(!isJogador && ehJogoPokemon ? selectedTcg : undefined);
+  const { data: temporadasOrganizador } = useTemporadasLoja(
+    isJogador && ehJogoPokemon && lojaFiltro !== 'todas' ? Number(lojaFiltro) : undefined,
+    ehJogoPokemon ? selectedTcg : undefined,
+  );
+  const temporadas = isJogador ? temporadasOrganizador : temporadasLoja;
+  const podeFiltrarTemporada = ehJogoPokemon && (!isJogador || lojaFiltro !== 'todas');
+
   const isLoading = (isJogador && isMeLoading) || isTournamentsLoading;
+
+  const temporadaSelecionada = useMemo(
+    () => (temporadas ?? []).find((t) => String(t.id) === temporadaFiltro),
+    [temporadas, temporadaFiltro],
+  );
+
+  const torneiosParaRanking = useMemo(() => {
+    if (!temporadaSelecionada) return torneiosFiltrados;
+    return torneiosFiltrados.filter((torneio) => dataEstaNaTemporada(momentoEfetivoTorneio(torneio), temporadaSelecionada));
+  }, [torneiosFiltrados, temporadaSelecionada]);
 
   const ranking = useMemo<JogadorRanking[]>(() => {
     const porJogador = new Map<number, {
@@ -71,6 +123,7 @@ export default function OrganizerRankings() {
       gameId: string | null;
       torneios: number;
       pontuacao: number;
+      pontuacaoComRegras: number;
       vitorias: number;
       derrotas: number;
       empates: number;
@@ -80,11 +133,15 @@ export default function OrganizerRankings() {
       oomwSoma: number;
       oomwCount: number;
     }>();
-
-    for (const torneio of torneiosFiltrados) {
+    // Um jogador tem no máximo UMA linha por torneio (ver
+    // TipoParticipanteTorneio.JOGADOR_E_JUIZ para quem acumula os dois
+    // papéis) — cada iteração de `link` aqui já é um torneio distinto pro
+    // mesmo jogador, sem risco de contar o mesmo torneio duas vezes.
+    for (const torneio of torneiosParaRanking) {
       for (const link of torneio.jogadores ?? []) {
         const chave = link.jogador_criado_id;
         if (chave == null) continue;
+        if (categoriaFiltro !== 'todos' && link.categoria !== categoriaFiltro) continue;
 
         const atual = porJogador.get(chave) ?? {
           contaJogadorId: link.jogador_id ?? null,
@@ -92,6 +149,7 @@ export default function OrganizerRankings() {
           gameId: link.game_id ?? null,
           torneios: 0,
           pontuacao: 0,
+          pontuacaoComRegras: 0,
           vitorias: 0,
           derrotas: 0,
           empates: 0,
@@ -103,7 +161,8 @@ export default function OrganizerRankings() {
         };
 
         atual.torneios += 1;
-        atual.pontuacao += link.pontuacao_com_regras ?? 0;
+        atual.pontuacao += link.pontuacao ?? 0;
+        atual.pontuacaoComRegras += link.pontuacao_com_regras ?? 0;
         atual.vitorias += link.vitorias ?? 0;
         atual.derrotas += link.derrotas ?? 0;
         atual.empates += link.empates ?? 0;
@@ -130,6 +189,7 @@ export default function OrganizerRankings() {
         gameId: dados.gameId,
         torneios: dados.torneios,
         pontuacao: dados.pontuacao,
+        pontuacaoComRegras: dados.pontuacaoComRegras,
         vitorias: dados.vitorias,
         derrotas: dados.derrotas,
         empates: dados.empates,
@@ -137,12 +197,16 @@ export default function OrganizerRankings() {
         omwMedio: dados.omwCount ? dados.omwSoma / dados.omwCount : null,
         oomwMedio: dados.oomwCount ? dados.oomwSoma / dados.oomwCount : null,
       }))
-      .sort((a, b) =>
-        b.pontuacao - a.pontuacao ||
-        (b.omwMedio ?? 0) - (a.omwMedio ?? 0) ||
-        (b.oomwMedio ?? 0) - (a.oomwMedio ?? 0)
-      );
-  }, [torneiosFiltrados]);
+      .sort((a, b) => {
+        const pontuacaoA = tipoPontuacao === 'padrao' ? a.pontuacao : a.pontuacaoComRegras;
+        const pontuacaoB = tipoPontuacao === 'padrao' ? b.pontuacao : b.pontuacaoComRegras;
+        return (
+          pontuacaoB - pontuacaoA ||
+          (b.omwMedio ?? 0) - (a.omwMedio ?? 0) ||
+          (b.oomwMedio ?? 0) - (a.oomwMedio ?? 0)
+        );
+      });
+  }, [torneiosParaRanking, categoriaFiltro, tipoPontuacao]);
 
   if (isLoading) return <Spinner />;
   
@@ -158,6 +222,7 @@ export default function OrganizerRankings() {
       <TournamentFiltersBar
         busca={busca}
         onBuscaChange={setBusca}
+        showBuscaFilter={false}
         statusFiltro={statusFiltro}
         onStatusChange={setStatusFiltro}
         showStatusFilter={false}
@@ -175,6 +240,60 @@ export default function OrganizerRankings() {
         dataFimCustom={dataFimCustom}
         onDataCustomChange={handleDataCustomChange}
       />
+
+      {ehJogoPokemon && (
+        <div className="bg-card p-4 rounded-lg shadow mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Todas as Categorias" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as Categorias</SelectItem>
+              {CATEGORIAS.map((categoria) => (
+                <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {podeFiltrarTemporada ? (
+            <Select value={temporadaFiltro} onValueChange={setTemporadaFiltro}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Todas as Temporadas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as Temporadas</SelectItem>
+                {(temporadas ?? []).map((temporada) => (
+                  <SelectItem key={temporada.id} value={String(temporada.id)}>
+                    {temporada.nome || `${temporada.mes_inicio}/${temporada.ano_inicio} – ${temporada.mes_fim}/${temporada.ano_fim}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-xs text-muted-foreground self-center">
+              Selecione uma loja específica acima para filtrar por temporada.
+            </p>
+          )}
+        </div>
+      )}
+
+      {categoriaFiltro !== 'todos' && (
+        <Alert className="mb-6">
+          <TriangleAlert className="text-warning" />
+          <AlertDescription>
+            Apenas os torneios dentro de temporadas são contabilizados nesse ranking.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex justify-end mb-4">
+        <Tabs value={tipoPontuacao} onValueChange={(v) => setTipoPontuacao(v as TipoPontuacao)}>
+          <TabsList>
+            <TabsTrigger value="com_regras">Com Regras Extras</TabsTrigger>
+            <TabsTrigger value="padrao">Pontuação Normal</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {ranking.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-12">
@@ -236,7 +355,7 @@ export default function OrganizerRankings() {
                   <span className="hidden md:block text-center text-sm text-muted-foreground font-medium">{item.byes}</span>
 
                   <span className="text-right text-lg font-bold text-primary shrink-0 ml-auto md:ml-0">
-                    {item.pontuacao}
+                    {tipoPontuacao === 'padrao' ? item.pontuacao : item.pontuacaoComRegras}
                   </span>
                 </div>
               );

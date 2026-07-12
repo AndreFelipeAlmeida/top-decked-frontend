@@ -1,6 +1,7 @@
 import { api } from "@/adapters/api";
 import type { JogadorTorneioLinkPublico, TorneioAtualizar, TorneioPublico } from "@/types/Tournaments";
 import type { CreateOrganizerTournamentForm, CreateStoreTournamentForm } from "@/schemas/tournament.schemas";
+import type { JogadorCriadoPublico } from "@/types/JogadorCriado";
 
 const resource = "/lojas/torneios";
 
@@ -26,6 +27,20 @@ export const createTournament = async (dados: CreateStoreTournamentForm) => {
 
 export const createOrganizerTournament = async (data: CreateOrganizerTournamentForm) => {
   const response = await api.post<TorneioPublico>(`${resource}/criar-organizador`, data);
+  return response.data;
+};
+
+// Loja usa o próprio token — sem loja_id, diferente de importOrganizerTournament
+// (jogador organizador, que precisa dizer em nome de qual loja importa).
+export const importTournament = async (file: File) => {
+  const formData = new FormData();
+  formData.append("arquivo", file);
+
+  const response = await api.post<TorneioPublico>(
+    `${resource}/importar`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
   return response.data;
 };
 
@@ -71,10 +86,14 @@ export const updatePlayerScore = async (
   return response.data;
 };
 
-export const recalculateTournamentScore = async (torneioId: string, regraBasicaId?: number) => {
+export const recalculateTournamentScore = async (
+  torneioId: string,
+  regraBasicaId?: number,
+  pontuacaoDeParticipacao?: number,
+) => {
   const response = await api.post<TorneioPublico>(
     `${resource}/${torneioId}/recalcular-pontuacao`,
-    { regra_basica_id: regraBasicaId },
+    { regra_basica_id: regraBasicaId, pontuacao_de_participacao: pontuacaoDeParticipacao },
   );
   return response.data;
 };
@@ -82,11 +101,11 @@ export const recalculateTournamentScore = async (torneioId: string, regraBasicaI
 export const updatePlayerRule = async (
   torneioId: string,
   linkId: number,
-  tipoJogadorId: number | null,
+  regraExtraId: number | null,
 ) => {
   const response = await api.patch<TorneioPublico>(
     `${resource}/${torneioId}/jogadores/${linkId}/regra`,
-    { tipo_jogador_id: tipoJogadorId },
+    { regra_extra_id: regraExtraId },
   );
   return response.data;
 };
@@ -123,4 +142,23 @@ export const inscreverJogador = async (torneioId: string) => {
 
 export const desinscreverJogador = async (torneioId: string) => {
   await api.delete(`${resource}/${torneioId}/inscricao`);
+};
+
+export const getOrganizadoresDisponiveisParaJuiz = async (torneioId: string) => {
+  const response = await api.get<JogadorCriadoPublico[]>(
+    `${resource}/${torneioId}/organizadores-disponiveis-juiz`,
+  );
+  return response.data;
+};
+
+export const adicionarJuiz = async (torneioId: string, jogadorCriadoId: number) => {
+  const response = await api.post<JogadorTorneioLinkPublico>(
+    `${resource}/${torneioId}/juizes`,
+    { jogador_criado_id: jogadorCriadoId },
+  );
+  return response.data;
+};
+
+export const removerJuiz = async (torneioId: string, linkId: number) => {
+  await api.delete(`${resource}/${torneioId}/juizes/${linkId}`);
 };

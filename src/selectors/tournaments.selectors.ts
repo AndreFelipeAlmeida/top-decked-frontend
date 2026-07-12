@@ -1,5 +1,6 @@
 import type { TorneioPublico } from "@/types/Tournaments";
 import { nomeDoFormato } from "@/lib/pokemonFormats";
+import { momentoEfetivoTorneio } from "@/lib/dateUtils";
 
 // Chaves em sincronia com o enum `FormatoTorneio` do backend (Pokémon TCG —
 // ver docs/DIVIDA_TECNICA.md item 43), não com formatos de Magic.
@@ -14,7 +15,7 @@ export const getMonthlyTournaments = (tournaments: TorneioPublico[]) => {
   const monthMap: Record<string, number> = {};
 
   tournaments.forEach((t) => {
-    const month = new Date(t.data_planejada).toLocaleString('pt-BR', {
+    const month = momentoEfetivoTorneio(t).toLocaleString('pt-BR', {
       month: 'short',
     }).replace('.', '');
 
@@ -47,8 +48,8 @@ export const getRecentTournaments = (tournaments: TorneioPublico[]) => {
     .filter((t) => t.status === 'FINALIZADO')
     .sort(
       (a, b) =>
-        new Date(b.data_planejada).getTime() -
-        new Date(a.data_planejada).getTime()
+        momentoEfetivoTorneio(b).getTime() -
+        momentoEfetivoTorneio(a).getTime()
     )
     .slice(0, 5)
     .map((t) => ({
@@ -69,7 +70,7 @@ export const getUpcomingTournaments = (tournaments: TorneioPublico[]) => {
     .filter(
       (t) =>
         t.status === 'ABERTO' &&
-        new Date(t.data_planejada) >= today
+        momentoEfetivoTorneio(t) >= today
     )
     .map((t) => ({
       id: t.id,

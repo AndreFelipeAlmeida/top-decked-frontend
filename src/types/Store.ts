@@ -1,5 +1,7 @@
 import type { UsuarioPublico } from "./User";
 
+export type StatusAprovacaoLoja = "PENDENTE" | "APROVADA" | "REJEITADA";
+
 export interface LojaBase {
   nome: string;
   endereco?: string | null;
@@ -11,6 +13,7 @@ export interface LojaBase {
 export interface LojaPublico extends LojaBase {
   id: number;
   usuario: UsuarioPublico;
+  status: StatusAprovacaoLoja;
 }
 
 export interface LojaPublicoTorneios extends LojaPublico {

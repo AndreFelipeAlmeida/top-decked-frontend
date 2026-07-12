@@ -6,7 +6,16 @@ export interface JogadorTorneioLinkPublico {
   id?: number | null;
   jogador_criado_id: number;
   jogador_id?: number | null;
-  tipo_jogador_id?: number | null;
+  // Papel do jogador NESTE torneio — "JUIZ" não entra no pareamento de
+  // rodadas nem no ranking/pódio deste torneio específico (mas conta no
+  // ranking geral entre torneios). "JOGADOR_E_JUIZ" é quem acumula os dois
+  // papéis (uma linha só — fonte única de verdade, nunca duas). Ver
+  // docs/PONTUACAO_EXTRA.md.
+  tipo?: 'JOGADOR' | 'JUIZ' | 'JOGADOR_E_JUIZ';
+  // Regra ADICIONAL (opcional) desta participação — nunca substitui a regra
+  // básica do torneio, só soma/subtrai por cima dela. null = sem regra
+  // extra, pontua só pela básica. Ver docs/REGRA_EXTRA.md.
+  regra_extra_id?: number | null;
   pontuacao: number;
   pontuacao_com_regras: number;
   apelido?: string | null;
@@ -22,6 +31,9 @@ export interface JogadorTorneioLinkPublico {
   byes?: number;
   porcentagem_vitorias_oponentes?: number | null;
   porcentagem_vitorias_oponentes_oponentes?: number | null;
+  // Junior/Senior/Master — calculada na hora (Temporada vigente + data de
+  // nascimento do JogadorCriado), nunca armazenada. Ver docs/TEMPORADAS.md.
+  categoria?: string | null;
 }
 
 export interface RodadaPublico {
@@ -60,6 +72,8 @@ export interface TorneioBase {
   /** Momento real (não planejado) de início/fim do torneio — usado para calcular horas jogadas. */
   inicio_real?: string | null;
   fim_real?: string | null;
+  /** Se este torneio conta pontos automáticos nos Eventos ativos do período dele. Default true. */
+  conta_em_eventos: boolean;
 }
 
 export interface TorneioPublico extends TorneioBase {

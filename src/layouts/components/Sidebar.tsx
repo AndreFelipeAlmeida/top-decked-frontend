@@ -5,14 +5,14 @@ import type { User as UserType } from "@/types/User";
 import { type LucideIcon } from "lucide-react";
 
 type NavItem = {
-  path: string;
   icon: LucideIcon;
   label: string;
   disabled: boolean;
-};
+} & ({ path: string; onClick?: never } | { path?: never; onClick: () => void });
 
 type SidebarProps = {
   user: UserType | null;
+  roleLabel: string;
   navItems: NavItem[];
   handleLogout: () => void;
   onNavigate?: () => void; // para fechar drawer no mobile
@@ -20,6 +20,7 @@ type SidebarProps = {
 
 export function Sidebar({
   user,
+  roleLabel,
   navItems,
   handleLogout,
   onNavigate,
@@ -43,8 +44,8 @@ export function Sidebar({
         </div>
         <div className="min-w-0">
           <div className="text-sm font-medium truncate">{user?.nome}</div>
-          <div className="text-xs text-sidebar-foreground/60 capitalize">
-            {user?.tipo}
+          <div className="text-xs text-sidebar-foreground/60">
+            {roleLabel}
           </div>
         </div>
       </div>
@@ -52,28 +53,41 @@ export function Sidebar({
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-4 space-y-1">
         {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+          if (item.disabled) return null;
 
-          if (!item.disabled) {
+          const Icon = item.icon;
+
+          if (item.onClick) {
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={onNavigate}
-                className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-sidebar-accent text-primary"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-                }`}
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.onClick}
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-left text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
-              </Link>
+              </button>
             );
           }
 
-          return null;
+          const isActive = location.pathname === item.path;
+
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={onNavigate}
+              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-sidebar-accent text-primary"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{item.label}</span>
+            </Link>
+          );
         })}
       </nav>
 

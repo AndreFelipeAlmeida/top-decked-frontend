@@ -14,6 +14,9 @@ import { nomeDoFormato } from '@/lib/pokemonFormats';
 type TournamentFiltersBarProps = {
   busca: string;
   onBuscaChange: (valor: string) => void;
+  // Busca por nome só faz sentido na listagem de Torneios — no Ranking
+  // (agregado por jogador, não por torneio) esse campo fica sem efeito.
+  showBuscaFilter?: boolean;
   statusFiltro: string;
   onStatusChange: (valor: string) => void;
   showStatusFilter?: boolean;
@@ -35,6 +38,7 @@ type TournamentFiltersBarProps = {
 export function TournamentFiltersBar({
   busca,
   onBuscaChange,
+  showBuscaFilter = true,
   statusFiltro,
   onStatusChange,
   showStatusFilter = true,
@@ -52,22 +56,24 @@ export function TournamentFiltersBar({
   dataFimCustom,
   onDataCustomChange,
 }: TournamentFiltersBarProps) {
-  const colunasVisiveis = 1 + (showStatusFilter ? 1 : 0) + 1 + (showLojaFilter ? 1 : 0);
+  const colunasVisiveis = (showBuscaFilter ? 1 : 0) + (showStatusFilter ? 1 : 0) + 1 + (showLojaFilter ? 1 : 0);
 
   return (
     <div className="bg-card p-4 rounded-lg shadow mb-6 space-y-4">
       <div className={`grid grid-cols-1 md:grid-cols-2 ${colunasVisiveis >= 4 ? 'lg:grid-cols-4' : colunasVisiveis === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        {showBuscaFilter && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
 
-          <input
-            type="text"
-            value={busca}
-            onChange={(e) => onBuscaChange(e.target.value)}
-            placeholder="Buscar por nome..."
-            className="w-full pl-10 pr-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => onBuscaChange(e.target.value)}
+              placeholder="Buscar por nome..."
+              className="w-full pl-10 pr-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        )}
 
         {showStatusFilter && (
           <Select value={statusFiltro} onValueChange={onStatusChange}>

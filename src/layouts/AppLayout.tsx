@@ -6,10 +6,16 @@ import {
   Menu,
   X,
   User2,
-  Award
+  Award,
+  CalendarRange,
+  Star,
+  Gift,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthContext } from '../hooks/authContext.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
+import { useViewMode } from '@/hooks/viewModeContext.hooks';
+import { useMe } from '@/hooks/auth.hooks';
 import { Sidebar } from './components/Sidebar';
 
 import { tcgGames } from '@/lib/tcgGames';
@@ -22,6 +28,9 @@ const PAGINAS_COM_BARRA_DE_JOGOS = [
   '/jogador/dashboard',
   '/torneios',
   '/rankings',
+  '/eventos',
+  '/loja/temporadas',
+  '/loja/pontuacao-extra',
 ];
 
 interface AppLayoutProps {
@@ -31,16 +40,31 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const { selectedTcg, setSelectedTcg } = useTcgSelection();
   const { user, handleLogout } = useAuthContext();
+  const { viewMode } = useViewMode();
+  const { data: jogador } = useMe(user?.tipo === 'jogador');
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const mostrarBarraDeJogos = PAGINAS_COM_BARRA_DE_JOGOS.includes(location.pathname);
+
+  // Um jogador que também organiza torneios para alguma loja pode alternar
+  // para a "visão de organizador" (OrganizerViewSwitch) no seu próprio
+  // dashboard. Usuários do tipo "loja" já são organizadores por definição.
+  const lojasOrganizador = jogador?.lojas?.filter((loja) => loja.organizacoes.length > 0) ?? [];
+  const isOrganizadorJogador = user?.tipo === 'jogador' && viewMode === 'organizador' && lojasOrganizador.length > 0;
+  const roleLabel =
+    user?.tipo === 'admin' ? 'Administrador'
+      : user?.tipo === 'loja' ? 'Loja'
+        : isOrganizadorJogador ? 'Organizador' : 'Jogador';
 
   const organizerNav = [
     { path: '/loja/dashboard', icon: LayoutDashboard, label: 'Dashboard', disabled: false },
     { path: '/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
     { path: '/torneios', icon: Trophy, label: 'Torneios', disabled: false },
+    { path: '/eventos', icon: Gift, label: 'Eventos', disabled: false },
     { path: '/loja/criar-torneio', icon: Plus, label: 'Criar Torneio', disabled: false },
     { path: '/loja/regras-jogadores', icon: Settings, label: 'Regras de Jogos', disabled: false },
+    { path: '/loja/temporadas', icon: CalendarRange, label: 'Temporadas', disabled: false },
+    { path: '/loja/pontuacao-extra', icon: Star, label: 'Pontuação Extra', disabled: false },
     { path: '/loja/estoque', icon: Package, label: 'Estoque', disabled: false },
     { path: '/loja/jogadores', icon: User2, label: 'Gerenciar Jogadores', disabled: false },
     { path: '/loja/creditos', icon: DollarSign, label: 'Créditos/Vendas', disabled: false },
@@ -49,15 +73,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const playerNav = [
     { path: '/jogador/dashboard', icon: User, label: 'Dashboard', disabled: false },
     { path: '/torneios', icon: Trophy, label: 'Torneios', disabled: false },
+    { path: '/eventos', icon: Gift, label: 'Eventos', disabled: false },
     { path: '/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
     { path: '/jogador/conquistas', icon: Award, label: 'Conquistas', disabled: false },
     { path: '/jogador/estatisticas', icon: Sparkles, label: 'Estatísticas', disabled: true},
     { path: '/jogador/historico', icon: Flame, label: 'Histórico de Partidas', disabled: true },
     { path: '/jogador/torneios', icon: Trophy, label: 'Torneios', disabled: true },
     { path: '/jogador/perfil', icon: User, label: 'Perfil & Carteira', disabled: false },
+    ...(isOrganizadorJogador
+      ? [{ path: '/loja/temporadas', icon: CalendarRange, label: 'Temporadas', disabled: false }]
+      : []),
   ];
 
-  const navItems = user?.tipo === 'loja' ? organizerNav : playerNav;
+  const adminNav = [
+    { path: '/admin/dashboard', icon: ShieldCheck, label: 'Painel Admin', disabled: false },
+  ];
+
+  const navItems = user?.tipo === 'loja' ? organizerNav : user?.tipo === 'admin' ? adminNav : playerNav;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -90,6 +122,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div className="hidden md:flex w-64 border-r border-border">
         <Sidebar
           user={user}
+          roleLabel={roleLabel}
           navItems={navItems}
           handleLogout={handleLogout}
         />
@@ -137,6 +170,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="relative w-64 h-screen shadow-xl">
               <Sidebar
                 user={user}
+                roleLabel={roleLabel}
                 navItems={navItems}
                 handleLogout={handleLogout}
                 onNavigate={() => setIsOpen(false)}
@@ -145,6 +179,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
       )}
+
     </div>
   );
 }

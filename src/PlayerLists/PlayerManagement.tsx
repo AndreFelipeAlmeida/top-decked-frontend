@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import RegisterPlayerForm from './components/RegisterPlayerForm';
 import { Button } from '@/components/ui/button';
 import { usePlayers } from '@/hooks/players.hooks';
 import { useTcgs } from '@/hooks/tcg.hooks';
 import PlayersTable from './components/PlayersTable';
 import { useDebounce } from 'use-debounce';
 import { AppCard } from '@/components/ui/app-card';
-import { User, UserPlus } from 'lucide-react';
+import { User } from 'lucide-react';
 import type { PaginatedJogadorPublico } from '@/types/Player';
 import LinkPlayerToStoreModal from './components/LinkPlayerModal';
 import UnlinkPlayerToStoreModal from './components/UnlinkPlayerModal';
@@ -57,19 +56,11 @@ export default function PlayerManagement() {
       <div className="mb-8">
         <h1 className="text-3xl mb-2 text-foreground">Gerenciar Jogadores</h1>
         <p className="text-muted-foreground">
-          Visualize todos os jogadores cadastrados na plataforma ou cadastre
-          novos para vinculá-los à sua loja e registrar créditos posteriormente.
+          Visualize todos os jogadores cadastrados na plataforma e vincule-os à
+          sua loja para registrar créditos.
         </p>
       </div>
       <div className="space-y-10">
-        <AppCard
-          title="Vincular jogador por Game ID"
-          icon={<UserPlus className="w-5 h-5" />}
-          description="O Game ID precisa já pertencer a uma conta cadastrada nesta plataforma — não é possível creditar um Game ID que ninguém reivindicou ainda."
-        >
-          <RegisterPlayerForm tcgs={tcgs} />
-        </AppCard>
-
         {/* Tabela */}
         <AppCard
           icon={<User className="w-5 h-5" />}

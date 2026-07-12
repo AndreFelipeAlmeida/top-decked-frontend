@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, Trash2, Upload } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { TournamentFiltersBar } from './TournamentFiltersBar';
+import { ImportTournamentDialog } from './ImportTournamentDialog';
 
 import { StatusTorneio } from '@/types/Enums';
 import type { TorneioPublico } from '@/types/Tournaments';
@@ -32,6 +33,7 @@ import { useViewMode } from '@/hooks/viewModeContext.hooks';
 import { useTournamentFilters } from '@/hooks/useTournamentFilters';
 import { nomeDoFormato } from '@/lib/pokemonFormats';
 import { nomeDoJogo } from '@/lib/tcgGames';
+import { dataExibicaoTorneio } from '@/lib/dateUtils';
 import { OrganizerViewSwitch } from '@/components/player/OrganizerViewSwitch';
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
@@ -41,6 +43,7 @@ const extractErrorMessage = (error: unknown, fallback: string) => {
 
 export default function Tournaments() {
   const user = useAuthenticatedUser();
+  const navigate = useNavigate();
 
   const isJogador = user.tipo === 'jogador';
 
@@ -56,9 +59,19 @@ export default function Tournaments() {
       loja.organizacoes?.some((org) => org.tcg === selectedTcg)
     ) ?? false;
 
+  // Lojas onde o jogador organiza especificamente o TCG selecionado agora —
+  // usado pelo seletor de loja do ImportTournamentDialog (um jogador pode
+  // organizar vários jogos em várias lojas diferentes).
+  const lojasOrganizadorasDoTcg =
+    jogador?.lojas?.filter((loja) =>
+      loja.organizacoes?.some((org) => org.tcg === selectedTcg)
+    ) ?? [];
+
   const canCreateTournament = isJogador
     ? isOrganizerOfSelectedTcg && viewMode === 'organizador'
     : true;
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Loja sempre pode editar os torneios da própria lista (getTournamentsByStore
   // já filtra pela loja); jogador só se organizar o TCG do torneio nessa loja.
@@ -173,14 +186,25 @@ export default function Tournaments() {
           <OrganizerViewSwitch visible={isJogador && isOrganizerOfSelectedTcg} />
 
           {canCreateTournament && (
-            <Link
-              to={isJogador ? "/jogador/criar-torneio" : "/loja/criar-torneio"}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center space-x-2"
-            >
-              <Plus className="w-5 h-5" />
+            <>
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(true)}
+                className="bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-accent transition-colors flex items-center space-x-2"
+              >
+                <Upload className="w-5 h-5" />
+                <span>Importar Torneio</span>
+              </button>
 
-              <span>Criar Torneio</span>
-            </Link>
+              <Link
+                to={isJogador ? "/jogador/criar-torneio" : "/loja/criar-torneio"}
+                className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+
+                <span>Criar Torneio</span>
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -244,9 +268,7 @@ export default function Tournaments() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {new Date(
-                  torneio.data_planejada
-                ).toLocaleDateString('pt-BR')}
+                {dataExibicaoTorneio(torneio)}
                 {torneio.loja?.nome ? ` · ${torneio.loja.nome}` : ''}
               </p>
             </div>
@@ -368,6 +390,16 @@ export default function Tournaments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {canCreateTournament && (
+        <ImportTournamentDialog
+          open={isImportModalOpen}
+          onOpenChange={setIsImportModalOpen}
+          isJogadorOrganizador={isJogador}
+          lojas={lojasOrganizadorasDoTcg}
+          onImported={(torneioId) => navigate(`/loja/torneio/${torneioId}/editar`)}
+        />
+      )}
     </div>
   );
 }

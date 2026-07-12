@@ -22,6 +22,12 @@ import PlayerManagement from './PlayerLists/PlayerManagement';
 import { Toaster } from './components/ui/sonner';
 import Tournaments from './components/organizer/Tournaments';
 import CreateOrganizerTournament from './components/player/CreateOrganizerTournament';
+import TemporadasPokemon from './components/organizer/TemporadasPokemon';
+import PontuacaoExtraPage from './components/organizer/PontuacaoExtraPage';
+import Eventos from './components/organizer/Eventos';
+import EventoView from './components/organizer/EventoView';
+import EventoConfigurar from './components/organizer/EventoConfigurar';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 function App() {
   return (
@@ -36,6 +42,10 @@ function App() {
           />
           <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
           <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+        </Route>
+
+        <Route element={<ProtectedRoutes allowedRoles={['admin']} />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
         </Route>
 
         <Route element={<ProtectedRoutes allowedRoles={['jogador']} />}>
@@ -54,10 +64,19 @@ function App() {
           <Route path="/loja/jogadores" element={<PlayerManagement />} />
           <Route path="/loja/creditos" element={<PlayerCreditsPos />} />
           <Route path="/loja/regras-jogadores" element={<PlayerRules />} />
+          <Route path="/loja/pontuacao-extra" element={<PontuacaoExtraPage />} />
         </Route>
         <Route element={<ProtectedRoutes allowedRoles={['loja', 'jogador']} />}>
           <Route path="/torneios" element={<Tournaments />} />
           <Route path="/rankings" element={<OrganizerRankings />} />
+          <Route path="/eventos" element={<Eventos />} />
+          <Route path="/eventos/:id" element={<EventoView />} />
+          <Route path="/eventos/:id/configurar" element={<EventoConfigurar />} />
+          {/* Temporadas é gerenciada pela loja (token direto) ou por um
+              jogador organizador dela (TemporadasPokemon.tsx escolhe entre
+              os dois — ver useTemporadas/useTemporadasLoja) — por isso vive
+              no grupo de rotas compartilhado, não só no da loja. */}
+          <Route path="/loja/temporadas" element={<TemporadasPokemon />} />
           <Route
             path="/loja/torneio/:id/editar"
             element={<TournamentEditDetails />}

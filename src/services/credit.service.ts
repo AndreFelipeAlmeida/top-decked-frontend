@@ -4,7 +4,6 @@ import type {
   LojaJogadorLink,
   LojaJogadorPublico,
 } from "@/types/Credito";
-import type { LojaCriarJogador } from "@/types/Player";
 
 const resource = "/creditos";
 
@@ -30,11 +29,6 @@ export const linkExistingPlayer = async ({
   const response = await api.post<LojaJogadorLink>(`${resource}/${jogadorId}`, null, {
     params: { apelido },
   });
-  return response.data;
-};
-
-export const createStorePlayer = async (novoJogador: LojaCriarJogador) => {
-  const response = await api.post<LojaJogadorPublico>(`${resource}/`, novoJogador);
   return response.data;
 };
 

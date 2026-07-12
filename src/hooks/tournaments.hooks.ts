@@ -6,18 +6,22 @@ import {
   type CreateStoreTournamentForm,
 } from "@/schemas/tournament.schemas";
 import {
+  adicionarJuiz,
   createOrganizerTournament,
   createTournament,
   deleteTournament,
   desinscreverJogador,
   generateRound,
+  getOrganizadoresDisponiveisParaJuiz,
   getTournamentById,
   getTournaments,
   getTournamentsByStore,
   importOrganizerTournament,
+  importTournament,
   importTournamentResults,
   inscreverJogador,
   recalculateTournamentScore,
+  removerJuiz,
   updatePlayerRule,
   updatePlayerScore,
   updateRodada,
@@ -60,6 +64,7 @@ export const useCreateOrganizerTournamentForm = () => {
       tempo_por_rodada: 30,
       cidade: '',
       estado: '',
+      conta_em_eventos: true,
     },
   });
 };
@@ -90,6 +95,17 @@ export const useImportOrganizerTournament = () => {
   });
 };
 
+export const useImportTournament = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => importTournament(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tournamentsKeys.all });
+    },
+  });
+};
+
 export const useCreateStoreTournamentForm = () => {
   return useForm<CreateStoreTournamentForm>({
     resolver: zodResolver(createStoreTournamentSchema),
@@ -108,6 +124,7 @@ export const useCreateStoreTournamentForm = () => {
       taxa: 0,
       premio: '',
       descricao: '',
+      conta_em_eventos: true,
     },
   });
 };
@@ -169,8 +186,8 @@ export const useUpdatePlayerRule = (id: string | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ linkId, tipoJogadorId }: { linkId: number; tipoJogadorId: number | null }) =>
-      updatePlayerRule(id!, linkId, tipoJogadorId),
+    mutationFn: ({ linkId, regraExtraId }: { linkId: number; regraExtraId: number | null }) =>
+      updatePlayerRule(id!, linkId, regraExtraId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tournamentsKeys.detail(id) });
     },
@@ -181,7 +198,8 @@ export const useRecalculateTournamentScore = (id: string | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (regraBasicaId?: number) => recalculateTournamentScore(id!, regraBasicaId),
+    mutationFn: ({ regraBasicaId, pontuacaoDeParticipacao }: { regraBasicaId?: number; pontuacaoDeParticipacao?: number }) =>
+      recalculateTournamentScore(id!, regraBasicaId, pontuacaoDeParticipacao),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tournamentsKeys.detail(id) });
     },
@@ -217,6 +235,38 @@ export const useDesinscreverJogador = () => {
     mutationFn: (torneioId: string) => desinscreverJogador(torneioId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tournamentsKeys.all });
+    },
+  });
+};
+
+export const useOrganizadoresDisponiveisParaJuiz = (id: string | undefined) => {
+  return useQuery({
+    queryKey: tournamentsKeys.organizadoresDisponiveisJuiz(id),
+    queryFn: () => getOrganizadoresDisponiveisParaJuiz(id!),
+    enabled: !!id,
+  });
+};
+
+export const useAdicionarJuiz = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (jogadorCriadoId: number) => adicionarJuiz(id!, jogadorCriadoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tournamentsKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: tournamentsKeys.organizadoresDisponiveisJuiz(id) });
+    },
+  });
+};
+
+export const useRemoverJuiz = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (linkId: number) => removerJuiz(id!, linkId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tournamentsKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: tournamentsKeys.organizadoresDisponiveisJuiz(id) });
     },
   });
 };

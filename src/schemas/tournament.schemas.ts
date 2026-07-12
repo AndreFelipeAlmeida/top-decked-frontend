@@ -29,6 +29,8 @@ export const createOrganizerTournamentSchema =
     descricao: z.string().optional(),
 
     regra_basica_id: z.number().min(1, 'Selecione uma regra para o torneio'),
+
+    conta_em_eventos: z.boolean(),
   });
 
 export type CreateOrganizerTournamentForm = z.infer<typeof createOrganizerTournamentSchema>;
@@ -63,6 +65,8 @@ export const createStoreTournamentSchema = z.object({
   descricao: z.string().optional(),
 
   regra_basica_id: z.number().min(1, 'Selecione uma regra para o torneio'),
+
+  conta_em_eventos: z.boolean(),
 });
 
 export type CreateStoreTournamentForm = z.infer<typeof createStoreTournamentSchema>;
@@ -88,9 +92,13 @@ export const updateStoreTournamentSchema = z.object({
 
   regra_basica_id: z.number().optional(),
 
+  pontuacao_de_participacao: z.number().optional(),
+
   inicio_real: z.string().optional(),
 
   fim_real: z.string().optional(),
+
+  conta_em_eventos: z.boolean().optional(),
 });
 
 export type UpdateStoreTournamentForm = z.infer<typeof updateStoreTournamentSchema>;

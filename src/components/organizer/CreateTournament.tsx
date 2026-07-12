@@ -277,6 +277,10 @@ export default function CreateTournament() {
                     placeholder="Descreva a premiação do torneio..."
                   />
                 </div>
+                <label className="flex items-center gap-2 text-sm text-foreground font-medium">
+                  <input type="checkbox" {...register('conta_em_eventos')} className="rounded border-border" />
+                  Conta pontos nos Eventos ativos do período
+                </label>
               </div>
             </div>
 

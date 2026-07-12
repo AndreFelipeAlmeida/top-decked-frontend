@@ -1,4 +1,4 @@
-import { ArrowLeft, Trophy, Edit, Save, Upload, Award, RefreshCw, Medal, X, Search, Plus } from 'lucide-react';
+import { ArrowLeft, Trophy, Edit, Save, Upload, Award, RefreshCw, Medal, X, Search, Plus, Gavel, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
@@ -12,9 +12,14 @@ import {
   useUpdatePlayerScore,
   useUpdatePlayerRule,
   useRecalculateTournamentScore,
+  useOrganizadoresDisponiveisParaJuiz,
+  useAdicionarJuiz,
+  useRemoverJuiz,
 } from '@/hooks/tournaments.hooks';
 import { usePlayerTypes, usePlayerTypesByOrganizer } from '@/hooks/playerTypes.hooks';
 import { useRepresentacoes, useUpdatePlayerComposicao } from '@/hooks/composicao.hooks';
+import { useTemporadas, useTemporadasLoja } from '@/hooks/temporadas.hooks';
+import { usePontuacaoExtraDoTorneio } from '@/hooks/pontuacaoExtra.hooks';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { updateStoreTournamentSchema, type UpdateStoreTournamentForm } from '@/schemas/tournament.schemas';
 import type { JogadorTorneioLinkPublico } from '@/types/Tournaments';
@@ -29,15 +34,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ComposicaoRepresentacaoModal } from './ComposicaoRepresentacaoModal';
 import { ComposicaoUnidadesModal } from './ComposicaoUnidadesModal';
 import { QuickCreateRuleDialog } from './QuickCreateRuleDialog';
+import { QuickCreateSeasonDialog } from './QuickCreateSeasonDialog';
+import { PontuacaoExtraForm } from './PontuacaoExtraForm';
+import { PontuacaoExtraHistorico } from './PontuacaoExtraHistorico';
 import { RepresentacaoComposicaoCombobox } from './RepresentacaoComposicaoCombobox';
 import { RodadasTab } from './RodadasTab';
 import { pokemonSpriteUrl } from '@/lib/pokemon';
+import { jogoTemRepresentacaoDeck } from '@/lib/pokemonModalidade';
 import { pokemonFormats } from '@/lib/pokemonFormats';
 import { formatosMD } from '@/lib/formatoMD';
+import { encontrarTemporadaDaData } from '@/lib/temporadaUtils';
+
+const JOGOS_POKEMON = ['POKEMON', 'POKEMON_VGC', 'POKEMON_GO'];
 
 type ScoreField = 'pontuacao' | 'pontuacao_com_regras';
 type ScoreOverrides = Record<string, Partial<Record<ScoreField, number>>>;
@@ -83,6 +103,11 @@ export default function TournamentEditDetails() {
   const [linkParaNovaRepresentacao, setLinkParaNovaRepresentacao] = useState<number | null>(null);
   const [composicaoUnidadesModalLinkId, setComposicaoUnidadesModalLinkId] = useState<number | null>(null);
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
+  const [showSeasonWarningModal, setShowSeasonWarningModal] = useState(false);
+  const [showQuickCreateSeasonModal, setShowQuickCreateSeasonModal] = useState(false);
+  const [pendingSaveData, setPendingSaveData] = useState<UpdateStoreTournamentForm | null>(null);
+  const [isJuizModalOpen, setIsJuizModalOpen] = useState(false);
+  const [juizEscolhidoId, setJuizEscolhidoId] = useState('');
 
   const user = useAuthenticatedUser();
   const isJogador = user.tipo === 'jogador';
@@ -97,9 +122,24 @@ export default function TournamentEditDetails() {
   // rodada), não aqui.
   const tcgSuportaComposicao =
     torneio?.jogo === 'POKEMON' || torneio?.jogo === 'POKEMON_VGC' || torneio?.jogo === 'POKEMON_GO';
-  const jogoTemRepresentacaoDeck = torneio?.jogo === 'POKEMON';
+  const temRepresentacaoDeck = jogoTemRepresentacaoDeck(torneio?.jogo);
   const { data: representacoes } = useRepresentacoes(torneio?.jogo ?? 'POKEMON');
   const updateComposicaoMutation = useUpdatePlayerComposicao(id);
+
+  // Aviso de "torneio fora de temporada" (ver docs/TEMPORADAS.md) só faz
+  // sentido pras 3 variantes de Pokémon com Temporada cadastrável, e só pra
+  // torneios importados de .tdf — um torneio criado manualmente na
+  // plataforma não vem de um import, então esse fluxo específico não se
+  // aplica a ele (o organizador ainda pode cadastrar a temporada a qualquer
+  // momento pela tela de Temporadas, fora deste aviso).
+  const ehJogoPokemon = JOGOS_POKEMON.includes(torneio?.jogo ?? '');
+  const ehTorneioImportado = torneio?.tipo === 'IMPORTADO';
+  const { data: temporadasLoja } = useTemporadas(!isJogador && ehJogoPokemon ? torneio?.jogo ?? undefined : undefined);
+  const { data: temporadasOrganizador } = useTemporadasLoja(
+    isJogador && ehJogoPokemon ? torneio?.loja?.id : undefined,
+    ehJogoPokemon ? torneio?.jogo ?? undefined : undefined,
+  );
+  const temporadas = isJogador ? temporadasOrganizador : temporadasLoja;
 
   // GET /lojas/tipoJogador/ exige token de loja — um jogador organizador
   // (agora com acesso a esta página, ver docs/DIVIDA_TECNICA.md) precisa
@@ -128,8 +168,10 @@ export default function TournamentEditDetails() {
       premio: torneio?.premio ?? '',
       descricao: torneio?.descricao ?? '',
       regra_basica_id: torneio?.regra_basica_id ?? undefined,
+      pontuacao_de_participacao: torneio?.pontuacao_de_participacao ?? 0,
       inicio_real: torneio?.inicio_real ?? '',
       fim_real: torneio?.fim_real ?? '',
+      conta_em_eventos: torneio?.conta_em_eventos ?? true,
     },
   });
   const formData = watch();
@@ -139,19 +181,55 @@ export default function TournamentEditDetails() {
   const updateRuleMutation = useUpdatePlayerRule(id);
   const recalculateMutation = useRecalculateTournamentScore(id);
   const importMutation = useImportTournamentResults(id);
+  const { data: pontuacaoExtraDoTorneio, isLoading: isLoadingPontuacaoExtra } = usePontuacaoExtraDoTorneio(id);
+  const { data: organizadoresDisponiveisJuiz, isLoading: isLoadingOrganizadoresJuiz } = useOrganizadoresDisponiveisParaJuiz(id);
+  const adicionarJuizMutation = useAdicionarJuiz(id);
+  const removerJuizMutation = useRemoverJuiz(id);
 
-  const onSave = (data: UpdateStoreTournamentForm) => {
+  const performSave = (data: UpdateStoreTournamentForm) => {
     updateMutation.mutate(data, {
       onSuccess: () => {
         // Se o torneio tem regra básica definida, salvar aqui reaplica a regra
         // no backend e recalcula as pontuações oficiais — descarta ajustes
         // manuais pendentes, então limpamos os overrides locais também.
         setScoreOverrides({});
+        setPendingSaveData(null);
         toast.success('Alterações salvas com sucesso!');
         navigate(`/loja/torneio/${id}/visualizar`);
       },
       onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao salvar alterações.')),
     });
+  };
+
+  const onSave = (data: UpdateStoreTournamentForm) => {
+    // Torneio importado (.tdf) sem nenhuma Temporada cadastrada cobrindo a
+    // data planejada — avisa antes de salvar, já que sem Temporada o
+    // jogador não entra na categorização de idade (ver docs/TEMPORADAS.md).
+    // Torneios criados manualmente ou jogos fora do Pokémon não passam por
+    // este aviso (pedido explícito do usuário: o aviso é no fluxo de import).
+    const temporadaEncontrada = encontrarTemporadaDaData(data.data_planejada, temporadas);
+    if (ehTorneioImportado && ehJogoPokemon && !temporadaEncontrada) {
+      setPendingSaveData(data);
+      setShowSeasonWarningModal(true);
+      return;
+    }
+
+    performSave(data);
+  };
+
+  const handleSalvarMesmoAssim = () => {
+    setShowSeasonWarningModal(false);
+    if (pendingSaveData) performSave(pendingSaveData);
+  };
+
+  const handleAbrirCadastroTemporada = () => {
+    setShowSeasonWarningModal(false);
+    setShowQuickCreateSeasonModal(true);
+  };
+
+  const handleTemporadaCriada = () => {
+    setShowQuickCreateSeasonModal(false);
+    if (pendingSaveData) performSave(pendingSaveData);
   };
 
   const handleImport = () => {
@@ -203,28 +281,29 @@ export default function TournamentEditDetails() {
     );
   };
 
-  const handlePlayerRuleChange = (linkId: number | null | undefined, tipoJogadorId: number) => {
+  // regraExtraId null = "Nenhuma", o jogador volta a pontuar só pela regra
+  // básica do torneio, sem ajuste nenhum (ver docs/REGRA_EXTRA.md).
+  const handlePlayerRuleChange = (linkId: number | null | undefined, regraExtraId: number | null) => {
     if (!linkId) return;
 
-    // Volta pra regra básica do torneio quando o organizador seleciona ela de
-    // novo — o backend trata isso como "sem regra específica" (tipo_jogador_id
-    // volta a acompanhar regra_basica_id automaticamente em recálculos futuros).
-    const valorEnviado = tipoJogadorId === formData.regra_basica_id ? null : tipoJogadorId;
-
     updateRuleMutation.mutate(
-      { linkId, tipoJogadorId: valorEnviado },
+      { linkId, regraExtraId },
       {
-        onSuccess: () => toast.success('Regra do jogador atualizada.'),
-        onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao atualizar regra do jogador.')),
+        onSuccess: () => toast.success('Regra extra do jogador atualizada.'),
+        onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao atualizar regra extra do jogador.')),
       },
     );
   };
 
   const handleRecalculate = () => {
-    // Usa a regra selecionada no formulário (mesmo que ainda não tenha sido
-    // salva) — o organizador não deveria precisar clicar em "Salvar
-    // Alterações" antes de recalcular com a regra que acabou de escolher.
-    recalculateMutation.mutate(formData.regra_basica_id, {
+    // Usa a regra e a pontuação por participação selecionadas no formulário
+    // (mesmo que ainda não tenham sido salvas) — o organizador não deveria
+    // precisar clicar em "Salvar Alterações" antes de recalcular com o que
+    // acabou de escolher.
+    recalculateMutation.mutate({
+      regraBasicaId: formData.regra_basica_id,
+      pontuacaoDeParticipacao: formData.pontuacao_de_participacao,
+    }, {
       onSuccess: () => {
         setScoreOverrides({});
         toast.success('Pontuações recalculadas a partir da regra básica do torneio.');
@@ -300,15 +379,40 @@ export default function TournamentEditDetails() {
     setLinkParaNovaRepresentacao(null);
   };
 
+  const handleAdicionarJuiz = () => {
+    if (!juizEscolhidoId) return;
+    adicionarJuizMutation.mutate(Number(juizEscolhidoId), {
+      onSuccess: () => {
+        toast.success('Juiz cadastrado no torneio.');
+        setIsJuizModalOpen(false);
+        setJuizEscolhidoId('');
+      },
+      onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao cadastrar Juiz.')),
+    });
+  };
+
+  const handleRemoverJuiz = (linkId: number | null | undefined) => {
+    if (!linkId) return;
+    removerJuizMutation.mutate(linkId, {
+      onSuccess: () => toast.success('Juiz removido do torneio.'),
+      onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao remover Juiz.')),
+    });
+  };
+
   if (isLoading) return <Spinner />;
 
   const participantesRows = (torneio?.jogadores ?? []).map((link, index) => ({
     key: rowKey(link, index),
+    linkId: link.id,
     apelido: link.apelido,
     jogador_id: link.jogador_id,
     game_id: link.game_id,
+    tipo: link.tipo ?? 'JOGADOR',
   }));
 
+  // Um jogador que também atuou como Juiz do torneio aparece nos dois
+  // lugares: no Ranking normal (com a pontuação que ele de fato fez/ganhou)
+  // e na lista separada de Juízes, só pra deixar claro quem arbitrou.
   const rankingRows = (torneio?.jogadores ?? [])
     .map((link, index) => {
       const key = rowKey(link, index);
@@ -318,13 +422,18 @@ export default function TournamentEditDetails() {
         linkId: link.id,
         apelido: link.apelido,
         jogador_id: link.jogador_id,
-        tipoJogadorId: link.tipo_jogador_id ?? formData.regra_basica_id ?? undefined,
+        tipo: link.tipo ?? 'JOGADOR',
+        regraExtraId: link.regra_extra_id ?? null,
         pontuacao: overrides?.pontuacao ?? link.pontuacao,
         pontuacao_com_regras: overrides?.pontuacao_com_regras ?? link.pontuacao_com_regras,
       };
     })
     .sort((a, b) => b.pontuacao_com_regras - a.pontuacao_com_regras)
     .map((row, index) => ({ ...row, posicao: index + 1 }));
+
+  // Vagas/receita contam só jogadores de verdade — um Juiz não ocupa vaga
+  // nem paga inscrição, mesmo agora aparecendo no ranking.
+  const jogadoresCount = rankingRows.filter((row) => row.tipo !== 'JUIZ').length;
 
   const composicaoRows = (torneio?.jogadores ?? []).map((link, index) => ({
     key: rowKey(link, index),
@@ -337,11 +446,19 @@ export default function TournamentEditDetails() {
   }));
 
   const temRegraBasica = Boolean(formData.regra_basica_id);
+  // A regra básica já define a pontuação padrão do torneio, então não faz
+  // sentido oferecê-la de novo como "regra extra".
+  const regrasExtrasDisponiveis = regras?.filter((regra) => regra.id !== formData.regra_basica_id);
 
   const buscaNormalizada = buscaJogador.trim().toLowerCase();
   const participantesFiltrados = buscaNormalizada
     ? participantesRows.filter((row) => row.apelido?.toLowerCase().includes(buscaNormalizada))
     : participantesRows;
+  // Listas totalmente separadas: quem é JOGADOR_E_JUIZ é uma única linha no
+  // backend (fonte única de verdade), mas aparece nas duas listas aqui —
+  // key com sufixo diferente em cada uma pra não colidir na árvore do DOM.
+  const participantesJogadores = participantesFiltrados.filter((row) => row.tipo !== 'JUIZ');
+  const participantesJuizes = participantesFiltrados.filter((row) => row.tipo === 'JUIZ' || row.tipo === 'JOGADOR_E_JUIZ');
   const rankingFiltrado = buscaNormalizada
     ? rankingRows.filter((row) => row.apelido?.toLowerCase().includes(buscaNormalizada))
     : rankingRows;
@@ -489,6 +606,26 @@ export default function TournamentEditDetails() {
                 </div>
 
                 <div>
+                  <label className="block text-sm mb-2 text-muted-foreground">Pontuação por Participação</label>
+                  <input
+                    type="number"
+                    {...register('pontuacao_de_participacao', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-border rounded-lg outline-none"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pontos que todo jogador já ganha só por participar, somados antes de qualquer resultado de rodada.
+                  </p>
+                  {errors.pontuacao_de_participacao && (
+                    <p className="text-destructive text-sm mt-1">{errors.pontuacao_de_participacao.message}</p>
+                  )}
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-foreground font-medium">
+                  <input type="checkbox" {...register('conta_em_eventos')} className="rounded border-border" />
+                  Conta pontos nos Eventos ativos do período
+                </label>
+
+                <div>
                   <label className="block text-sm mb-2 text-muted-foreground">Descrição</label>
                   <textarea {...register('descricao')} rows={3} className="w-full px-4 py-2 border border-border rounded-lg outline-none" />
                   {errors.descricao && <p className="text-destructive text-sm mt-1">{errors.descricao.message}</p>}
@@ -582,27 +719,70 @@ export default function TournamentEditDetails() {
                   </TabsTrigger>
                   <TabsTrigger value="composicoes">Composições</TabsTrigger>
                   <TabsTrigger value="rodadas">Rodadas</TabsTrigger>
+                  <TabsTrigger value="pontuacao-extra">Pontuação Extra</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="participantes" className="pt-4">
-                  {participantesFiltrados.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-6 text-center">
-                      {buscaNormalizada ? 'Nenhum jogador encontrado.' : 'Nenhum jogador inscrito neste torneio.'}
-                    </p>
-                  ) : (
-                    <div className="divide-y divide-border">
-                      {participantesFiltrados.map((row) => (
-                        <div key={row.key} className="flex items-center gap-3 py-3">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {row.apelido || `Jogador #${row.jogador_id}`}
-                          </p>
-                          {row.game_id && (
-                            <span className="text-xs text-muted-foreground">#{row.game_id}</span>
-                          )}
-                        </div>
-                      ))}
+                <TabsContent value="participantes" className="pt-4 space-y-6">
+                  <div className="rounded-lg border border-border p-4">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Gavel className="w-4 h-4" />
+                        Juízes
+                      </h3>
+                      <Button type="button" variant="outline" size="sm" onClick={() => setIsJuizModalOpen(true)}>
+                        <Plus className="w-4 h-4" />
+                        Cadastrar Juiz
+                      </Button>
                     </div>
-                  )}
+                    {participantesJuizes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-3">Nenhum Juiz cadastrado neste torneio ainda.</p>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {participantesJuizes.map((row) => (
+                          <div key={`${row.key}-juiz`} className="flex items-center justify-between gap-3 py-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {row.apelido || `Jogador #${row.jogador_id}`}
+                              </p>
+                              {row.game_id && (
+                                <span className="text-xs text-muted-foreground">#{row.game_id}</span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverJuiz(row.linkId)}
+                              className="shrink-0 text-muted-foreground hover:text-destructive"
+                              title="Remover Juiz"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground mb-2">Jogadores</h3>
+                    {participantesJogadores.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-3">
+                        {buscaNormalizada ? 'Nenhum jogador encontrado.' : 'Nenhum jogador inscrito neste torneio.'}
+                      </p>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {participantesJogadores.map((row) => (
+                          <div key={`${row.key}-jogador`} className="flex items-center gap-3 py-3">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {row.apelido || `Jogador #${row.jogador_id}`}
+                            </p>
+                            {row.game_id && (
+                              <span className="text-xs text-muted-foreground">#{row.game_id}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="pontuacao" className="pt-4">
@@ -617,7 +797,12 @@ export default function TournamentEditDetails() {
                   ) : (
                     <div className="divide-y divide-border">
                       {rankingFiltrado.map((row) => (
-                        <div key={row.key} className="flex items-center justify-between gap-4 py-3">
+                        <div
+                          key={`${row.key}-jogador`}
+                          className={`flex items-center justify-between gap-4 py-3 px-3 -mx-3 rounded-lg ${
+                            row.regraExtraId ? 'bg-warning/10' : ''
+                          }`}
+                        >
                           <div className="flex items-center gap-3 min-w-0">
                             <span
                               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -626,21 +811,31 @@ export default function TournamentEditDetails() {
                             >
                               {row.posicao <= 3 ? <Medal className="w-3.5 h-3.5" /> : row.posicao}
                             </span>
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {row.apelido || `Jogador #${row.jogador_id}`}
-                            </p>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {row.apelido || `Jogador #${row.jogador_id}`}
+                              </p>
+                              {row.regraExtraId && (
+                                <span className="text-[10px] uppercase tracking-wide font-bold text-warning">
+                                  Regra extra aplicada
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-3 shrink-0">
                             <Select
-                              value={row.tipoJogadorId ? String(row.tipoJogadorId) : ''}
-                              onValueChange={(value) => handlePlayerRuleChange(row.linkId, Number(value))}
+                              value={row.regraExtraId ? String(row.regraExtraId) : 'nenhuma'}
+                              onValueChange={(value) =>
+                                handlePlayerRuleChange(row.linkId, value === 'nenhuma' ? null : Number(value))
+                              }
                             >
-                              <SelectTrigger className="w-56" size="sm">
-                                <SelectValue placeholder="Regra" />
+                              <SelectTrigger className={`w-56 ${row.regraExtraId ? 'border-warning/60' : ''}`} size="sm">
+                                <SelectValue placeholder="Regra Extra" />
                               </SelectTrigger>
                               <SelectContent>
-                                {regras?.map((regra) => (
+                                <SelectItem value="nenhuma">Nenhuma (usa só a regra padrão)</SelectItem>
+                                {regrasExtrasDisponiveis?.map((regra) => (
                                   <SelectItem key={regra.id} value={String(regra.id)}>{regra.nome}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -662,7 +857,7 @@ export default function TournamentEditDetails() {
                         </div>
                       ))}
                     </div>
-                  )}
+                  )}              
                 </TabsContent>
 
                 <TabsContent value="composicoes" className="pt-4">
@@ -683,7 +878,7 @@ export default function TournamentEditDetails() {
                               {row.apelido || `Jogador #${row.jogador_id}`}
                             </p>
 
-                            {jogoTemRepresentacaoDeck && (
+                            {temRepresentacaoDeck && (
                               <div className="flex items-center gap-2 shrink-0">
                                 {row.composicaoRepresentacao && (
                                   <div className="flex items-center -space-x-2">
@@ -718,23 +913,24 @@ export default function TournamentEditDetails() {
                             )}
                           </div>
 
-                          <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-                            <p className="text-sm text-muted-foreground">
-                              {jogoTemRepresentacaoDeck
-                                ? (row.composicaoUnidades.length > 0
-                                  ? `${row.composicaoUnidades.reduce((soma, cu) => soma + cu.quantidade, 0)} unidades na composição`
-                                  : 'Nenhuma composição cadastrada')
-                                : `${row.composicaoUnidades.length}/6 Pokémon no time`}
-                            </p>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setComposicaoUnidadesModalLinkId(row.linkId ?? null)}
-                            >
-                              {jogoTemRepresentacaoDeck ? 'Editar Composição' : 'Editar Time'}
-                            </Button>
-                          </div>
+                          {/* TCG só cadastra representação (acima); VGC/GO só
+                              cadastram a composição completa (time) — nunca as
+                              duas ao mesmo tempo. */}
+                          {!temRepresentacaoDeck && (
+                            <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                              <p className="text-sm text-muted-foreground">
+                                {`${row.composicaoUnidades.length}/6 Pokémon no time`}
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setComposicaoUnidadesModalLinkId(row.linkId ?? null)}
+                              >
+                                Editar Time
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -743,6 +939,14 @@ export default function TournamentEditDetails() {
 
                 <TabsContent value="rodadas" className="pt-4">
                   <RodadasTab torneio={torneio} torneioId={id} />
+                </TabsContent>
+
+                <TabsContent value="pontuacao-extra" className="pt-4 space-y-6">
+                  {id && <PontuacaoExtraForm torneioId={id} />}
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground mb-2">Histórico deste torneio</h3>
+                    <PontuacaoExtraHistorico itens={pontuacaoExtraDoTorneio} isLoading={isLoadingPontuacaoExtra} />
+                  </div>
                 </TabsContent>
               </Tabs>
             </AppCard>
@@ -758,22 +962,14 @@ export default function TournamentEditDetails() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Jogadores</span>
-                  <span className="text-foreground font-bold">{rankingRows.length} / {formData.vagas}</span>
+                  <span className="text-foreground font-bold">{jogadoresCount} / {formData.vagas}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Receita Total</span>
-                  <span className="text-foreground font-bold">R$ {(rankingRows.length * (formData.taxa ?? 0)).toFixed(2)}</span>
+                  <span className="text-foreground font-bold">R$ {(jogadoresCount * (formData.taxa ?? 0)).toFixed(2)}</span>
                 </div>
               </div>
             </div>
-
-            <Link to={`/loja/torneio/${id}/console`} className="block bg-brand-gradient rounded-lg shadow p-6 text-white hover:opacity-90 transition-opacity">
-              <div className="flex items-center space-x-3 mb-2">
-                <Trophy className="w-6 h-6" />
-                <h3 className="text-lg font-bold">Console do Torneio</h3>
-              </div>
-              <p className="text-primary-foreground text-sm">Gerenciar rodadas, emparceiramentos e resultados em tempo real.</p>
-            </Link>
           </div>
         </div>
 
@@ -853,6 +1049,47 @@ export default function TournamentEditDetails() {
           onCreated={(regraId) => setValue('regra_basica_id', regraId, { shouldValidate: true })}
         />
 
+        <Dialog
+          open={showSeasonWarningModal}
+          onOpenChange={(open) => {
+            setShowSeasonWarningModal(open);
+            if (!open) setPendingSaveData(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Torneio fora de qualquer temporada cadastrada</DialogTitle>
+              <DialogDescription>
+                Este torneio não está dentro do período de nenhuma temporada cadastrada para{' '}
+                {torneio?.jogo}. Deseja cadastrar uma temporada para ele agora?
+              </DialogDescription>
+            </DialogHeader>
+
+            <p className="text-sm text-warning">
+              Se você continuar sem cadastrar uma temporada, o torneio será salvo normalmente, mas
+              os jogadores dele não entrarão no filtro de categoria (Junior/Senior/Master) do Ranking.
+            </p>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleSalvarMesmoAssim}>
+                Não, salvar mesmo assim
+              </Button>
+              <Button type="button" onClick={handleAbrirCadastroTemporada}>
+                Cadastrar Temporada
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <QuickCreateSeasonDialog
+          open={showQuickCreateSeasonModal}
+          onOpenChange={setShowQuickCreateSeasonModal}
+          isJogadorOrganizador={isJogador}
+          lojaId={torneio?.loja?.id}
+          tcg={torneio?.jogo ?? 'POKEMON'}
+          onCreated={handleTemporadaCriada}
+        />
+
         <ComposicaoRepresentacaoModal
           open={composicaoModalAberto}
           onOpenChange={setComposicaoModalAberto}
@@ -875,6 +1112,48 @@ export default function TournamentEditDetails() {
           }}
           salvando={updateComposicaoMutation.isPending}
         />
+
+        <Dialog open={isJuizModalOpen} onOpenChange={setIsJuizModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cadastrar Juiz</DialogTitle>
+              <DialogDescription>
+                Vincule um organizador da loja como Juiz deste torneio antes de atribuir pontos extras a ele.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Select value={juizEscolhidoId} onValueChange={setJuizEscolhidoId} disabled={isLoadingOrganizadoresJuiz}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={isLoadingOrganizadoresJuiz ? 'Carregando...' : 'Selecione um organizador'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizadoresDisponiveisJuiz?.map((jogador) => (
+                    <SelectItem key={jogador.id} value={String(jogador.id)}>
+                      {jogador.apelido || jogador.game_id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!isLoadingOrganizadoresJuiz && !organizadoresDisponiveisJuiz?.length && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum organizador disponível — todos já são Juiz aqui, ou nenhum organizador está cadastrado na loja pra este TCG.
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsJuizModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                disabled={!juizEscolhidoId || adicionarJuizMutation.isPending}
+                onClick={handleAdicionarJuiz}
+              >
+                {adicionarJuizMutation.isPending ? 'Cadastrando...' : 'Cadastrar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
   );
 }

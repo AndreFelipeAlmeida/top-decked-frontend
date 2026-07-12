@@ -289,7 +289,16 @@ function ComposicaoDaMesa({ torneio, torneioId, mesa, link }: ComposicaoDaMesaPr
         )}
       </div>
 
-      {timeCompleto.length === 0 ? (
+      {jogoTemRepresentacao ? (
+        // TCG só cobra representação — nunca mais alertar sobre composição
+        // ausente aqui; o ícone (quando existe) já foi mostrado no
+        // cabeçalho acima.
+        !link.composicao_representacao && (
+          <p className="text-xs text-warning">
+            Nenhuma representação cadastrada na aba "Composições" ainda.
+          </p>
+        )
+      ) : timeCompleto.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           Nenhuma composição cadastrada na aba "Composições" ainda.
         </p>

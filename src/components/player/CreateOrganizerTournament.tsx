@@ -270,6 +270,11 @@ export default function CreateOrganizerTournament() {
               {errors.regra_basica_id && (
                 <p className="text-destructive text-sm mt-1">{errors.regra_basica_id.message}</p>
               )}
+
+              <label className="flex items-center gap-2 text-sm text-foreground font-medium mt-4">
+                <input type="checkbox" {...register('conta_em_eventos')} className="rounded border-border" />
+                Conta pontos nos Eventos ativos do período
+              </label>
             </AppCard>
 
             {/* Submit */}

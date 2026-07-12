@@ -1,16 +1,20 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Plus, Download, Upload, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, Users } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/hooks/authContext.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { getMonthlyTournaments, getFormatData, getRecentTournaments, getUpcomingTournaments } from '@/selectors/tournaments.selectors';
 import Spinner from '../ui/spinner';
 import { useTournaments } from '@/hooks/tournaments.hooks';
+import { DashboardActionButton } from '@/components/ui/dashboard-action-button';
+import { ImportTournamentButton } from './ImportTournamentButton';
+import { dataExibicaoTorneio } from '@/lib/dateUtils';
 
 export default function OrganizerDashboard() {
   const { user } = useAuthContext();
   const { selectedTcg } = useTcgSelection();
+  const navigate = useNavigate();
 
   const { data: tournamentsRaw = [], isLoading } = useTournaments('loja');
 
@@ -38,28 +42,9 @@ export default function OrganizerDashboard() {
 
       {/* Ações Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Link 
-          to="/loja/criar-torneio"
-          className="bg-primary text-white p-4 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center space-x-2 font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Criar Novo Torneio</span>
-        </Link>
-        <button className="bg-card border border-border text-muted-foreground p-4 rounded-lg hover:bg-accent transition-colors flex items-center justify-center space-x-2">
-          <Download className="w-5 h-5" />
-          <span>Exportar Dados</span>
-        </button>
-        <Link
-          to="/loja/jogadores"
-          className="bg-card border border-border text-muted-foreground p-4 rounded-lg hover:bg-accent transition-colors flex items-center justify-center space-x-2"
-        >
-          <Users className="w-5 h-5" />
-          <span>Gerenciar Jogadores</span>
-        </Link>
-        <button className="bg-card border border-border text-muted-foreground p-4 rounded-lg hover:bg-accent transition-colors flex items-center justify-center space-x-2">
-          <Upload className="w-5 h-5" />
-          <span>Gerenciar Anúncios</span>
-        </button>
+        <DashboardActionButton to="/loja/criar-torneio" icon={Plus} label="Criar Novo Torneio" variant="primary" />
+        <ImportTournamentButton onImported={(torneioId) => navigate(`/loja/torneio/${torneioId}/editar`)} />
+        <DashboardActionButton to="/loja/jogadores" icon={Users} label="Gerenciar Jogadores" />
       </div>
 
       {/* KPIs (Indicadores) */}
@@ -146,7 +131,7 @@ export default function OrganizerDashboard() {
                   <div>
                     <h3 className="text-foreground font-bold">{tournament.nome}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(tournament.data_planejada).toLocaleDateString('pt-BR')}
+                      {dataExibicaoTorneio(tournament)}
                     </p>
                   </div>
                   <span className="px-2 py-1 bg-success/15 text-success text-xs rounded font-bold">
@@ -170,7 +155,7 @@ export default function OrganizerDashboard() {
                   <div>
                     <h3 className="text-foreground font-bold">{tournament.nome}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(tournament.data_planejada).toLocaleDateString('pt-BR')}
+                      {dataExibicaoTorneio(tournament)}
                     </p>
                   </div>
                 </div>

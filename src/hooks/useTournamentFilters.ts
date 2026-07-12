@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { TorneioPublico } from '@/types/Tournaments';
+import { momentoEfetivoTorneio } from '@/lib/dateUtils';
 
 export type DatePreset = 'semana' | 'mes' | 'trimestre' | 'ano' | null;
 
@@ -108,7 +109,7 @@ export const useTournamentFilters = (torneios: TorneioPublico[] | undefined, isJ
       if (isJogador && lojaFiltro !== 'todas' && String(torneio.loja?.id) !== lojaFiltro) return false;
 
       if (dataInicioFiltro || dataFimFiltro) {
-        const dataTorneio = new Date(torneio.data_planejada);
+        const dataTorneio = momentoEfetivoTorneio(torneio);
         if (dataInicioFiltro && dataTorneio < dataInicioFiltro) return false;
         if (dataFimFiltro && dataTorneio > dataFimFiltro) return false;
       }

@@ -1,7 +1,6 @@
 import { creditsKeys } from "@/keys/credits.keys";
 import {
   addCredits,
-  createStorePlayer,
   getPlayerCredits,
   getStorePlayerLinks,
   linkExistingPlayer,
@@ -29,17 +28,6 @@ export const useLinkExistingPlayer = () => {
 
   return useMutation({
     mutationFn: linkExistingPlayer,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['players'] });
-    },
-  });
-};
-
-export const useCreateStorePlayer = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: createStorePlayer,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['players'] });
     },

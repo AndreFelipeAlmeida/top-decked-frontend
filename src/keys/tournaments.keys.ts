@@ -16,4 +16,10 @@ export const tournamentsKeys = {
     'detail',
     id,
   ],
+
+  organizadoresDisponiveisJuiz: (id: string | undefined) => [
+    ...tournamentsKeys.all,
+    'organizadores-disponiveis-juiz',
+    id,
+  ],
 }
