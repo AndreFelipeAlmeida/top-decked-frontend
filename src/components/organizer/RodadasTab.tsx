@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,8 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useGenerateRound, useUpdateRodada } from '@/hooks/tournaments.hooks';
+import { useDeleteRodada, useGenerateRound, useUpdateRodada } from '@/hooks/tournaments.hooks';
 import { useComposicaoPartida, useUpdateComposicaoPartida } from '@/hooks/composicao.hooks';
 import { pokemonSpriteUrl } from '@/lib/pokemon';
 import type { JogadorTorneioLinkPublico, RodadaPublico, TorneioPublico } from '@/types/Tournaments';
@@ -33,15 +41,30 @@ type RodadasTabProps = {
 export function RodadasTab({ torneio, torneioId }: RodadasTabProps) {
   const rodadas = torneio?.rodadas ?? [];
   const numsRodada = Array.from(new Set(rodadas.map((r) => r.num_rodada))).sort((a, b) => a - b);
+  const maxRodada = numsRodada[numsRodada.length - 1] ?? null;
   const [rodadaAtivaOverride, setRodadaAtivaOverride] = useState<number | null>(null);
-  const rodadaAtiva = rodadaAtivaOverride ?? numsRodada[numsRodada.length - 1] ?? null;
+  const rodadaAtiva = rodadaAtivaOverride ?? maxRodada;
+  const [rodadaParaExcluir, setRodadaParaExcluir] = useState<number | null>(null);
 
   const generateRoundMutation = useGenerateRound(torneioId);
+  const deleteRodadaMutation = useDeleteRodada(torneioId);
 
   const handleGenerateRound = () => {
     generateRoundMutation.mutate(undefined, {
       onSuccess: () => toast.success('Nova rodada gerada.'),
       onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao gerar rodada.')),
+    });
+  };
+
+  const handleConfirmarExclusaoRodada = () => {
+    if (rodadaParaExcluir === null) return;
+    deleteRodadaMutation.mutate(rodadaParaExcluir, {
+      onSuccess: () => {
+        toast.success(`Rodada ${rodadaParaExcluir} excluída.`);
+        setRodadaParaExcluir(null);
+        setRodadaAtivaOverride(null);
+      },
+      onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao excluir rodada.')),
     });
   };
 
@@ -53,19 +76,68 @@ export function RodadasTab({ torneio, torneioId }: RodadasTabProps) {
             ? 'Nenhuma rodada gerada ainda.'
             : `${numsRodada.length} rodada${numsRodada.length > 1 ? 's' : ''} gerada${numsRodada.length > 1 ? 's' : ''}.`}
         </p>
-        {torneio?.status === 'EM_ANDAMENTO' && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={handleGenerateRound}
-            disabled={generateRoundMutation.isPending}
-          >
-            <RefreshCw className="w-4 h-4" />
-            {generateRoundMutation.isPending ? 'Gerando...' : 'Gerar Próxima Rodada'}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Exclusão é estritamente LIFO (BRK-302): só a última rodada
+              gerada pode ser apagada — rodadas anteriores já viraram
+              histórico de pareamento pra rodadas seguintes. O backend
+              revalida isso de qualquer forma, este disabled é só UX. */}
+          {rodadaAtiva !== null && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              disabled={rodadaAtiva !== maxRodada || deleteRodadaMutation.isPending}
+              title={
+                rodadaAtiva !== maxRodada
+                  ? 'Só é possível excluir a última rodada gerada'
+                  : `Excluir Rodada ${rodadaAtiva}`
+              }
+              onClick={() => setRodadaParaExcluir(rodadaAtiva)}
+            >
+              <Trash2 className="w-4 h-4" />
+              Excluir Rodada {rodadaAtiva}
+            </Button>
+          )}
+          {torneio?.status === 'EM_ANDAMENTO' && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleGenerateRound}
+              disabled={generateRoundMutation.isPending}
+            >
+              <RefreshCw className="w-4 h-4" />
+              {generateRoundMutation.isPending ? 'Gerando...' : 'Gerar Próxima Rodada'}
+            </Button>
+          )}
+        </div>
       </div>
+
+      <Dialog open={rodadaParaExcluir !== null} onOpenChange={(open) => !open && setRodadaParaExcluir(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Rodada {rodadaParaExcluir}</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir a Rodada {rodadaParaExcluir}? Essa ação apaga todas as
+              mesas dessa rodada e recalcula a pontuação do torneio sem elas — não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRodadaParaExcluir(null)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteRodadaMutation.isPending}
+              onClick={handleConfirmarExclusaoRodada}
+            >
+              {deleteRodadaMutation.isPending ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {numsRodada.length === 0 ? (
         <p className="text-sm text-muted-foreground py-6 text-center">
@@ -142,11 +214,22 @@ function MesaEditor({ torneio, torneioId, mesa }: MesaEditorProps) {
     <div className="rounded-lg border border-border p-4 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h4 className="text-base font-bold text-foreground">Mesa {mesa.mesa ?? '—'}</h4>
-        {mesa.finalizada && (
-          <span className="px-2 py-0.5 bg-success/15 text-success text-xs rounded-full font-bold">
-            Finalizada
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* BRK-302: uma mesa finalizada sem vencedor é um empate de
+              verdade (o organizador declarou vencedor_id=None
+              explicitamente) — precisa ficar explícito na interface, não
+              só implícito no Select de vencedor abaixo. */}
+          {mesa.finalizada && mesa.jogador2_id && !mesa.vencedor_id && (
+            <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full font-bold">
+              Sem Resultado
+            </span>
+          )}
+          {mesa.finalizada && (
+            <span className="px-2 py-0.5 bg-success/15 text-success text-xs rounded-full font-bold">
+              Finalizada
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -186,7 +269,7 @@ function MesaEditor({ torneio, torneioId, mesa }: MesaEditorProps) {
             <SelectValue placeholder="Vencedor da mesa" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Sem resultado</SelectItem>
+            <SelectItem value="none">Sem Resultado</SelectItem>
             {mesa.jogador1_id && (
               <SelectItem value={String(mesa.jogador1_id)}>{nomeDoLink(jogador1)}</SelectItem>
             )}

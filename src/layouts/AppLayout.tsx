@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate, matchPath } from 'react-router-dom';
 import {
   LayoutDashboard, Trophy, Plus, Settings, Package,
   DollarSign, User, Sparkles, Flame, Zap, TrendingUp,
@@ -31,7 +31,15 @@ const PAGINAS_COM_BARRA_DE_JOGOS = [
   '/eventos',
   '/loja/temporadas',
   '/loja/pontuacao-extra',
+  '/jogador/conquistas',
 ];
+
+// Rota dinâmica (tem :id) não cabe no includes() acima. Editar Torneio
+// também mostra a barra, mas trocar de jogo ali é uma interrupção de
+// fluxo (BRK-301): o torneio em edição é de um TCG fixo, então o clique
+// não filtra nada in-place — ele te tira da tela e te leva pra listagem
+// geral do jogo escolhido.
+const ROTA_EDITAR_TORNEIO = '/loja/torneio/:id/editar';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -44,7 +52,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { data: jogador } = useMe(user?.tipo === 'jogador');
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const mostrarBarraDeJogos = PAGINAS_COM_BARRA_DE_JOGOS.includes(location.pathname);
+  const navigate = useNavigate();
+  const estaEditandoTorneio = matchPath(ROTA_EDITAR_TORNEIO, location.pathname) !== null;
+  const mostrarBarraDeJogos = PAGINAS_COM_BARRA_DE_JOGOS.includes(location.pathname) || estaEditandoTorneio;
 
   // Um jogador que também organiza torneios para alguma loja pode alternar
   // para a "visão de organizador" (OrganizerViewSwitch) no seu próprio
@@ -102,7 +112,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {tcgGames.map((game) => (
             <button
               key={game.id}
-              onClick={() => !game.disabled && setSelectedTcg(game.id)}
+              onClick={() => {
+                if (game.disabled) return;
+                setSelectedTcg(game.id);
+                // Interrompe a edição em vez de deixar o torneio de um TCG
+                // renderizado no contexto de outro — manda pra listagem
+                // geral do jogo recém-selecionado.
+                if (estaEditandoTorneio) {
+                  navigate('/torneios');
+                }
+              }}
               disabled={game.disabled}
               className={`w-12 h-12 rounded-xl flex items-center justify-center text-center text-white text-[9px] font-bold leading-tight px-1 transition-all ${
                 selectedTcg === game.id

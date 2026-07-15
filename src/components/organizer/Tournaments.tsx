@@ -29,6 +29,7 @@ import {
 } from '@/hooks/tournaments.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
+import { useTenant } from '@/hooks/tenantContext.hooks';
 import { useViewMode } from '@/hooks/viewModeContext.hooks';
 import { useTournamentFilters } from '@/hooks/useTournamentFilters';
 import { nomeDoFormato } from '@/lib/pokemonFormats';
@@ -49,6 +50,7 @@ export default function Tournaments() {
 
   const { selectedTcg } = useTcgSelection();
   const { viewMode } = useViewMode();
+  const { tenant } = useTenant();
 
   const { data: jogador, isLoading: isMeLoading } = useMe(isJogador)
 
@@ -217,7 +219,7 @@ export default function Tournaments() {
         formatoFiltro={formatoFiltro}
         onFormatoChange={setFormatoFiltro}
         formatosDisponiveis={formatosDisponiveis}
-        showLojaFilter={isJogador}
+        showLojaFilter={isJogador && !tenant}
         lojaFiltro={lojaFiltro}
         onLojaChange={setLojaFiltro}
         lojasDisponiveis={lojasDisponiveis}

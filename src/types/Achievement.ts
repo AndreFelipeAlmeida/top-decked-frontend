@@ -26,6 +26,7 @@ export interface HistoricoConquista {
   conquista_codigo: string;
   conquista_nome: string;
   conquista_icone: string;
+  conquista_tcg?: string | null;
   categoria: string;
   nivel: number;
   nome_nivel: string;

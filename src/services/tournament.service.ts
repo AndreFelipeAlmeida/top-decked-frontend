@@ -135,6 +135,13 @@ export const deleteTournament = async (torneioId: string) => {
   await api.delete(`${resource}/${torneioId}`);
 };
 
+export const deleteRodada = async (torneioId: string, numRodada: number) => {
+  const response = await api.delete<TorneioPublico>(
+    `${resource}/${torneioId}/rodadas/${numRodada}`,
+  );
+  return response.data;
+};
+
 export const inscreverJogador = async (torneioId: string) => {
   const response = await api.post<JogadorTorneioLinkPublico>(`${resource}/${torneioId}/inscricao`);
   return response.data;

@@ -8,6 +8,7 @@ import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthProvider.tsx'
 import { TcgSelectionProvider } from './contexts/TcgSelectionProvider.tsx'
 import { ViewModeProvider } from './contexts/ViewModeProvider.tsx'
+import { TenantProvider } from './contexts/TenantProvider.tsx'
 
 
 const queryClient = new QueryClient({
@@ -30,15 +31,17 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TcgSelectionProvider>
-          <ViewModeProvider>
-            <Router>
-              <App />
-            </Router>
-          </ViewModeProvider>
-        </TcgSelectionProvider>
-      </AuthProvider>
+      <TenantProvider>
+        <AuthProvider>
+          <TcgSelectionProvider>
+            <ViewModeProvider>
+              <Router>
+                <App />
+              </Router>
+            </ViewModeProvider>
+          </TcgSelectionProvider>
+        </AuthProvider>
+      </TenantProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

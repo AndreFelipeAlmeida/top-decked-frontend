@@ -9,6 +9,7 @@ import {
   adicionarJuiz,
   createOrganizerTournament,
   createTournament,
+  deleteRodada,
   deleteTournament,
   desinscreverJogador,
   generateRound,
@@ -276,6 +277,17 @@ export const useGenerateRound = (id: string | undefined) => {
 
   return useMutation({
     mutationFn: () => generateRound(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tournamentsKeys.detail(id) });
+    },
+  });
+};
+
+export const useDeleteRodada = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (numRodada: number) => deleteRodada(id!, numRodada),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tournamentsKeys.detail(id) });
     },

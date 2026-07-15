@@ -1,7 +1,9 @@
 import { RefreshCw, Trophy, Lock } from 'lucide-react';
 import { useMyAchievements, useAchievementHistory, useRecalculateAchievements } from '@/hooks/achievements.hooks';
+import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { AppCard } from '@/components/ui/app-card';
 import Spinner from '@/components/ui/spinner';
+import { nomeDoJogo } from '@/lib/tcgGames';
 import type { JogadorConquista } from '@/types/Achievement';
 
 const CATEGORIA_LABEL: Record<string, string> = {
@@ -28,7 +30,16 @@ function AchievementCard({ jogadorConquista }: { jogadorConquista: JogadorConqui
       <div className="flex items-start gap-3 mb-3">
         <span className="text-2xl">{conquista.icone}</span>
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold text-foreground">{conquista.nome}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-foreground">{conquista.nome}</h3>
+            {/* BRK-303: a conquista pertence a um único TCG — deixa isso
+                explícito no card pra não confundir com uma conquista global. */}
+            {conquista.tcg && (
+              <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-bold uppercase">
+                {nomeDoJogo(conquista.tcg)}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground">{conquista.descricao}</p>
         </div>
         <span
@@ -75,8 +86,15 @@ export default function PlayerAchievements() {
   const { data: conquistas, isLoading } = useMyAchievements();
   const { data: historico, isLoading: isHistoryLoading } = useAchievementHistory();
   const recalcular = useRecalculateAchievements();
+  const { selectedTcg } = useTcgSelection();
 
-  const conquistasPorCategoria = (conquistas ?? []).reduce<Record<string, JogadorConquista[]>>((acc, jc) => {
+  // BRK-303: a barra lateral de jogos filtra as conquistas (e o histórico)
+  // por TCG — cada conquista pertence a exatamente um jogo, então não há
+  // "mostrar todos" aqui, sempre um TCG selecionado por vez.
+  const conquistasDoTcg = (conquistas ?? []).filter((jc) => jc.conquista.tcg === selectedTcg);
+  const historicoDoTcg = (historico ?? []).filter((item) => item.conquista_tcg === selectedTcg);
+
+  const conquistasPorCategoria = conquistasDoTcg.reduce<Record<string, JogadorConquista[]>>((acc, jc) => {
     const categoria = jc.conquista.categoria;
     acc[categoria] = acc[categoria] ?? [];
     acc[categoria].push(jc);
@@ -129,9 +147,9 @@ export default function PlayerAchievements() {
         <AppCard title="Histórico" icon={<Lock className="w-5 h-5" />}>
           {isHistoryLoading ? (
             <Spinner />
-          ) : historico && historico.length > 0 ? (
+          ) : historicoDoTcg.length > 0 ? (
             <div className="space-y-3 max-h-[32rem] overflow-y-auto">
-              {historico.map((item) => (
+              {historicoDoTcg.map((item) => (
                 <div key={`${item.conquista_codigo}-${item.nivel}`} className="flex items-center gap-3 text-sm">
                   <span className="text-xl">{item.conquista_icone}</span>
                   <div className="min-w-0 flex-1">

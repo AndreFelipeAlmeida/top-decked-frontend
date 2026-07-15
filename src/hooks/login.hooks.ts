@@ -1,4 +1,4 @@
-import { login, register, esqueciSenha, validarTokenRedefinicao, redefinirSenha } from "@/services/auth.service";
+import { login, register, registerLoja, esqueciSenha, validarTokenRedefinicao, redefinirSenha } from "@/services/auth.service";
 import { resetPasswordKeys } from "@/keys/auth.keys";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
@@ -12,6 +12,12 @@ export const useLogin = () => {
 export const useRegister = () => {
   return useMutation({
     mutationFn: register,
+  });
+};
+
+export const useRegisterLoja = () => {
+  return useMutation({
+    mutationFn: registerLoja,
   });
 };
 

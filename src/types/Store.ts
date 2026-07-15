@@ -14,6 +14,7 @@ export interface LojaPublico extends LojaBase {
   id: number;
   usuario: UsuarioPublico;
   status: StatusAprovacaoLoja;
+  slug: string;
 }
 
 export interface LojaPublicoTorneios extends LojaPublico {
