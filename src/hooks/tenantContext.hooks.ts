@@ -10,3 +10,7 @@ export const useTenant = () => {
 
   return context;
 };
+
+// BRK-402: atalho pra quem só precisa do booleano (a maioria dos usos) sem
+// desestruturar o resto do contexto.
+export const useIsTenant = () => useTenant().isTenant;

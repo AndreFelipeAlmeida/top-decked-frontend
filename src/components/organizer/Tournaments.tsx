@@ -29,7 +29,8 @@ import {
 } from '@/hooks/tournaments.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
-import { useTenant } from '@/hooks/tenantContext.hooks';
+import { useIsTenant } from '@/hooks/tenantContext.hooks';
+import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
 import { useViewMode } from '@/hooks/viewModeContext.hooks';
 import { useTournamentFilters } from '@/hooks/useTournamentFilters';
 import { nomeDoFormato } from '@/lib/pokemonFormats';
@@ -50,24 +51,18 @@ export default function Tournaments() {
 
   const { selectedTcg } = useTcgSelection();
   const { viewMode } = useViewMode();
-  const { tenant } = useTenant();
+  const isTenant = useIsTenant();
 
   const { data: jogador, isLoading: isMeLoading } = useMe(isJogador)
 
-  // Validação extra desta página: o jogador só é considerado organizador aqui
-  // se organizar o TCG atualmente selecionado na barra lateral em alguma loja.
-  const isOrganizerOfSelectedTcg =
-    jogador?.lojas?.some((loja) =>
-      loja.organizacoes?.some((org) => org.tcg === selectedTcg)
-    ) ?? false;
-
-  // Lojas onde o jogador organiza especificamente o TCG selecionado agora —
-  // usado pelo seletor de loja do ImportTournamentDialog (um jogador pode
-  // organizar vários jogos em várias lojas diferentes).
-  const lojasOrganizadorasDoTcg =
-    jogador?.lojas?.filter((loja) =>
-      loja.organizacoes?.some((org) => org.tcg === selectedTcg)
-    ) ?? [];
+  // BRK-402 "Regra de Ouro": organizar só é possível dentro do subdomínio da
+  // própria loja (isOrganizador já exige isTenant) — e só faz sentido pro
+  // TCG selecionado agora na barra lateral, entre os que o jogador organiza
+  // NESTA loja especificamente (um jogador pode organizar TCGs diferentes
+  // em lojas diferentes, mas cada subdomínio só expõe os da própria loja).
+  const { isOrganizador: isOrganizadorDoTenant, tcgs: tcgsOrganizados, lojaId: tenantLojaId } =
+    useOrganizadorDoTenantAtual();
+  const isOrganizerOfSelectedTcg = isOrganizadorDoTenant && tcgsOrganizados.includes(selectedTcg ?? '');
 
   const canCreateTournament = isJogador
     ? isOrganizerOfSelectedTcg && viewMode === 'organizador'
@@ -219,7 +214,7 @@ export default function Tournaments() {
         formatoFiltro={formatoFiltro}
         onFormatoChange={setFormatoFiltro}
         formatosDisponiveis={formatosDisponiveis}
-        showLojaFilter={isJogador && !tenant}
+        showLojaFilter={isJogador && !isTenant}
         lojaFiltro={lojaFiltro}
         onLojaChange={setLojaFiltro}
         lojasDisponiveis={lojasDisponiveis}
@@ -398,7 +393,7 @@ export default function Tournaments() {
           open={isImportModalOpen}
           onOpenChange={setIsImportModalOpen}
           isJogadorOrganizador={isJogador}
-          lojas={lojasOrganizadorasDoTcg}
+          lojaIdFixo={tenantLojaId}
           onImported={(torneioId) => navigate(`/loja/torneio/${torneioId}/editar`)}
         />
       )}

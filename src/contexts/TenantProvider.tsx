@@ -19,7 +19,7 @@ export const TenantProvider = ({ children }: TenantProviderProps) => {
   });
 
   return (
-    <TenantContext.Provider value={{ tenant, isLoading }}>
+    <TenantContext.Provider value={{ tenant, isLoading, isTenant: Boolean(tenant) }}>
       {children}
     </TenantContext.Provider>
   );

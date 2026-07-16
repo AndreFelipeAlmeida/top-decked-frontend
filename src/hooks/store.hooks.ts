@@ -4,6 +4,7 @@ import { updateStoreSchema, type UpdateStoreForm } from "@/schemas/store.schemas
 import {
   demoteJogadorOrganizador,
   getStoreById,
+  getStores,
   promoteJogadorOrganizador,
   updateMyStore,
   uploadStorePhoto,
@@ -17,6 +18,17 @@ export const useMyStore = (storeId: number | undefined) => {
     queryKey: storeKeys.mine(storeId),
     queryFn: () => getStoreById(storeId!),
     enabled: !!storeId,
+  });
+};
+
+// BRK-403: diretório de lojas parceiras — GET /lojas/ é público, mas quando
+// o visitante está logado como jogador o backend já cruza com os vínculos
+// dele e devolve tcgs_organizados preenchido por loja (ver
+// app.api.routes.loja.retornar_lojas).
+export const useStores = () => {
+  return useQuery({
+    queryKey: storeKeys.list(),
+    queryFn: getStores,
   });
 };
 

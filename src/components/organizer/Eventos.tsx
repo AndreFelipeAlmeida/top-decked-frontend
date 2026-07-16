@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, Calendar, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,19 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { ApiErrorDetail } from '@/types/Error';
 import type { EventoPublico } from '@/types/Evento';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { useViewMode } from '@/hooks/viewModeContext.hooks';
+import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
 import {
   useEventos,
   useEventosDaLoja,
@@ -74,14 +68,13 @@ export default function Eventos() {
   const { viewMode } = useViewMode();
   const { data: jogador, isLoading: isMeLoading } = useMe(isJogador);
 
-  const isOrganizerOfSelectedTcg =
-    jogador?.lojas?.some((loja) => loja.organizacoes?.some((org) => org.tcg === selectedTcg)) ?? false;
+  // BRK-402 "Regra de Ouro": criar/gerenciar evento como organizador só é
+  // possível dentro do subdomínio da própria loja — a loja fica implícita
+  // (tenantLojaId), sem select (BRK-401).
+  const { isOrganizador: isOrganizadorDoTenant, tcgs: tcgsOrganizados, lojaId: tenantLojaId } =
+    useOrganizadorDoTenantAtual();
+  const isOrganizerOfSelectedTcg = isOrganizadorDoTenant && tcgsOrganizados.includes(selectedTcg ?? '');
   const podeCriarEvento = isJogador ? isOrganizerOfSelectedTcg && viewMode === 'organizador' : true;
-
-  const lojasOrganizadorasDoTcg = useMemo(
-    () => jogador?.lojas?.filter((loja) => loja.organizacoes?.some((org) => org.tcg === selectedTcg)) ?? [],
-    [jogador, selectedTcg],
-  );
 
   // Loja só vê os próprios eventos; jogador navega eventos de qualquer loja
   // (mesmo padrão de Tournaments.tsx) e pode gerenciar os que ele organiza.
@@ -99,7 +92,6 @@ export default function Eventos() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [eventoParaExcluir, setEventoParaExcluir] = useState<EventoPublico | null>(null);
-  const [lojaEscolhidaId, setLojaEscolhidaId] = useState('');
 
   const criarMutation = useCriarEvento();
   const criarOrganizadorMutation = useCriarEventoOrganizador();
@@ -115,7 +107,6 @@ export default function Eventos() {
 
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
-    setLojaEscolhidaId('');
     reset();
   };
 
@@ -128,13 +119,12 @@ export default function Eventos() {
     };
     const handleError = (error: unknown) => toast.error(extractErrorMessage(error, 'Erro ao criar evento.'));
 
+    // Botão de "Criar Evento" só aparece quando podeCriarEvento é true, e
+    // pra jogador isso já exige estar no subdomínio da loja organizada
+    // (tenantLojaId sempre definido nesse caso) — ver useOrganizadorDoTenantAtual.
     if (isJogador) {
-      if (!lojaEscolhidaId) {
-        toast.error('Selecione uma loja.');
-        return;
-      }
       criarOrganizadorMutation.mutate(
-        { ...data, tcg: selectedTcg, loja_id: Number(lojaEscolhidaId) },
+        { ...data, tcg: selectedTcg, loja_id: tenantLojaId! },
         { onSuccess: handleSuccess, onError: handleError },
       );
     } else {
@@ -247,22 +237,6 @@ export default function Eventos() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmitCriar)} className="space-y-4">
-            {isJogador && (
-              <div>
-                <label className="block text-sm mb-1 text-muted-foreground">Loja</label>
-                <Select value={lojaEscolhidaId} onValueChange={setLojaEscolhidaId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione uma loja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lojasOrganizadorasDoTcg.map((loja) => (
-                      <SelectItem key={loja.loja_id} value={String(loja.loja_id)}>{loja.loja?.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <div>
               <label className="block text-sm mb-1 text-muted-foreground">Nome</label>
               <input

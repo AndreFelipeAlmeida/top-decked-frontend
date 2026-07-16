@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, Store, TriangleAlert, User as UserIcon } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLogin, useRegister, useRegisterLoja } from '@/hooks/login.hooks';
 import { useAuthContext } from '@/hooks/authContext.hooks';
+import { useTenant } from '@/hooks/tenantContext.hooks';
 import AuthLayout from '@/components/AuthLayout';
+import Spinner from '@/components/ui/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ROOT_DOMAIN, ROOT_DOMAIN_PROTOCOLO } from '@/lib/rootDomain';
+import { validarReturnUrl } from '@/lib/returnUrl';
 import {
   loginSchema,
   registerSchema,
@@ -28,8 +31,38 @@ export default function LoginPage() {
   const { handleLogin } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isTenant, isLoading: isTenantLoading } = useTenant();
 
   const from = location.state?.from?.pathname || '/login';
+
+  // BRK-404/BRK-405: o formulário de login só existe no domínio raiz — sem
+  // isso o cookie de sessão compartilhado (BRK-309) não teria como
+  // funcionar de forma previsível (o Set-Cookie viria de um host diferente
+  // a cada subdomínio). Alguém acessando {slug}.brickei.com.br/login é
+  // mandado de volta pro domínio raiz.
+  //
+  // returnUrl só é anexado quando existe uma intenção EXPLÍCITA de
+  // subdomínio — ou seja, quando um ProtectedRoute de verdade mandou pra cá
+  // guardando de onde o usuário veio (location.state.from, ver
+  // ProtectedRoutes.tsx). window.location.href (a URL atual, crua) nunca é
+  // usado como base do returnUrl: ela já É a própria página de /login
+  // nesse ponto (é ela que está montando agora), então "voltar" pra ela não
+  // significa nada — foi exatamente isso que causava o "redirecionamento
+  // fantasma" (BRK-405): um jogador que logava LOGO DEPOIS de alguém sair
+  // de um subdomínio (ex.: um logout que não limpava a URL, já corrigido
+  // em AuthProvider) acabava sendo devolvido pro /login daquele mesmo
+  // subdomínio, e dali pro dashboard errado.
+  useEffect(() => {
+    if (isTenantLoading || !isTenant) return;
+
+    const porta = window.location.port ? `:${window.location.port}` : '';
+    const destinoOriginal = location.state?.from?.pathname
+      ? `${window.location.protocol}//${window.location.host}${location.state.from.pathname}${location.state.from.search ?? ''}`
+      : null;
+
+    const query = destinoOriginal ? `?returnUrl=${encodeURIComponent(destinoOriginal)}` : '';
+    window.location.href = `${ROOT_DOMAIN_PROTOCOLO}://${ROOT_DOMAIN}${porta}/login${query}`;
+  }, [isTenant, isTenantLoading, location.state]);
 
   const { mutate: mutateLogin, isPending: isLoginPending } = useLogin();
   const { mutate: mutateRegistration, isPending: isRegisterPending } = useRegister();
@@ -64,6 +97,20 @@ export default function LoginPage() {
           // de volta pro login antes da nova sessão chegar.
           await handleLogin();
 
+          // BRK-404: ?returnUrl tem prioridade sobre qualquer destino
+          // padrão — representa a página exata que o usuário queria ver
+          // antes de ser mandado pro login (ex.: veio de {slug}.brickei.
+          // com.br/login, ver useEffect acima). Sempre validado (nunca é
+          // um Open Redirect: só aceita o próprio domínio raiz ou um
+          // subdomínio genuíno dele, ver lib/returnUrl.ts) — se inválido ou
+          // ausente, cai pro comportamento de sempre.
+          const params = new URLSearchParams(location.search);
+          const returnUrl = validarReturnUrl(params.get('returnUrl'));
+          if (returnUrl) {
+            window.location.href = returnUrl;
+            return;
+          }
+
           // BRK-308: Dono de Loja sempre entra pelo subdomínio dela —
           // window.location.href (não navigate) de propósito, é uma troca
           // de domínio de verdade, não uma navegação client-side dentro
@@ -96,6 +143,15 @@ export default function LoginPage() {
       { onSuccess: () => navigate('/jogador/confirmar-email') },
     );
   });
+
+  // BRK-404: nunca renderiza o formulário enquanto o subdomínio ainda está
+  // sendo resolvido, nem depois de confirmado que estamos num tenant (nesse
+  // caso o useEffect acima já está redirecionando pro domínio raiz) — evita
+  // o "flash" do form de login por uma fração de segundo num subdomínio
+  // onde ele não deveria nem aparecer.
+  if (isTenantLoading || isTenant) {
+    return <Spinner />;
+  }
 
   return (
     <AuthLayout>

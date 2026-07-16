@@ -16,7 +16,7 @@ import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { useTournaments } from '@/hooks/tournaments.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
-import { useTenant } from '@/hooks/tenantContext.hooks';
+import { useIsTenant } from '@/hooks/tenantContext.hooks';
 import { useTournamentFilters } from '@/hooks/useTournamentFilters';
 import { useTemporadas, useTemporadasLoja } from '@/hooks/temporadas.hooks';
 import { nomeDoJogo } from '@/lib/tcgGames';
@@ -62,7 +62,7 @@ export default function OrganizerRankings() {
   const isJogador = user.tipo === 'jogador';
 
   const { selectedTcg } = useTcgSelection();
-  const { tenant } = useTenant();
+  const isTenant = useIsTenant();
   const { data: jogador, isLoading: isMeLoading } = useMe(isJogador);
   const { data: torneios, isLoading: isTournamentsLoading } = useTournaments(user.tipo);
 
@@ -231,7 +231,7 @@ export default function OrganizerRankings() {
         formatoFiltro={formatoFiltro}
         onFormatoChange={setFormatoFiltro}
         formatosDisponiveis={formatosDisponiveis}
-        showLojaFilter={isJogador && !tenant}
+        showLojaFilter={isJogador && !isTenant}
         lojaFiltro={lojaFiltro}
         onLojaChange={setLojaFiltro}
         lojasDisponiveis={lojasDisponiveis}

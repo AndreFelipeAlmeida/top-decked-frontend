@@ -6,6 +6,7 @@ import type { LojaJogadorPublico } from '@/types/Credito';
 
 type ImportTournamentButtonProps = {
   isJogadorOrganizador?: boolean;
+  lojaIdFixo?: number;
   lojas?: LojaJogadorPublico[];
   onImported: (torneioId: string) => void;
 };
@@ -14,6 +15,7 @@ type ImportTournamentButtonProps = {
 // no dashboard do Organizador (visão de jogador organizador).
 export function ImportTournamentButton({
   isJogadorOrganizador = false,
+  lojaIdFixo,
   lojas,
   onImported,
 }: ImportTournamentButtonProps) {
@@ -26,6 +28,7 @@ export function ImportTournamentButton({
         open={open}
         onOpenChange={setOpen}
         isJogadorOrganizador={isJogadorOrganizador}
+        lojaIdFixo={lojaIdFixo}
         lojas={lojas}
         onImported={onImported}
       />

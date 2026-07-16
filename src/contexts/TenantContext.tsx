@@ -7,6 +7,11 @@ export type TenantContextType = {
   // subdomínio de loja (BRK-308).
   tenant: TenantAtual | undefined;
   isLoading: boolean;
+  // BRK-402: atalho pra "estamos travados num subdomínio de loja" — false
+  // tanto no modo global quanto enquanto isLoading. Fonte única de verdade
+  // pra qualquer regra de "isso só existe dentro de um tenant" (ver
+  // useIsTenant()/useOrganizadorDoTenantAtual()).
+  isTenant: boolean;
 };
 
 export const TenantContext = createContext<TenantContextType | undefined>(undefined);

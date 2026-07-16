@@ -9,7 +9,7 @@ import {
 
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Controller } from 'react-hook-form';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -23,7 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useMe } from '@/hooks/auth.hooks';
+import { useTenant } from '@/hooks/tenantContext.hooks';
+import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
 import {
   useCreateOrganizerTournament,
   useCreateOrganizerTournamentForm,
@@ -37,7 +38,8 @@ export default function CreateOrganizerTournament() {
   const navigate = useNavigate();
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
 
-  const { data: jogador, isLoading: isPlayerLoading } = useMe(true);
+  const { tenant, isLoading: isTenantLoading } = useTenant();
+  const { isOrganizador, tcgs: tcgsOrganizados, lojaId: tenantLojaId } = useOrganizadorDoTenantAtual();
   const mutation = useCreateOrganizerTournament();
 
   const {
@@ -49,29 +51,28 @@ export default function CreateOrganizerTournament() {
     formState: { errors },
   } = useCreateOrganizerTournamentForm();
 
-  const selectedStoreIdRaw = watch('loja_id');
-  const selectedStoreId = Number.isFinite(selectedStoreIdRaw) ? selectedStoreIdRaw : undefined;
-  const hasSelectedStore = Boolean(selectedStoreId);
   const selectedTcg = watch('jogo');
+  const hasSelectedStore = Boolean(tenantLojaId);
 
-  const { data: regras, isLoading: isRegrasLoading } = usePlayerTypesByOrganizer(selectedStoreId);
+  const { data: regras, isLoading: isRegrasLoading } = usePlayerTypesByOrganizer(tenantLojaId);
 
-  if (isPlayerLoading) {
+  // BRK-402 "Regra de Ouro": criar torneio como organizador só é possível
+  // dentro do subdomínio da própria loja — a loja fica implícita
+  // (tenantLojaId), nunca escolhida num select (BRK-401). Sem isso não tem
+  // como saber em nome de qual loja o torneio está sendo criado.
+  useEffect(() => {
+    if (tenantLojaId) {
+      setValue('loja_id', tenantLojaId, { shouldValidate: true });
+    }
+  }, [tenantLojaId, setValue]);
+
+  if (isTenantLoading) {
     return <Spinner />;
   }
 
-  if (!jogador) {
-    return <Navigate to="/login" replace />;
+  if (!isOrganizador) {
+    return <Navigate to="/jogador/dashboard" replace />;
   }
-
-  const lojasOrganizador =
-    jogador.lojas.filter(
-      (loja) =>
-        loja.organizacoes.length > 0
-    );
-
-  const tcgsDaLojaSelecionada =
-    lojasOrganizador.find((l) => l.loja_id === selectedStoreId)?.organizacoes ?? [];
 
   const onSubmit = (data: CreateOrganizerTournamentForm) => {
     mutation.mutate(data, {
@@ -108,45 +109,16 @@ export default function CreateOrganizerTournament() {
         className="grid grid-cols-1 lg:grid-cols-3 gap-8"
       >
         <div className="lg:col-span-2 space-y-6">
-          {/* Loja */}
+          {/* BRK-401/BRK-402: a loja nunca é escolhida aqui — este torneio
+              só pode ser criado dentro do subdomínio da própria loja
+              organizada (ver guarda de isOrganizador acima), então a loja já
+              está implícita (tenantLojaId). Mostrado só como confirmação. */}
           <AppCard title="Loja" icon={<Store className="w-5 h-5" />}>
-            <Controller
-              name="loja_id"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value ? String(field.value) : ''}
-                  onValueChange={(value) => field.onChange(Number(value))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione uma loja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lojasOrganizador.map((loja) => (
-                      <SelectItem key={loja.loja.id} value={String(loja.loja.id)}>
-                        {loja.loja.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-
+            <p className="text-sm text-foreground font-medium">{tenant?.nome}</p>
             {errors.loja_id && (
-              <p className="text-destructive text-sm mt-1">
-                {
-                  errors.loja_id
-                    .message
-                }
-              </p>
+              <p className="text-destructive text-sm mt-1">{errors.loja_id.message}</p>
             )}
           </AppCard>
-
-          {!hasSelectedStore && (
-            <div className="bg-primary/10 border border-primary/30 rounded-lg p-6 text-center text-primary text-sm">
-              Selecione uma loja acima para continuar preenchendo o torneio.
-            </div>
-          )}
 
           {hasSelectedStore && (
             <>
@@ -174,9 +146,9 @@ export default function CreateOrganizerTournament() {
                             <SelectValue placeholder="Selecione um TCG" />
                           </SelectTrigger>
                           <SelectContent>
-                            {tcgsDaLojaSelecionada.map((org) => (
-                              <SelectItem key={org.id} value={org.tcg}>
-                                {org.tcg}
+                            {tcgsOrganizados.map((tcg) => (
+                              <SelectItem key={tcg} value={tcg}>
+                                {tcg}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -297,12 +269,12 @@ export default function CreateOrganizerTournament() {
         )}
       </form>
 
-      {hasSelectedStore && selectedStoreId && (
+      {hasSelectedStore && tenantLojaId && (
         <QuickCreateRuleDialog
           open={isRuleModalOpen}
           onOpenChange={setIsRuleModalOpen}
           isJogadorOrganizador
-          lojaId={selectedStoreId}
+          lojaId={tenantLojaId}
           defaultTcg={selectedTcg}
           onCreated={(regraId) => setValue('regra_basica_id', regraId, { shouldValidate: true })}
         />

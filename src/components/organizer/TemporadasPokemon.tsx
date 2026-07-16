@@ -1,5 +1,5 @@
 import { Plus, Trash2, X, CalendarRange } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AppCard } from '@/components/ui/app-card';
@@ -14,6 +14,7 @@ import {
 import Spinner from '@/components/ui/spinner';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { useMe } from '@/hooks/auth.hooks';
+import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import {
   useCreateTemporada,
@@ -34,20 +35,17 @@ export default function TemporadasPokemon() {
 
   const { selectedTcg } = useTcgSelection();
   const [isCreating, setIsCreating] = useState(false);
-  const [lojaEscolhidaId, setLojaEscolhidaId] = useState('');
-
-  const { data: jogador, isLoading: isMeLoading } = useMe(isJogador);
 
   const ehJogoPokemon = JOGOS_POKEMON.includes(selectedTcg ?? '');
 
-  // Um jogador pode organizar mais de uma loja — precisa escolher qual, já
-  // que Temporada é sempre de uma loja só (diferente de Eventos, que o
-  // jogador navega de todas ao mesmo tempo).
-  const lojasOrganizadorasDoTcg = useMemo(
-    () => jogador?.lojas?.filter((loja) => loja.organizacoes?.some((org) => org.tcg === selectedTcg)) ?? [],
-    [jogador, selectedTcg],
-  );
-  const lojaId = isJogador ? Number(lojaEscolhidaId) || undefined : undefined;
+  // BRK-402 "Regra de Ouro": Temporada só pode ser gerenciada dentro do
+  // subdomínio da própria loja — a loja fica implícita (tenantLojaId), sem
+  // select (BRK-401). Um jogador que organiza várias lojas gerencia cada
+  // uma separadamente, entrando no respectivo subdomínio.
+  const { tcgs: tcgsOrganizados, lojaId: tenantLojaId } = useOrganizadorDoTenantAtual();
+  const organizaEsteTcgAqui = tcgsOrganizados.includes(selectedTcg ?? '');
+  const lojaId = isJogador ? (organizaEsteTcgAqui ? tenantLojaId : undefined) : undefined;
+  const { isLoading: isMeLoading } = useMe(isJogador);
 
   const { data: temporadasLoja, isLoading: isLoadingLoja } = useTemporadas(!isJogador && ehJogoPokemon ? selectedTcg : undefined);
   const { data: temporadasOrganizador, isLoading: isLoadingOrganizador } = useTemporadasLoja(
@@ -118,25 +116,11 @@ export default function TemporadasPokemon() {
         </Button>
       </div>
 
-      {isJogador && (
-        <div className="mb-6 max-w-xs">
-          <label className="block text-sm mb-1 text-muted-foreground">Loja</label>
-          <Select value={lojaEscolhidaId} onValueChange={setLojaEscolhidaId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione uma loja que você organiza" />
-            </SelectTrigger>
-            <SelectContent>
-              {lojasOrganizadorasDoTcg.map((loja) => (
-                <SelectItem key={loja.loja.id} value={String(loja.loja.id)}>{loja.loja.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!lojasOrganizadorasDoTcg.length && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Você não organiza nenhuma loja de {nomeDoJogo(selectedTcg)} ainda.
-            </p>
-          )}
-        </div>
+      {isJogador && !lojaId && (
+        <p className="mb-6 text-sm text-muted-foreground">
+          Você não organiza a loja deste subdomínio em {nomeDoJogo(selectedTcg)} — acesse o
+          subdomínio da loja que você organiza pra gerenciar as temporadas dela.
+        </p>
       )}
 
       {isCreating && (
@@ -238,14 +222,6 @@ export default function TemporadasPokemon() {
         <div className="flex justify-center py-10">
           <Spinner />
         </div>
-      )}
-
-      {!isLoading && isJogador && !lojaId && (
-        <AppCard icon={<CalendarRange className="w-5 h-5" />} title="Selecione uma loja">
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            Escolha acima a loja para ver e gerenciar as temporadas dela.
-          </p>
-        </AppCard>
       )}
 
       {!isLoading && (!isJogador || lojaId) && !temporadas?.length && (

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { useViewMode } from '@/hooks/viewModeContext.hooks';
+import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
 import { useAchievementHistory } from '@/hooks/achievements.hooks';
 import { OrganizerViewSwitch } from './OrganizerViewSwitch';
 import { DashboardActionButton } from '@/components/ui/dashboard-action-button';
@@ -16,12 +17,15 @@ const ULTIMA_VISITA_CONQUISTAS_KEY = 'ultima_visita_conquistas';
 export default function PlayerDashboard() {
   const navigate = useNavigate();
   const user = useAuthenticatedUser();
-  const { data: jogador, isLoading } = useMe(true);
+  const { isLoading } = useMe(true);
   const { viewMode } = useViewMode();
   const { data: historico } = useAchievementHistory();
 
-  const lojasOrganizador = jogador?.lojas?.filter((loja) => loja.organizacoes.length > 0) ?? [];
-  const isOrganizer = lojasOrganizador.length > 0;
+  // BRK-402: "Criar Torneio"/"Importar Torneio" como organizador só fazem
+  // sentido dentro do subdomínio da loja organizada (a loja fica implícita
+  // — ver lojaId abaixo) — no domínio raiz o botão de organizador nem
+  // aparece, o dashboard do jogador é sempre a visão pura de jogador ali.
+  const { isOrganizador: isOrganizer, lojaId } = useOrganizadorDoTenantAtual();
 
   useEffect(() => {
     if (!historico || historico.length === 0) return;
@@ -60,7 +64,7 @@ export default function PlayerDashboard() {
           <DashboardActionButton to="/jogador/criar-torneio" icon={Plus} label="Criar Torneio" variant="primary" />
           <ImportTournamentButton
             isJogadorOrganizador
-            lojas={lojasOrganizador}
+            lojaIdFixo={lojaId}
             onImported={(torneioId) => navigate(`/loja/torneio/${torneioId}/editar`)}
           />
         </div>

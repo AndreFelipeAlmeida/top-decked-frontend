@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useSession } from "@/hooks/auth.hooks"
 import { logout as logoutRequest } from "@/services/auth.service"
 import { sessionKeys } from "@/keys/auth.keys"
+import { ROOT_DOMAIN, ROOT_DOMAIN_PROTOCOLO } from "@/lib/rootDomain"
 
 type AuthProviderProps = {
   children: React.ReactNode
@@ -47,7 +48,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // em memória de contexts que não dependem de query cache (ex.:
     // TcgSelectionProvider, ViewModeProvider) e que sobreviveriam a um
     // queryClient.clear() sozinho.
-    window.location.href = '/login'
+    //
+    // BRK-405: URL ABSOLUTA pro domínio raiz, nunca "/login" relativo — o
+    // logout podia acontecer de dentro do subdomínio de uma loja (BRK-308),
+    // e um caminho relativo mantinha o usuário PRESO naquele mesmo host
+    // (ex.: evo.brickei.com.br/login em vez de brickei.com.br/login). Isso
+    // encadeava com o bloqueio de login em subdomínio (BRK-404) e podia
+    // fazer o PRÓXIMO login — de outra pessoa, outro papel — ser jogado de
+    // volta pro subdomínio errado.
+    const porta = window.location.port ? `:${window.location.port}` : ''
+    window.location.href = `${ROOT_DOMAIN_PROTOCOLO}://${ROOT_DOMAIN}${porta}/login`
   }
 
   if (isLoading) {

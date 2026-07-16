@@ -26,10 +26,18 @@ type ImportTournamentDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // Loja usa o próprio token (POST /lojas/torneios/importar, sem loja_id);
-  // jogador organizador precisa escolher em nome de qual loja está
+  // jogador organizador precisa informar em nome de qual loja está
   // importando (POST /lojas/torneios/importar-organizador, loja_id
   // obrigatório) — mesmo padrão de QuickCreateRuleDialog/QuickCreateSeasonDialog.
   isJogadorOrganizador: boolean;
+  // BRK-401/BRK-402: quando o chamador já sabe a loja (ex.: dentro do
+  // subdomínio da loja organizada, ver hooks/organizadorTenant.hooks.ts),
+  // passe `lojaIdFixo` — o dialog nem renderiza o Select, a loja já está
+  // implícita. `lojas` só é usado como fallback (não deveria mais acontecer
+  // depois do BRK-402, já que organizar só é permitido dentro do próprio
+  // subdomínio, mas mantido pra não quebrar chamadores que ainda não
+  // migraram).
+  lojaIdFixo?: number;
   lojas?: LojaJogadorPublico[];
   onImported: (torneioId: string) => void;
 };
@@ -38,12 +46,15 @@ export function ImportTournamentDialog({
   open,
   onOpenChange,
   isJogadorOrganizador,
+  lojaIdFixo,
   lojas = [],
   onImported,
 }: ImportTournamentDialogProps) {
-  const [lojaId, setLojaId] = useState('');
+  const [lojaIdSelecionada, setLojaIdSelecionada] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const lojaId = lojaIdFixo ? String(lojaIdFixo) : lojaIdSelecionada;
 
   const importOrganizadorMutation = useImportOrganizerTournament();
   const importLojaMutation = useImportTournament();
@@ -68,7 +79,7 @@ export function ImportTournamentDialog({
 
   const resetState = () => {
     setSelectedFile(null);
-    setLojaId('');
+    setLojaIdSelecionada('');
   };
 
   const handleImport = () => {
@@ -108,17 +119,17 @@ export function ImportTournamentDialog({
         <DialogHeader>
           <DialogTitle>Importar Torneio</DialogTitle>
           <DialogDescription>
-            {isJogadorOrganizador
+            {isJogadorOrganizador && !lojaIdFixo
               ? 'Selecione a loja e o arquivo .tdf exportado do software de torneios.'
               : 'Selecione o arquivo .tdf exportado do software de torneios.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {isJogadorOrganizador && (
+          {isJogadorOrganizador && !lojaIdFixo && (
             <div>
               <label className="block text-sm mb-1 text-muted-foreground">Loja</label>
-              <Select value={lojaId} onValueChange={setLojaId}>
+              <Select value={lojaIdSelecionada} onValueChange={setLojaIdSelecionada}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione uma loja" />
                 </SelectTrigger>

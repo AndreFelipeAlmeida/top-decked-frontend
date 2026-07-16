@@ -28,6 +28,7 @@ import Eventos from './components/organizer/Eventos';
 import EventoView from './components/organizer/EventoView';
 import EventoConfigurar from './components/organizer/EventoConfigurar';
 import AdminDashboard from './components/admin/AdminDashboard';
+import StoresDirectory from './components/player/StoresDirectory';
 
 function App() {
   return (
@@ -53,6 +54,10 @@ function App() {
           <Route path="/jogador/perfil" element={<PlayerProfileWallet />} />
           <Route path="/jogador/conquistas" element={<PlayerAchievements />} />
           <Route path="/jogador/criar-torneio" element={<CreateOrganizerTournament />} />
+          {/* BRK-403: hub de descoberta das lojas parceiras — só faz
+              sentido pro jogador navegando pelo domínio raiz/qualquer
+              subdomínio, nunca um recurso de organizador/loja. */}
+          <Route path="/lojas" element={<StoresDirectory />} />
         </Route>
 
         <Route element={<ProtectedRoutes allowedRoles={['loja']} />}>

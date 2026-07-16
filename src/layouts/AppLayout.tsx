@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, matchPath } from 'react-router-dom';
 import {
   LayoutDashboard, Trophy, Plus, Settings, Package,
@@ -11,11 +11,12 @@ import {
   Star,
   Gift,
   ShieldCheck,
+  Store,
 } from 'lucide-react';
 import { useAuthContext } from '../hooks/authContext.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { useViewMode } from '@/hooks/viewModeContext.hooks';
-import { useMe } from '@/hooks/auth.hooks';
+import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
 import { Sidebar } from './components/Sidebar';
 
 import { tcgGames } from '@/lib/tcgGames';
@@ -48,19 +49,32 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const { selectedTcg, setSelectedTcg } = useTcgSelection();
   const { user, handleLogout } = useAuthContext();
-  const { viewMode } = useViewMode();
-  const { data: jogador } = useMe(user?.tipo === 'jogador');
+  const { viewMode, setViewMode } = useViewMode();
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const estaEditandoTorneio = matchPath(ROTA_EDITAR_TORNEIO, location.pathname) !== null;
   const mostrarBarraDeJogos = PAGINAS_COM_BARRA_DE_JOGOS.includes(location.pathname) || estaEditandoTorneio;
 
-  // Um jogador que também organiza torneios para alguma loja pode alternar
-  // para a "visão de organizador" (OrganizerViewSwitch) no seu próprio
-  // dashboard. Usuários do tipo "loja" já são organizadores por definição.
-  const lojasOrganizador = jogador?.lojas?.filter((loja) => loja.organizacoes.length > 0) ?? [];
-  const isOrganizadorJogador = user?.tipo === 'jogador' && viewMode === 'organizador' && lojasOrganizador.length > 0;
+  // BRK-402 "Regra de Ouro": um jogador só pode alternar pra "visão de
+  // organizador" (OrganizerViewSwitch) dentro do subdomínio da loja que ele
+  // de fato organiza — nunca no domínio raiz nem no subdomínio de outra
+  // loja. Usuários do tipo "loja" já são organizadores por definição, em
+  // qualquer lugar (o dashboard deles é sempre a própria loja).
+  const { isOrganizador: isOrganizadorDoTenant } = useOrganizadorDoTenantAtual();
+  const isOrganizadorJogador = user?.tipo === 'jogador' && viewMode === 'organizador' && isOrganizadorDoTenant;
+
+  // Defesa em profundidade: se o jogador navegar pra fora do tenant que ele
+  // organizava (voltar pro domínio raiz, ou trocar de subdomínio) enquanto
+  // viewMode ainda estava em "organizador", força de volta pra "jogador" —
+  // sem isso o estado ficaria "preso" em organizador até o próximo toggle
+  // manual, mesmo sem mais nenhuma loja elegível aqui.
+  useEffect(() => {
+    if (user?.tipo === 'jogador' && viewMode === 'organizador' && !isOrganizadorDoTenant) {
+      setViewMode('jogador');
+    }
+  }, [user?.tipo, viewMode, isOrganizadorDoTenant, setViewMode]);
+
   const roleLabel =
     user?.tipo === 'admin' ? 'Administrador'
       : user?.tipo === 'loja' ? 'Loja'
@@ -85,6 +99,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { path: '/torneios', icon: Trophy, label: 'Torneios', disabled: false },
     { path: '/eventos', icon: Gift, label: 'Eventos', disabled: false },
     { path: '/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
+    { path: '/lojas', icon: Store, label: 'Lojas', disabled: false },
     { path: '/jogador/conquistas', icon: Award, label: 'Conquistas', disabled: false },
     { path: '/jogador/estatisticas', icon: Sparkles, label: 'Estatísticas', disabled: true},
     { path: '/jogador/historico', icon: Flame, label: 'Histórico de Partidas', disabled: true },
@@ -105,7 +120,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="min-h-screen bg-background flex">
       {/* Left Sidebar - Game Selector (só nas telas que ela filtra) */}
       {mostrarBarraDeJogos && (
-        <div className="w-20 bg-brand-gradient flex flex-col items-center py-4 space-y-3 shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)]">
+        <div className="w-20 h-screen sticky top-0 shrink-0 overflow-y-auto bg-brand-gradient flex flex-col items-center py-4 space-y-3 shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)]">
           <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
             <Zap className="w-5 h-5 text-white" />
           </div>
@@ -138,7 +153,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
       )}
 
       {/* Main Navigation Sidebar */}
-      <div className="hidden md:flex w-64 border-r border-border">
+      {/* BRK-406: h-screen + sticky top-0 — sem isso, numa página de
+          conteúdo muito alto (ex.: Torneios com muitos cards), a sidebar
+          inteira "esticava" junto (min-h-screen no container raiz cresce
+          pro tamanho do filho mais alto), empurrando o botão de Logout
+          (fixo no rodapé DELA, não da página) pra baixo da dobra — só
+          aparecia depois de rolar a página toda. Travando a altura da
+          sidebar no viewport, só a nav interna dela rola (overflow-y-auto
+          já existente em Sidebar.tsx), e o rodapé com Logout fica sempre
+          visível. */}
+      <div className="hidden md:flex w-64 h-screen sticky top-0 shrink-0 border-r border-border">
         <Sidebar
           user={user}
           roleLabel={roleLabel}
