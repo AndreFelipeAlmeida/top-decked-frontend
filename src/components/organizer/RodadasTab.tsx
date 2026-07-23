@@ -77,10 +77,6 @@ export function RodadasTab({ torneio, torneioId }: RodadasTabProps) {
             : `${numsRodada.length} rodada${numsRodada.length > 1 ? 's' : ''} gerada${numsRodada.length > 1 ? 's' : ''}.`}
         </p>
         <div className="flex items-center gap-2">
-          {/* Exclusão é estritamente LIFO (BRK-302): só a última rodada
-              gerada pode ser apagada — rodadas anteriores já viraram
-              histórico de pareamento pra rodadas seguintes. O backend
-              revalida isso de qualquer forma, este disabled é só UX. */}
           {rodadaAtiva !== null && (
             <Button
               type="button"
@@ -215,10 +211,6 @@ function MesaEditor({ torneio, torneioId, mesa }: MesaEditorProps) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h4 className="text-base font-bold text-foreground">Mesa {mesa.mesa ?? '—'}</h4>
         <div className="flex items-center gap-2">
-          {/* BRK-302: uma mesa finalizada sem vencedor é um empate de
-              verdade (o organizador declarou vencedor_id=None
-              explicitamente) — precisa ficar explícito na interface, não
-              só implícito no Select de vencedor abaixo. */}
           {mesa.finalizada && mesa.jogador2_id && !mesa.vencedor_id && (
             <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full font-bold">
               Sem Resultado
@@ -297,12 +289,6 @@ type ComposicaoDaMesaProps = {
   link: JogadorTorneioLinkPublico | undefined;
 };
 
-// A composição é sempre puxada do que já foi preenchido na aba
-// "Composições" (JogadorComposicaoUnidade) — nada aqui cria uma composição
-// nova. Pra TCG/VGC ela é só exibida (a mesma composição vale em toda
-// rodada, editar isso é responsabilidade da aba Composições); só Pokémon GO
-// permite escolher, por partida, quais 3 dos 6 Pokémon do time jogam (ver
-// JOGOS_COM_COMPOSICAO_POR_PARTIDA/docs/COMPOSICAO.md seção 9).
 function ComposicaoDaMesa({ torneio, torneioId, mesa, link }: ComposicaoDaMesaProps) {
   const jogoEhGo = torneio?.jogo === 'POKEMON_GO';
   const jogoTemRepresentacao = torneio?.jogo === 'POKEMON';

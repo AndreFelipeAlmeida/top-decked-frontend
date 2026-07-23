@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, Plus, Tag, Trash2, X } from 'lucide-react';
+import { useDroppable } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -73,7 +74,8 @@ export function CategoryTabs({
 
         {displayedCategories.map((cat) => (
           <div key={cat.id} className="relative group">
-            <TabButton
+            <CategoryDropZone
+              categoryId={cat.id}
               label={cat.nome}
               isActive={activeId === cat.id}
               onClick={() => onSelect(cat.id)}
@@ -171,5 +173,31 @@ function TabButton({
     >
       {label}
     </button>
+  );
+}
+
+function CategoryDropZone({
+  categoryId,
+  label,
+  isActive,
+  onClick,
+}: {
+  categoryId: number;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `category-${categoryId}`,
+    data: { categoriaId: categoryId },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-md transition-shadow ${isOver ? 'ring-2 ring-primary ring-offset-1' : ''}`}
+    >
+      <TabButton label={label} isActive={isActive} onClick={onClick} />
+    </div>
   );
 }

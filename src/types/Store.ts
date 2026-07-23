@@ -19,9 +19,6 @@ export interface LojaPublico extends LojaBase {
 
 export interface LojaPublicoTorneios extends LojaPublico {
   n_torneios: number;
-  // BRK-403: só vem preenchido quando quem chamou GET /lojas/ está
-  // autenticado como jogador — TCGs que ELE organiza especificamente nesta
-  // loja. Vazio tanto pra "não organiza aqui" quanto pra "não está logado".
   tcgs_organizados: string[];
 }
 

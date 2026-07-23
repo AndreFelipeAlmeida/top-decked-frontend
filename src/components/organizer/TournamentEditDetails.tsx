@@ -114,24 +114,12 @@ export default function TournamentEditDetails() {
 
   const { data: torneio, isLoading } = useTournamentById(id);
 
-  // Composições estão implementadas pro TCG Pokémon, Pokémon VGC e Pokémon GO
-  // (ver docs/COMPOSICAO.md) — só o TCG tem representação de deck (não existe
-  // "deck" em VGC/GO), o resto é sempre a composição completa (o time de 6
-  // Pokémon). GO tem uma particularidade a mais — o jogador escolhe 3 dos 6
-  // por partida — mas isso é editado na tela do console do torneio (por
-  // rodada), não aqui.
   const tcgSuportaComposicao =
     torneio?.jogo === 'POKEMON' || torneio?.jogo === 'POKEMON_VGC' || torneio?.jogo === 'POKEMON_GO';
   const temRepresentacaoDeck = jogoTemRepresentacaoDeck(torneio?.jogo);
   const { data: representacoes } = useRepresentacoes(torneio?.jogo ?? 'POKEMON');
   const updateComposicaoMutation = useUpdatePlayerComposicao(id);
 
-  // Aviso de "torneio fora de temporada" (ver docs/TEMPORADAS.md) só faz
-  // sentido pras 3 variantes de Pokémon com Temporada cadastrável, e só pra
-  // torneios importados de .tdf — um torneio criado manualmente na
-  // plataforma não vem de um import, então esse fluxo específico não se
-  // aplica a ele (o organizador ainda pode cadastrar a temporada a qualquer
-  // momento pela tela de Temporadas, fora deste aviso).
   const ehJogoPokemon = JOGOS_POKEMON.includes(torneio?.jogo ?? '');
   const ehTorneioImportado = torneio?.tipo === 'IMPORTADO';
   const { data: temporadasLoja } = useTemporadas(!isJogador && ehJogoPokemon ? torneio?.jogo ?? undefined : undefined);
@@ -141,9 +129,6 @@ export default function TournamentEditDetails() {
   );
   const temporadas = isJogador ? temporadasOrganizador : temporadasLoja;
 
-  // GET /lojas/tipoJogador/ exige token de loja — um jogador organizador
-  // (agora com acesso a esta página, ver docs/DIVIDA_TECNICA.md) precisa
-  // buscar as regras pelo endpoint que aceita token de jogador + loja_id.
   const { data: regrasLoja, isLoading: isLoadingRegrasLoja } = usePlayerTypes(!isJogador);
   const { data: regrasJogador, isLoading: isLoadingRegrasJogador } = usePlayerTypesByOrganizer(
     isJogador ? torneio?.loja?.id : undefined,
@@ -160,9 +145,6 @@ export default function TournamentEditDetails() {
       hora_planejada: torneio?.hora_planejada ?? '',
       formato: torneio?.formato ?? '',
       melhor_de: torneio?.melhor_de ?? '',
-      // Torneios importados antes desta correção podem ter vagas=0 mesmo com
-      // jogadores reais — nesse caso mostra a quantidade de participantes
-      // como valor inicial em vez de deixar "0" (ver docs/DIVIDA_TECNICA.md).
       vagas: torneio?.vagas || torneio?.jogadores?.length || 0,
       taxa: torneio?.taxa ?? 0,
       premio: torneio?.premio ?? '',
@@ -202,11 +184,6 @@ export default function TournamentEditDetails() {
   };
 
   const onSave = (data: UpdateStoreTournamentForm) => {
-    // Torneio importado (.tdf) sem nenhuma Temporada cadastrada cobrindo a
-    // data planejada — avisa antes de salvar, já que sem Temporada o
-    // jogador não entra na categorização de idade (ver docs/TEMPORADAS.md).
-    // Torneios criados manualmente ou jogos fora do Pokémon não passam por
-    // este aviso (pedido explícito do usuário: o aviso é no fluxo de import).
     const temporadaEncontrada = encontrarTemporadaDaData(data.data_planejada, temporadas);
     if (ehTorneioImportado && ehJogoPokemon && !temporadaEncontrada) {
       setPendingSaveData(data);
@@ -281,8 +258,6 @@ export default function TournamentEditDetails() {
     );
   };
 
-  // regraExtraId null = "Nenhuma", o jogador volta a pontuar só pela regra
-  // básica do torneio, sem ajuste nenhum (ver docs/REGRA_EXTRA.md).
   const handlePlayerRuleChange = (linkId: number | null | undefined, regraExtraId: number | null) => {
     if (!linkId) return;
 

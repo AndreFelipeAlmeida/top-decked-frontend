@@ -10,19 +10,18 @@ import { useTournaments } from '@/hooks/tournaments.hooks';
 import { DashboardActionButton } from '@/components/ui/dashboard-action-button';
 import { ImportTournamentButton } from './ImportTournamentButton';
 import { dataExibicaoTorneio } from '@/lib/dateUtils';
+import { nomeDoJogo } from '@/lib/tcgGames';
 
 export default function OrganizerDashboard() {
   const { user } = useAuthContext();
-  const { selectedTcg } = useTcgSelection();
+  const { selectedTcg, mostrarTodosOsJogos } = useTcgSelection();
   const navigate = useNavigate();
 
   const { data: tournamentsRaw = [], isLoading } = useTournaments('loja');
 
-  // A barra lateral de jogos filtra o dashboard pelo jogo selecionado (mesmo
-  // padrão de Tournaments.tsx/OrganizerRankings.tsx).
   const tournaments = useMemo(
-    () => tournamentsRaw.filter((t) => t.jogo === selectedTcg),
-    [tournamentsRaw, selectedTcg],
+    () => (mostrarTodosOsJogos ? tournamentsRaw : tournamentsRaw.filter((t) => t.jogo === selectedTcg)),
+    [tournamentsRaw, selectedTcg, mostrarTodosOsJogos],
   );
 
   const monthlyData = getMonthlyTournaments(tournaments);
@@ -37,7 +36,10 @@ export default function OrganizerDashboard() {
       {/* Cabeçalho */}
       <div className="mb-8">
         <h1 className="text-3xl mb-2 text-foreground font-bold">Painel de Controle</h1>
-        <p className="text-muted-foreground">Bem-vindo de volta, {user?.nome}!</p>
+        <p className="text-muted-foreground">
+          Bem-vindo de volta, {user?.nome}!{' '}
+          {mostrarTodosOsJogos ? '' : `Mostrando dados de ${nomeDoJogo(selectedTcg)}.`}
+        </p>
       </div>
 
       {/* Ações Rápidas */}

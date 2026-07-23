@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 interface RegisterProductModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export function RegisterProductModal({
       quantidade: initialData?.quantidade ?? 0,
       min_quantidade: initialData?.min_quantidade ?? 0,
       preco: initialData?.preco ?? 0,
+      is_vendavel: initialData?.is_vendavel ?? true,
     },
   });
 
@@ -143,6 +145,28 @@ export function RegisterProductModal({
                 type="number"
                 {...register('min_quantidade', { valueAsNumber: true })}
                 className="w-full px-4 py-2 border border-destructive/40 rounded-lg focus:ring-2 focus:ring-destructive outline-none"
+              />
+            </div>
+
+            {/* Disponível para Venda */}
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <label className="block text-sm font-medium">
+                  Disponível para Venda
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Desative para itens de uso interno (brindes, premiação de torneios, material de juiz).
+                </p>
+              </div>
+              <Controller
+                name="is_vendavel"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
               />
             </div>
           </div>

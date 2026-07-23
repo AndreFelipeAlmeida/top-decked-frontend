@@ -6,9 +6,6 @@ import { useStores } from '@/hooks/store.hooks';
 import { ROOT_DOMAIN, ROOT_DOMAIN_PROTOCOLO } from '@/lib/rootDomain';
 import { nomeDoJogo } from '@/lib/tcgGames';
 
-// BRK-403: hub de descoberta das lojas parceiras — "Ir para o site" sempre
-// monta um link absoluto pro subdomínio da loja (troca de domínio de
-// verdade, por isso <a> normal em vez de navigate do react-router).
 const urlDaLoja = (slug: string) => {
   const porta = window.location.port ? `:${window.location.port}` : '';
   return `${ROOT_DOMAIN_PROTOCOLO}://${slug}.${ROOT_DOMAIN}${porta}`;

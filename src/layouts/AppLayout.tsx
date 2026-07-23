@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, matchPath } from 'react-router-dom';
 import {
-  LayoutDashboard, Trophy, Plus, Settings, Package,
-  DollarSign, User, Sparkles, Flame, Zap, TrendingUp,
+  LayoutDashboard, Trophy, Settings, Package,
+  DollarSign, User, Sparkles, Flame, TrendingUp,
   Menu,
   X,
   User2,
@@ -17,6 +17,7 @@ import { useAuthContext } from '../hooks/authContext.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { useViewMode } from '@/hooks/viewModeContext.hooks';
 import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
+import { useIsTenant } from '@/hooks/tenantContext.hooks';
 import { Sidebar } from './components/Sidebar';
 
 import { tcgGames } from '@/lib/tcgGames';
@@ -35,40 +36,29 @@ const PAGINAS_COM_BARRA_DE_JOGOS = [
   '/jogador/conquistas',
 ];
 
-// Rota dinâmica (tem :id) não cabe no includes() acima. Editar Torneio
-// também mostra a barra, mas trocar de jogo ali é uma interrupção de
-// fluxo (BRK-301): o torneio em edição é de um TCG fixo, então o clique
-// não filtra nada in-place — ele te tira da tela e te leva pra listagem
-// geral do jogo escolhido.
 const ROTA_EDITAR_TORNEIO = '/loja/torneio/:id/editar';
+
+const PAGINAS_COM_TODOS_OS_JOGOS = ['/loja/dashboard', '/jogador/dashboard'];
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const { selectedTcg, setSelectedTcg } = useTcgSelection();
+  const { selectedTcg, setSelectedTcg, mostrarTodosOsJogos, setMostrarTodosOsJogos } = useTcgSelection();
   const { user, handleLogout } = useAuthContext();
   const { viewMode, setViewMode } = useViewMode();
+  const isTenant = useIsTenant();
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const estaEditandoTorneio = matchPath(ROTA_EDITAR_TORNEIO, location.pathname) !== null;
   const mostrarBarraDeJogos = PAGINAS_COM_BARRA_DE_JOGOS.includes(location.pathname) || estaEditandoTorneio;
+  const mostrarPillTodos = PAGINAS_COM_TODOS_OS_JOGOS.includes(location.pathname);
 
-  // BRK-402 "Regra de Ouro": um jogador só pode alternar pra "visão de
-  // organizador" (OrganizerViewSwitch) dentro do subdomínio da loja que ele
-  // de fato organiza — nunca no domínio raiz nem no subdomínio de outra
-  // loja. Usuários do tipo "loja" já são organizadores por definição, em
-  // qualquer lugar (o dashboard deles é sempre a própria loja).
   const { isOrganizador: isOrganizadorDoTenant } = useOrganizadorDoTenantAtual();
   const isOrganizadorJogador = user?.tipo === 'jogador' && viewMode === 'organizador' && isOrganizadorDoTenant;
 
-  // Defesa em profundidade: se o jogador navegar pra fora do tenant que ele
-  // organizava (voltar pro domínio raiz, ou trocar de subdomínio) enquanto
-  // viewMode ainda estava em "organizador", força de volta pra "jogador" —
-  // sem isso o estado ficaria "preso" em organizador até o próximo toggle
-  // manual, mesmo sem mais nenhuma loja elegível aqui.
   useEffect(() => {
     if (user?.tipo === 'jogador' && viewMode === 'organizador' && !isOrganizadorDoTenant) {
       setViewMode('jogador');
@@ -85,7 +75,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { path: '/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
     { path: '/torneios', icon: Trophy, label: 'Torneios', disabled: false },
     { path: '/eventos', icon: Gift, label: 'Eventos', disabled: false },
-    { path: '/loja/criar-torneio', icon: Plus, label: 'Criar Torneio', disabled: false },
     { path: '/loja/regras-jogadores', icon: Settings, label: 'Regras de Jogos', disabled: false },
     { path: '/loja/temporadas', icon: CalendarRange, label: 'Temporadas', disabled: false },
     { path: '/loja/pontuacao-extra', icon: Star, label: 'Pontuação Extra', disabled: false },
@@ -99,7 +88,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { path: '/torneios', icon: Trophy, label: 'Torneios', disabled: false },
     { path: '/eventos', icon: Gift, label: 'Eventos', disabled: false },
     { path: '/rankings', icon: TrendingUp, label: 'Rankings', disabled: false },
-    { path: '/lojas', icon: Store, label: 'Lojas', disabled: false },
+    ...(!isTenant
+      ? [{ path: '/lojas', icon: Store, label: 'Lojas', disabled: false }]
+      : []),
     { path: '/jogador/conquistas', icon: Award, label: 'Conquistas', disabled: false },
     { path: '/jogador/estatisticas', icon: Sparkles, label: 'Estatísticas', disabled: true},
     { path: '/jogador/historico', icon: Flame, label: 'Histórico de Partidas', disabled: true },
@@ -118,28 +109,36 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left Sidebar - Game Selector (só nas telas que ela filtra) */}
       {mostrarBarraDeJogos && (
-        <div className="w-20 h-screen sticky top-0 shrink-0 overflow-y-auto bg-brand-gradient flex flex-col items-center py-4 space-y-3 shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)]">
-          <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
+        <div className="w-20 h-screen sticky top-0 shrink-0 overflow-y-auto bg-[oklch(0.32_0.15_322)] flex flex-col items-center py-4 space-y-3 shadow-[inset_-1px_0_0_rgba(255,255,255,0.08)]">
+          {mostrarPillTodos && (
+            <button
+              onClick={() => setMostrarTodosOsJogos(true)}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-center text-white text-[9px] font-bold leading-tight px-1 transition-all ${
+                mostrarTodosOsJogos
+                  ? 'bg-white/25 shadow-lg scale-110 ring-2 ring-white/50'
+                  : 'bg-white/10 hover:bg-white/20'
+              }`}
+              title="Todos os jogos"
+            >
+              Todos
+            </button>
+          )}
+
           {tcgGames.map((game) => (
             <button
               key={game.id}
               onClick={() => {
                 if (game.disabled) return;
                 setSelectedTcg(game.id);
-                // Interrompe a edição em vez de deixar o torneio de um TCG
-                // renderizado no contexto de outro — manda pra listagem
-                // geral do jogo recém-selecionado.
+                setMostrarTodosOsJogos(false);
                 if (estaEditandoTorneio) {
                   navigate('/torneios');
                 }
               }}
               disabled={game.disabled}
               className={`w-12 h-12 rounded-xl flex items-center justify-center text-center text-white text-[9px] font-bold leading-tight px-1 transition-all ${
-                selectedTcg === game.id
+                !mostrarTodosOsJogos && selectedTcg === game.id
                   ? `${game.color} shadow-lg scale-110 ring-2 ring-white/50`
                     : 'bg-white/10 hover:bg-white/20'}
                   ${game.disabled ? 'opacity-40 cursor-not-allowed hover:bg-white/10' : ''}
@@ -153,15 +152,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
       )}
 
       {/* Main Navigation Sidebar */}
-      {/* BRK-406: h-screen + sticky top-0 — sem isso, numa página de
-          conteúdo muito alto (ex.: Torneios com muitos cards), a sidebar
-          inteira "esticava" junto (min-h-screen no container raiz cresce
-          pro tamanho do filho mais alto), empurrando o botão de Logout
-          (fixo no rodapé DELA, não da página) pra baixo da dobra — só
-          aparecia depois de rolar a página toda. Travando a altura da
-          sidebar no viewport, só a nav interna dela rola (overflow-y-auto
-          já existente em Sidebar.tsx), e o rodapé com Logout fica sempre
-          visível. */}
       <div className="hidden md:flex w-64 h-screen sticky top-0 shrink-0 border-r border-border">
         <Sidebar
           user={user}

@@ -54,7 +54,7 @@ function App() {
           <Route path="/jogador/perfil" element={<PlayerProfileWallet />} />
           <Route path="/jogador/conquistas" element={<PlayerAchievements />} />
           <Route path="/jogador/criar-torneio" element={<CreateOrganizerTournament />} />
-          {/* BRK-403: hub de descoberta das lojas parceiras — só faz
+          {/* Hub de descoberta das lojas parceiras — só faz
               sentido pro jogador navegando pelo domínio raiz/qualquer
               subdomínio, nunca um recurso de organizador/loja. */}
           <Route path="/lojas" element={<StoresDirectory />} />

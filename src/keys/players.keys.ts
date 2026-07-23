@@ -7,7 +7,7 @@ export const playersKeys = {
 
   detail: (id: number | undefined) => [...playersKeys.all, 'detail', id],
 
-  statistics: () => [...playersKeys.all, 'statistics'],
+  statistics: (tcg?: string) => [...playersKeys.all, 'statistics', tcg ?? 'todos'],
 
   byOrganizer: () => [...playersKeys.all, 'by-organizer'],
 

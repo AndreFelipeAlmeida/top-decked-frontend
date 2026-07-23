@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 export type CartItem = {
   id: number;
   nome: string;
-  categoria: string;
+  categoria: number;
   preco: number;
   quantidade: number;
 };

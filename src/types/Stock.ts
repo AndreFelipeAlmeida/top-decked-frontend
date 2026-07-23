@@ -5,6 +5,7 @@ export interface Estoque {
   preco: number;
   quantidade: number;
   min_quantidade: number;
+  is_vendavel: boolean;
 }
 
 export interface EstoqueCadastro {
@@ -13,6 +14,7 @@ export interface EstoqueCadastro {
   preco: number;
   quantidade: number;
   min_quantidade: number;
+  is_vendavel: boolean;
 }
 
 export const TipoMovimentacaoItemUpdate = {

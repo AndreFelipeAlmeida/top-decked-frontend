@@ -1,4 +1,4 @@
-import { Save, Upload, CreditCard, Download } from 'lucide-react';
+import { Save, Upload } from 'lucide-react';
 import { useAuthContext } from '@/hooks/authContext.hooks';
 import {
   useMyStore,
@@ -8,11 +8,6 @@ import {
 } from '@/hooks/store.hooks';
 import type { UpdateStoreForm } from '@/schemas/store.schemas';
 import Spinner from '@/components/ui/spinner';
-
-const historicoFaturas = [
-  { id: 'FAT-2026-001', data: '01/01/2026', valor: 'R$ 79,00', status: 'Pago', plano: 'Plano Pro' },
-  { id: 'FAT-2025-012', data: '01/12/2025', valor: 'R$ 79,00', status: 'Pago', plano: 'Plano Pro' },
-];
 
 export default function OrganizerProfile() {
   const { user } = useAuthContext();
@@ -48,11 +43,10 @@ export default function OrganizerProfile() {
       <div className="p-8">
         <div className="mb-8">
           <h1 className="text-3xl mb-2 text-foreground">Perfil da Loja & Configurações</h1>
-          <p className="text-muted-foreground">Gerencie as informações da sua loja, faturamento e preferências</p>
+          <p className="text-muted-foreground">Gerencie as informações e preferências da sua loja</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="max-w-2xl">
             <form onSubmit={handleSubmit(handleSave)} className="bg-card rounded-lg shadow p-6">
               <h2 className="text-xl mb-4 text-foreground">Informações da Loja</h2>
               <div className="space-y-4">
@@ -124,65 +118,6 @@ export default function OrganizerProfile() {
                 </button>
               </div>
             </form>
-          </div>
-
-          <div className="space-y-8">
-            <div className="bg-brand-gradient rounded-lg shadow p-6 text-white">
-              <h2 className="text-xl mb-4">Plano Atual</h2>
-              <div className="mb-4">
-                <div className="text-3xl mb-1">Plano Pro</div>
-                <div className="text-primary-foreground">R$ 79,00 / mês</div>
-              </div>
-              <ul className="space-y-2 mb-6 text-sm">
-                <li className="flex items-start space-x-2">
-                  <span>✓</span>
-                  <span>Jogadores ilimitados</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span>✓</span>
-                  <span>Estoque avançado e PDV</span>
-                </li>
-              </ul>
-              <button className="w-full bg-card text-primary py-2 rounded-lg hover:bg-primary/10 transition-colors">
-                Mudar de Plano
-              </button>
-            </div>
-
-            <div className="bg-card rounded-lg shadow p-6">
-              <h2 className="text-xl mb-4 text-foreground">Método de Pagamento</h2>
-              <div className="flex items-center space-x-3 mb-4 p-4 border border-border rounded-lg">
-                <CreditCard className="w-8 h-8 text-muted-foreground" />
-                <div className="flex-1">
-                  <div className="text-sm text-foreground">•••• •••• •••• 4242</div>
-                  <div className="text-xs text-muted-foreground">Expira em 12/2027</div>
-                </div>
-              </div>
-              <button className="w-full px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-accent transition-colors">
-                Atualizar Cartão
-              </button>
-            </div>
-
-            <div className="bg-card rounded-lg shadow p-6">
-              <h2 className="text-xl mb-4 text-foreground">Histórico de Faturas</h2>
-              <div className="space-y-3">
-                {historicoFaturas.map((fatura) => (
-                  <div key={fatura.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div>
-                      <div className="text-sm text-foreground">{fatura.id}</div>
-                      <div className="text-xs text-muted-foreground">{fatura.data}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-foreground">{fatura.valor}</div>
-                      <button className="text-xs text-primary hover:text-primary flex items-center space-x-1">
-                        <Download className="w-3 h-3" />
-                        <span>Baixar</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
   );

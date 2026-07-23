@@ -1,6 +1,3 @@
-// Formatos de torneio de Pokémon TCG (único jogo implementado ponta a ponta
-// hoje — ver docs/COMPOSICAO.md/docs/RANKING.md). Valores em sincronia com o
-// enum `FormatoTorneio` do backend (ver docs/DIVIDA_TECNICA.md item 43).
 export const pokemonFormats = [
   { id: 'PADRAO', name: 'Padrão' },
   { id: 'GLC', name: 'GLC' },

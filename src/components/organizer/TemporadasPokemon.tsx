@@ -38,10 +38,6 @@ export default function TemporadasPokemon() {
 
   const ehJogoPokemon = JOGOS_POKEMON.includes(selectedTcg ?? '');
 
-  // BRK-402 "Regra de Ouro": Temporada só pode ser gerenciada dentro do
-  // subdomínio da própria loja — a loja fica implícita (tenantLojaId), sem
-  // select (BRK-401). Um jogador que organiza várias lojas gerencia cada
-  // uma separadamente, entrando no respectivo subdomínio.
   const { tcgs: tcgsOrganizados, lojaId: tenantLojaId } = useOrganizadorDoTenantAtual();
   const organizaEsteTcgAqui = tcgsOrganizados.includes(selectedTcg ?? '');
   const lojaId = isJogador ? (organizaEsteTcgAqui ? tenantLojaId : undefined) : undefined;

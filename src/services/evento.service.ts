@@ -17,9 +17,6 @@ import type { JogadorCriadoPublico } from "@/types/JogadorCriado";
 
 const resource = "/lojas/eventos";
 
-// GET /lojas/eventos/ não é escopado por loja de propósito — mesmo padrão de
-// GET /lojas/torneios/: jogadores navegam eventos de qualquer loja (ver
-// docs/EVENTOS.md), não só os que já participam.
 export const getEventos = async (tcg: string | undefined) => {
   const response = await api.get<EventoPublico[]>(`${resource}/`, { params: { tcg } });
   return response.data;

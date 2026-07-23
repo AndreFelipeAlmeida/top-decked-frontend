@@ -28,7 +28,7 @@ export default function AuthLayout({ children }: Props) {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-gradient shadow-lg shadow-primary/20 mb-4">
             <Trophy className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-gradient-brand">Brickei</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-primary">Brickei</h1>
           <p className="text-muted-foreground">A plataforma amiga de gerenciamento de torneios.</p>
         </div>
 

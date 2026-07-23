@@ -1,5 +1,5 @@
-import { login, register, registerLoja, esqueciSenha, validarTokenRedefinicao, redefinirSenha } from "@/services/auth.service";
-import { resetPasswordKeys } from "@/keys/auth.keys";
+import { login, register, registerLoja, esqueciSenha, validarTokenRedefinicao, redefinirSenha, confirmarEmail } from "@/services/auth.service";
+import { resetPasswordKeys, confirmEmailKeys } from "@/keys/auth.keys";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 export const useLogin = () => {
@@ -44,5 +44,14 @@ export const useRedefinirSenha = () => {
   return useMutation({
     mutationFn: ({ token, novaSenha }: { token: string; novaSenha: string }) =>
       redefinirSenha(token, novaSenha),
+  });
+};
+
+export const useConfirmarEmail = (token: string | null) => {
+  return useQuery({
+    queryKey: confirmEmailKeys.confirmar(token),
+    queryFn: () => confirmarEmail(token!),
+    enabled: !!token,
+    retry: false,
   });
 };

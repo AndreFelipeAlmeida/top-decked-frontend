@@ -2,8 +2,6 @@ import type { TorneioPublico } from "@/types/Tournaments";
 import { nomeDoFormato } from "@/lib/pokemonFormats";
 import { momentoEfetivoTorneio } from "@/lib/dateUtils";
 
-// Chaves em sincronia com o enum `FormatoTorneio` do backend (Pokémon TCG —
-// ver docs/DIVIDA_TECNICA.md item 43), não com formatos de Magic.
 const FORMAT_COLORS: Record<string, string> = {
   PADRAO: '#8b5cf6',
   GLC: '#ec4899',

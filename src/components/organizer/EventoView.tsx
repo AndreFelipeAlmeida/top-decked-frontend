@@ -21,6 +21,7 @@ import { useMe } from '@/hooks/auth.hooks';
 import { useEvento, useDeletarEvento } from '@/hooks/evento.hooks';
 import { nomeDaRegraEvento } from '@/schemas/evento.schemas';
 import type { ApiErrorDetail } from '@/types/Error';
+import { formatarDataBR } from '@/lib/dateUtils';
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
   const detail = axios.isAxiosError<ApiErrorDetail>(error) ? error.response?.data?.detail : undefined;
@@ -95,8 +96,8 @@ export default function EventoView() {
             </div>
             <p className="text-muted-foreground">
               {evento.loja?.nome ? `${evento.loja.nome} · ` : ''}
-              {new Date(evento.data_inicio).toLocaleDateString('pt-BR')} até{' '}
-              {new Date(evento.data_fim).toLocaleDateString('pt-BR')}
+              {formatarDataBR(evento.data_inicio)} até{' '}
+              {formatarDataBR(evento.data_fim)}
             </p>
           </div>
 
@@ -131,11 +132,11 @@ export default function EventoView() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">De</p>
-                  <p className="text-foreground font-medium">{new Date(evento.data_inicio).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-foreground font-medium">{formatarDataBR(evento.data_inicio)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Até</p>
-                  <p className="text-foreground font-medium">{new Date(evento.data_fim).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-foreground font-medium">{formatarDataBR(evento.data_fim)}</p>
                 </div>
               </div>
             </div>

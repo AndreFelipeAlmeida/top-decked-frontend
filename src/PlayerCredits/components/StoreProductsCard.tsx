@@ -1,73 +1,25 @@
-import { Package, Plus, Search, Utensils } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Plus, Search } from 'lucide-react';
+import { useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import { type CartItem } from '../hooks/usePlayerCart';
 import { useStoreProducts } from '../hooks/useStoreProducts';
 
-type Category = 'todos' | 'produtos' | 'cantina';
-
 type Props = {
   onAddToCart: (item: CartItem) => void;
+  cartItems: CartItem[];
 };
 
-export default function StoreProductsCard({ onAddToCart }: Props) {
+export default function StoreProductsCard({ onAddToCart, cartItems }: Props) {
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<Category>('todos');
-
   const [debouncedSearch] = useDebounce(search, 300);
 
   const { data: products = [], isLoading } = useStoreProducts(debouncedSearch);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      if (category === 'todos') return true;
-      return product.categoria === category;
-    });
-  }, [products, category]);
+  const quantidadeNoCarrinho = (itemId: number) =>
+    cartItems.find((item) => item.id === itemId)?.quantidade ?? 0;
 
   return (
     <div className="space-y-4">
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        <button
-          type="button"
-          onClick={() => setCategory('todos')}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-            category === 'todos'
-              ? 'bg-primary text-white'
-              : 'bg-muted text-muted-foreground hover:bg-accent'
-          }`}
-        >
-          Todos
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setCategory('produtos')}
-          className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
-            category === 'produtos'
-              ? 'bg-primary text-white'
-              : 'bg-muted text-muted-foreground hover:bg-accent'
-          }`}
-        >
-          <Package className="h-3.5 w-3.5" />
-          Produtos
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setCategory('cantina')}
-          className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
-            category === 'cantina'
-              ? 'bg-primary text-white'
-              : 'bg-muted text-muted-foreground hover:bg-accent'
-          }`}
-        >
-          <Utensils className="h-3.5 w-3.5" />
-          Cantina
-        </button>
-      </div>
-
       {/* Busca */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -89,14 +41,15 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
           </div>
         )}
 
-        {!isLoading && filteredProducts.length === 0 && (
+        {!isLoading && products.length === 0 && (
           <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
             Nenhum item encontrado.
           </div>
         )}
 
-        {filteredProducts.map((product) => {
-          const outOfStock = product.quantidade < 1;
+        {products.map((product) => {
+          const disponivel = product.quantidade - quantidadeNoCarrinho(product.id);
+          const outOfStock = disponivel < 1;
 
           return (
             <div
@@ -117,9 +70,7 @@ export default function StoreProductsCard({ onAddToCart }: Props) {
                   >
                     {outOfStock
                       ? 'Sem estoque'
-                      : `${product.quantidade} disponível${
-                          product.quantidade > 1 ? 'eis' : ''
-                        }`}
+                      : `${disponivel} disponível${disponivel > 1 ? 'eis' : ''}`}
                   </span>
                 </div>
               </div>

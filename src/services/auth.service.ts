@@ -29,9 +29,6 @@ export const register = async (novoJogador: JogadorCriar) => {
   return response.data;
 };
 
-// BRK-312: pré-registro de loja — a loja nasce com status PENDENTE (ver
-// app.models.Loja) e só fica utilizável depois que um administrador aprova
-// pelo dashboard de moderação (BRK-207/BRK-208).
 export const registerLoja = async (novaLoja: LojaCriar) => {
   const response = await api.post<LojaPublico>("/lojas/", novaLoja);
   return response.data;
@@ -42,8 +39,6 @@ export const getSession = async () => {
   return response.data;
 };
 
-// BRK-309: precisa de um request de verdade — o cookie de sessão é
-// HttpOnly, então JS no browser não consegue apagá-lo sozinho.
 export const logout = async () => {
   await api.post(`${resource}/logout`);
 };
@@ -64,6 +59,13 @@ export const redefinirSenha = async (token: string, novaSenha: string) => {
   const response = await api.post<{ detail: string }>(`${resource}/redefinir-senha`, {
     token,
     nova_senha: novaSenha,
+  });
+  return response.data;
+};
+
+export const confirmarEmail = async (token: string) => {
+  const response = await api.get<{ detail: string }>(`${resource}/confirmar-email`, {
+    params: { token },
   });
   return response.data;
 };

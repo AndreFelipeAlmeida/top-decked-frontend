@@ -32,7 +32,7 @@ export function Sidebar({
 
       {/* Brand */}
       <div className="px-4 pt-5 pb-4">
-        <span className="text-xl font-extrabold tracking-tight text-gradient-brand">
+        <span className="text-xl font-extrabold tracking-tight text-primary">
           Brickei
         </span>
       </div>

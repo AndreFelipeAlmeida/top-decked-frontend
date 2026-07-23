@@ -3,6 +3,7 @@ import { Medal, TriangleAlert, Trophy } from 'lucide-react';
 
 import Spinner from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { TournamentFiltersBar } from './TournamentFiltersBar';
 import {
   Select,
@@ -22,6 +23,7 @@ import { useTemporadas, useTemporadasLoja } from '@/hooks/temporadas.hooks';
 import { nomeDoJogo } from '@/lib/tcgGames';
 import { dataEstaNaTemporada } from '@/lib/temporadaUtils';
 import { momentoEfetivoTorneio } from '@/lib/dateUtils';
+import { omwTooltip, oomwTooltip } from '@/lib/tiebreakTooltips';
 import { StatusTorneio } from '@/types/Enums';
 
 // Mesmas 3 variantes de Pokémon que têm Temporada cadastrável (ver
@@ -93,11 +95,6 @@ export default function OrganizerRankings() {
     torneiosFiltrados,
   } = useTournamentFilters(torneiosDoJogo, isJogador);
 
-  // Temporada é escopada por loja (ver docs/TEMPORADAS.md) — uma loja usa seu
-  // próprio token (GET /lojas/temporadas/), mas um jogador vê torneios de
-  // várias lojas ao mesmo tempo (ver lojaFiltro acima), então só dá pra
-  // buscar temporadas quando ele filtrou pra uma loja específica — e mesmo
-  // assim só funciona se ele for organizador dela (GET /lojas/temporadas/loja/{id}).
   const { data: temporadasLoja } = useTemporadas(!isJogador && ehJogoPokemon ? selectedTcg : undefined);
   const { data: temporadasOrganizador } = useTemporadasLoja(
     isJogador && ehJogoPokemon && lojaFiltro !== 'todas' ? Number(lojaFiltro) : undefined,
@@ -141,6 +138,7 @@ export default function OrganizerRankings() {
     // mesmo jogador, sem risco de contar o mesmo torneio duas vezes.
     for (const torneio of torneiosParaRanking) {
       for (const link of torneio.jogadores ?? []) {
+        if (link.tipo === 'JUIZ') continue;
         const chave = link.jogador_criado_id;
         if (chave == null) continue;
         if (categoriaFiltro !== 'todos' && link.categoria !== categoriaFiltro) continue;
@@ -205,7 +203,10 @@ export default function OrganizerRankings() {
         return (
           pontuacaoB - pontuacaoA ||
           (b.omwMedio ?? 0) - (a.omwMedio ?? 0) ||
-          (b.oomwMedio ?? 0) - (a.oomwMedio ?? 0)
+          (b.oomwMedio ?? 0) - (a.oomwMedio ?? 0) ||
+          // Critério final, determinístico, se tudo acima empatar: ordem
+          // alfabética.
+          a.apelido.localeCompare(b.apelido, 'pt-BR')
         );
       });
   }, [torneiosParaRanking, categoriaFiltro, tipoPontuacao]);
@@ -344,10 +345,15 @@ export default function OrganizerRankings() {
                         <span className="ml-2 text-xs text-primary">(você)</span>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {item.gameId ? `#${item.gameId} · ` : ''}{item.torneios} {item.torneios === 1 ? 'torneio' : 'torneios'}
-                      {item.omwMedio != null && ` · OMW% ${item.omwMedio.toFixed(1)}`}
-                      {item.oomwMedio != null && ` · OOMW% ${item.oomwMedio.toFixed(1)}`}
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground truncate">
+                      <span className="truncate">
+                        {item.gameId ? `#${item.gameId} · ` : ''}{item.torneios} {item.torneios === 1 ? 'torneio' : 'torneios'}
+                        {item.omwMedio != null && ` · OMW% ${item.omwMedio.toFixed(2)}`}
+                        {item.oomwMedio != null && ` · OOMW% ${item.oomwMedio.toFixed(2)}`}
+                      </span>
+                      {(item.omwMedio != null || item.oomwMedio != null) && (
+                        <InfoTooltip text={`${omwTooltip} ${oomwTooltip}`} />
+                      )}
                     </p>
                   </div>
 

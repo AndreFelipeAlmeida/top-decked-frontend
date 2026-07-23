@@ -10,17 +10,9 @@ const lerCookie = (nome: string): string | null => {
 
 export const api = axios.create({
     baseURL: "/api",
-    // BRK-309: sessão agora vive num cookie (HttpOnly, transversal entre
-    // subdomínios) em vez de localStorage — sem isso o browser não manda o
-    // cookie em requisições cross-origin/same-site (subdomínio -> domínio
-    // raiz e vice-versa).
     withCredentials: true,
 });
 
-// BRK-309: o backend valida CSRF comparando o cookie csrf_token (legível
-// por JS, diferente do cookie de sessão) com este header — nunca lido do
-// localStorage, sempre do próprio cookie, então nem precisa ser guardado
-// em nenhum estado do app.
 api.interceptors.request.use((config) => {
     const method = config.method?.toLowerCase();
     if (method && MUTATING_METHODS.has(method)) {
@@ -39,11 +31,6 @@ api.interceptors.response.use(
     (error) => {
         const status = error.response?.status;
 
-        // BRK-311: erro 500 é sempre falha interna do servidor — o usuário
-        // final não tem o que fazer com o detail técnico (stack trace,
-        // "Internal Server Error", nome de exception etc.), então a
-        // mensagem é sempre trocada por uma genérica e amigável, ignorando
-        // o que o backend mandou.
         const message =
             status && status >= 500
                 ? "Erro de comunicação com o servidor. Por favor, tente mais tarde."

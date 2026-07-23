@@ -13,3 +13,9 @@ export const resetPasswordKeys = {
   all: ["reset-password"],
   validarToken: (token: string | null) => [...resetPasswordKeys.all, "validar-token", token],
 };
+
+// Confirmação de e-mail via token da URL (GET /login/confirmar-email).
+export const confirmEmailKeys = {
+  all: ["confirm-email"],
+  confirmar: (token: string | null) => [...confirmEmailKeys.all, "confirmar", token],
+};

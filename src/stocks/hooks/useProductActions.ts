@@ -3,10 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   createStock,
   deleteStock,
+  updateItemCategory,
   updateQuantity,
   updateStock,
 } from '@/services/product.service';
-import type { EstoqueCadastro, EstoqueMovimentacao } from '@/types/Stock';
+import type { Estoque, EstoqueCadastro, EstoqueMovimentacao } from '@/types/Stock';
 import { toast } from 'sonner';
 
 export function useProductActions() {
@@ -47,11 +48,34 @@ export function useProductActions() {
     },
   });
 
+  const moveItemCategoryMutation = useMutation({
+    mutationFn: ({ id, categoria }: { id: number; categoria: number }) =>
+      updateItemCategory(id, categoria),
+    onMutate: async ({ id, categoria }) => {
+      await queryClient.cancelQueries({ queryKey: stockKeys.all });
+      const previousProducts = queryClient.getQueryData<Estoque[]>(stockKeys.all);
+      queryClient.setQueryData<Estoque[]>(stockKeys.all, (old) =>
+        old?.map((item) => (item.id === id ? { ...item, categoria } : item)),
+      );
+      return { previousProducts };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousProducts) {
+        queryClient.setQueryData(stockKeys.all, context.previousProducts);
+      }
+      toast.error('Erro ao mover item de categoria.');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: stockKeys.all });
+    },
+  });
+
   return {
     createProductMutation,
     moveStockMutation,
     updateProductMutation,
     deleteProductMutation,
+    moveItemCategoryMutation,
     isLoading:
       createProductMutation.isPending ||
       updateProductMutation.isPending ||

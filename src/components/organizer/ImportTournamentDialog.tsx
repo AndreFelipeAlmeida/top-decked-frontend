@@ -30,13 +30,6 @@ type ImportTournamentDialogProps = {
   // importando (POST /lojas/torneios/importar-organizador, loja_id
   // obrigatório) — mesmo padrão de QuickCreateRuleDialog/QuickCreateSeasonDialog.
   isJogadorOrganizador: boolean;
-  // BRK-401/BRK-402: quando o chamador já sabe a loja (ex.: dentro do
-  // subdomínio da loja organizada, ver hooks/organizadorTenant.hooks.ts),
-  // passe `lojaIdFixo` — o dialog nem renderiza o Select, a loja já está
-  // implícita. `lojas` só é usado como fallback (não deveria mais acontecer
-  // depois do BRK-402, já que organizar só é permitido dentro do próprio
-  // subdomínio, mas mantido pra não quebrar chamadores que ainda não
-  // migraram).
   lojaIdFixo?: number;
   lojas?: LojaJogadorPublico[];
   onImported: (torneioId: string) => void;

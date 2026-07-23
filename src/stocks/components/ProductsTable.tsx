@@ -1,4 +1,5 @@
-import { Plus, Minus, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Minus, Edit, Trash2, AlertTriangle, GripVertical } from 'lucide-react';
+import { useDraggable } from '@dnd-kit/core';
 import {
   Table,
   TableBody,
@@ -47,6 +48,7 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
       <Table>
         <TableHeader className="bg-muted/40">
           <TableRow>
+            <TableHead className="w-8" />
             <TableHead className="w-[30%] text-muted-foreground">
               Nome do Item
             </TableHead>
@@ -60,125 +62,179 @@ export function ProductTable({ items, onEdit, categories }: ProductTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item) => {
-            const isLowStock = item.quantidade < item.min_quantidade;
-
-            return (
-              <TableRow
-                key={item.id}
-                className={`transition-colors ${isLowStock ? 'bg-destructive/10 hover:bg-destructive/15' : 'hover:bg-accent'}`}
-              >
-                {/* Nome */}
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    {isLowStock && (
-                      <AlertTriangle className="w-4 h-4 text-destructive" />
-                    )}
-                    <span
-                      className={isLowStock ? 'text-destructive' : 'text-foreground'}
-                    >
-                      {item.nome}
-                    </span>
-                  </div>
-                </TableCell>
-
-                {/* Categoria */}
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">
-                    {categories.find(c => c.id === item.categoria)?.nome}
-                  </span>
-                </TableCell>
-
-                {/* Controles de Quantidade */}
-                <TableCell>
-                  <div className="flex items-center justify-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handleStockMovement(item, 'DOWN')}
-                      disabled={
-                        item.quantidade === 0 || moveStockMutation.isPending
-                      }
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-
-                    <div className="flex flex-col items-center min-w-11.25">
-                      <span
-                        className={`text-sm font-bold ${isLowStock ? 'text-destructive' : 'text-foreground'}`}
-                      >
-                        {item.quantidade}
-                      </span>
-                      {isLowStock && (
-                        <span className="text-[10px] text-destructive font-bold">
-                          MIN: {item.min_quantidade}
-                        </span>
-                      )}
-                    </div>
-
-                    <Button
-                      variant="default"
-                      size="icon"
-                      className="h-7 w-7 bg-primary hover:bg-primary/90"
-                      onClick={() => handleStockMovement(item, 'UP')}
-                      disabled={moveStockMutation.isPending}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </TableCell>
-
-                {/* Preço */}
-                <TableCell>
-                  <span className="text-sm font-medium">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    }).format(item.preco)}
-                  </span>
-                </TableCell>
-
-                {/* Status */}
-                <TableCell>
-                  <Badge
-                    variant={isLowStock ? 'destructive' : 'secondary'}
-                    className="font-medium"
-                  >
-                    {isLowStock ? 'Estoque Baixo' : 'Em Estoque'}
-                  </Badge>
-                </TableCell>
-
-                {/* Ações */}
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                      onClick={() => onEdit(item)}
-                      title="Editar"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/15"
-                      onClick={() => handleDelete(item)}
-                      disabled={deleteProductMutation.isPending}
-                      title="Excluir"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {items.map((item) => (
+            <ProductRow
+              key={item.id}
+              item={item}
+              categories={categories}
+              onEdit={onEdit}
+              onDelete={handleDelete}
+              onStockMovement={handleStockMovement}
+              isMovePending={moveStockMutation.isPending}
+              isDeletePending={deleteProductMutation.isPending}
+            />
+          ))}
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+interface ProductRowProps {
+  item: Estoque;
+  categories: Categoria[];
+  onEdit: (item: Estoque) => void;
+  onDelete: (item: Estoque) => void;
+  onStockMovement: (item: Estoque, direction: 'UP' | 'DOWN') => void;
+  isMovePending: boolean;
+  isDeletePending: boolean;
+}
+
+function ProductRow({
+  item,
+  categories,
+  onEdit,
+  onDelete,
+  onStockMovement,
+  isMovePending,
+  isDeletePending,
+}: ProductRowProps) {
+  const isLowStock = item.quantidade < item.min_quantidade;
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `item-${item.id}`,
+    data: { itemId: item.id },
+  });
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      className={`transition-colors ${isDragging ? 'opacity-40' : ''} ${isLowStock ? 'bg-destructive/10 hover:bg-destructive/15' : 'hover:bg-accent'}`}
+    >
+      {/* Alça de arrasto */}
+      <TableCell className="w-8">
+        <button
+          type="button"
+          {...listeners}
+          {...attributes}
+          className="touch-none cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+          title="Arrastar para outra categoria"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </TableCell>
+
+      {/* Nome */}
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-2">
+          {isLowStock && (
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+          )}
+          <span
+            className={isLowStock ? 'text-destructive' : 'text-foreground'}
+          >
+            {item.nome}
+          </span>
+        </div>
+      </TableCell>
+
+      {/* Categoria */}
+      <TableCell>
+        <span className="text-sm text-muted-foreground">
+          {categories.find((c) => c.id === item.categoria)?.nome}
+        </span>
+      </TableCell>
+
+      {/* Controles de Quantidade */}
+      <TableCell>
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => onStockMovement(item, 'DOWN')}
+            disabled={item.quantidade === 0 || isMovePending}
+          >
+            <Minus className="h-3 w-3" />
+          </Button>
+
+          <div className="flex flex-col items-center min-w-11.25">
+            <span
+              className={`text-sm font-bold ${isLowStock ? 'text-destructive' : 'text-foreground'}`}
+            >
+              {item.quantidade}
+            </span>
+            {isLowStock && (
+              <span className="text-[10px] text-destructive font-bold">
+                MIN: {item.min_quantidade}
+              </span>
+            )}
+          </div>
+
+          <Button
+            variant="default"
+            size="icon"
+            className="h-7 w-7 bg-primary hover:bg-primary/90"
+            onClick={() => onStockMovement(item, 'UP')}
+            disabled={isMovePending}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+      </TableCell>
+
+      {/* Preço */}
+      <TableCell>
+        <span className="text-sm font-medium">
+          {new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+          }).format(item.preco)}
+        </span>
+      </TableCell>
+
+      {/* Status */}
+      <TableCell>
+        <div className="flex flex-wrap items-center gap-1">
+          <Badge
+            variant={isLowStock ? 'destructive' : 'secondary'}
+            className="font-medium"
+          >
+            {isLowStock ? 'Estoque Baixo' : 'Em Estoque'}
+          </Badge>
+          {!item.is_vendavel && (
+            <Badge variant="outline" className="font-medium">
+              Uso Interno
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+
+      {/* Ações */}
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+            onClick={() => onEdit(item)}
+            title="Editar"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/15"
+            onClick={() => onDelete(item)}
+            disabled={isDeletePending}
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }

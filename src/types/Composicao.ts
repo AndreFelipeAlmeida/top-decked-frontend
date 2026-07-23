@@ -18,9 +18,6 @@ export interface ComposicaoUnidade {
   quantidade: number;
 }
 
-/** Composição efetivamente usada numa partida específica — ver
- * docs/COMPOSICAO.md seção 9. Só editável (PATCH) pra Pokémon GO; pra
- * TCG/VGC é sempre uma cópia fiel da composição completa do jogador. */
 export interface ComposicaoPartidaPublico {
   id: number;
   unidades: ComposicaoUnidade[];

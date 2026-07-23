@@ -288,8 +288,8 @@ export const useDeleteRodada = (id: string | undefined) => {
 
   return useMutation({
     mutationFn: (numRodada: number) => deleteRodada(id!, numRodada),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tournamentsKeys.detail(id) });
+    onSuccess: (torneioAtualizado) => {
+      queryClient.setQueryData(tournamentsKeys.detail(id), torneioAtualizado);
     },
   });
 };

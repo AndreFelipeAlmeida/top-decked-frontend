@@ -1,4 +1,5 @@
 import type { LojaJogadorPublico } from '@/types/Credito';
+import { nomeExibicaoJogador } from '@/lib/playerDisplay';
 
 type Props = {
   player: LojaJogadorPublico | null;
@@ -13,8 +14,8 @@ export default function PlayerInfoCardContent({ player }: Props) {
     );
   }
 
-  const nome = player.apelido ?? 'Jogador';
-  const apelido = player.apelido ?? '--';
+  const nome = nomeExibicaoJogador(player);
+  const apelido = player.apelido || '--';
   const gameId = player.game_id ?? '--';
   const tcg = player.tcg ?? '--';
   const creditos = player.creditos ?? 0;

@@ -9,6 +9,8 @@ import type { JogadorTorneioLinkPublico } from '@/types/Tournaments';
 import { AppCard } from '@/components/ui/app-card';
 import Spinner from '@/components/ui/spinner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { omwTooltip, oomwTooltip } from '@/lib/tiebreakTooltips';
 import { nomeDoFormato } from '@/lib/pokemonFormats';
 import { nomeDoFormatoMD } from '@/lib/formatoMD';
 import { pokemonSpriteUrl } from '@/lib/pokemon';
@@ -48,6 +50,8 @@ export default function TournamentView() {
     derrotas: link.derrotas ?? 0,
     empates: link.empates ?? 0,
     byes: link.byes ?? 0,
+    omw: link.porcentagem_vitorias_oponentes ?? null,
+    oomw: link.porcentagem_vitorias_oponentes_oponentes ?? null,
     composicaoRepresentacao: link.composicao_representacao ?? null,
     composicaoUnidades: link.composicao_unidades ?? [],
   }));
@@ -57,7 +61,22 @@ export default function TournamentView() {
   // e na lista separada de Juízes, só pra deixar claro quem arbitrou.
   const pontuacaoDoToggle = (row: { pontuacao: number; pontuacao_com_regras: number }) =>
     tipoPontuacao === 'padrao' ? row.pontuacao : row.pontuacao_com_regras;
-  const rankingRows = [...linkRows].sort((a, b) => pontuacaoDoToggle(b) - pontuacaoDoToggle(a));
+  const rankingRows = linkRows
+    .filter((row) => row.tipo !== 'JUIZ')
+    .sort((a, b) => {
+      const diferencaPontos = pontuacaoDoToggle(b) - pontuacaoDoToggle(a);
+      if (diferencaPontos !== 0) return diferencaPontos;
+
+      const diferencaOmw = (b.omw ?? 0) - (a.omw ?? 0);
+      if (diferencaOmw !== 0) return diferencaOmw;
+
+      const diferencaOomw = (b.oomw ?? 0) - (a.oomw ?? 0);
+      if (diferencaOomw !== 0) return diferencaOomw;
+
+      const nomeA = a.apelido || `Jogador #${a.jogador_id}`;
+      const nomeB = b.apelido || `Jogador #${b.jogador_id}`;
+      return nomeA.localeCompare(nomeB, 'pt-BR');
+    });
   const juizesRows = linkRows.filter((row) => row.tipo === 'JUIZ' || row.tipo === 'JOGADOR_E_JUIZ');
   // Vagas/receita contam só jogadores de verdade — um Juiz não ocupa vaga
   // nem paga inscrição, mesmo aparecendo no ranking.
@@ -248,6 +267,22 @@ export default function TournamentView() {
                         <div className="text-center">
                           <p className="font-bold text-foreground">{row.byes}</p>
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Byes</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-foreground">
+                            {row.omw != null ? `${row.omw.toFixed(2)}%` : '--'}
+                          </p>
+                          <p className="flex items-center justify-center gap-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            OMW% <InfoTooltip text={omwTooltip} />
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-foreground">
+                            {row.oomw != null ? `${row.oomw.toFixed(2)}%` : '--'}
+                          </p>
+                          <p className="flex items-center justify-center gap-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            OOMW% <InfoTooltip text={oomwTooltip} />
+                          </p>
                         </div>
                         <div className="text-center">
                           <p className="font-bold text-primary">{pontuacaoDoToggle(row)}</p>

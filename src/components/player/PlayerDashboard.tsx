@@ -1,31 +1,64 @@
-import { useEffect } from 'react';
-import { LayoutDashboard, Trophy, Plus } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { LayoutDashboard, Trophy, Plus, TrendingUp, Swords, Medal } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { useMe } from '@/hooks/auth.hooks';
+import { usePlayerStatistics } from '@/hooks/players.hooks';
+import { useTournaments } from '@/hooks/tournaments.hooks';
 import { useViewMode } from '@/hooks/viewModeContext.hooks';
+import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
 import { useOrganizadorDoTenantAtual } from '@/hooks/organizadorTenant.hooks';
 import { useAchievementHistory } from '@/hooks/achievements.hooks';
 import { OrganizerViewSwitch } from './OrganizerViewSwitch';
 import { DashboardActionButton } from '@/components/ui/dashboard-action-button';
 import { ImportTournamentButton } from '@/components/organizer/ImportTournamentButton';
 import Spinner from '@/components/ui/spinner';
+import { StatusTorneio } from '@/types/Enums';
+import { dataExibicaoTorneio, momentoEfetivoTorneio } from '@/lib/dateUtils';
+import { nomeDoJogo } from '@/lib/tcgGames';
 
 const ULTIMA_VISITA_CONQUISTAS_KEY = 'ultima_visita_conquistas';
+
+const QUANTIDADE_TORNEIOS_RECENTES = 5;
+
+const corDoStatus = (status: string) => {
+  switch (status) {
+    case StatusTorneio.ABERTO:
+      return 'bg-success/15 text-success border-success/40';
+    case StatusTorneio.EM_ANDAMENTO:
+      return 'bg-primary/15 text-primary border-primary/40';
+    case StatusTorneio.FINALIZADO:
+      return 'bg-info/15 text-info border-info/40';
+    default:
+      return 'bg-muted text-foreground border-border';
+  }
+};
 
 export default function PlayerDashboard() {
   const navigate = useNavigate();
   const user = useAuthenticatedUser();
-  const { isLoading } = useMe(true);
+  const { data: jogador, isLoading } = useMe(true);
   const { viewMode } = useViewMode();
   const { data: historico } = useAchievementHistory();
+  const { selectedTcg, mostrarTodosOsJogos } = useTcgSelection();
 
-  // BRK-402: "Criar Torneio"/"Importar Torneio" como organizador só fazem
-  // sentido dentro do subdomínio da loja organizada (a loja fica implícita
-  // — ver lojaId abaixo) — no domínio raiz o botão de organizador nem
-  // aparece, o dashboard do jogador é sempre a visão pura de jogador ali.
-  const { isOrganizador: isOrganizer, lojaId } = useOrganizadorDoTenantAtual();
+  const tcgFiltro = mostrarTodosOsJogos ? undefined : selectedTcg;
+  const { data: estatisticas, isLoading: isStatsLoading } = usePlayerStatistics(tcgFiltro);
+  const { data: torneios, isLoading: isTorneiosLoading } = useTournaments('jogador');
+
+  const { isOrganizador: isOrganizer, tcgs: tcgsOrganizados, lojaId } = useOrganizadorDoTenantAtual();
+
+  const podeImportarTorneio = tcgsOrganizados.includes('POKEMON');
+
+  const torneiosRecentes = useMemo(() => {
+    if (!jogador) return [];
+    return (torneios ?? [])
+      .filter((t) => t.jogadores?.some((j) => j.jogador_id === jogador.id))
+      .filter((t) => mostrarTodosOsJogos || t.jogo === selectedTcg)
+      .sort((a, b) => momentoEfetivoTorneio(b).getTime() - momentoEfetivoTorneio(a).getTime())
+      .slice(0, QUANTIDADE_TORNEIOS_RECENTES);
+  }, [torneios, jogador, mostrarTodosOsJogos, selectedTcg]);
 
   useEffect(() => {
     if (!historico || historico.length === 0) return;
@@ -53,7 +86,10 @@ export default function PlayerDashboard() {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl mb-2 text-foreground font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Bem-vindo de volta, {user.nome}!</p>
+          <p className="text-muted-foreground">
+            Bem-vindo de volta, {user.nome}!{' '}
+            {mostrarTodosOsJogos ? '' : `Mostrando dados de ${nomeDoJogo(selectedTcg)}.`}
+          </p>
         </div>
 
         <OrganizerViewSwitch visible={isOrganizer} />
@@ -62,21 +98,102 @@ export default function PlayerDashboard() {
       {viewMode === 'organizador' && isOrganizer && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <DashboardActionButton to="/jogador/criar-torneio" icon={Plus} label="Criar Torneio" variant="primary" />
-          <ImportTournamentButton
-            isJogadorOrganizador
-            lojaIdFixo={lojaId}
-            onImported={(torneioId) => navigate(`/loja/torneio/${torneioId}/editar`)}
-          />
+          {podeImportarTorneio && (
+            <ImportTournamentButton
+              isJogadorOrganizador
+              lojaIdFixo={lojaId}
+              onImported={(torneioId) => navigate(`/loja/torneio/${torneioId}/editar`)}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Estatísticas */}
+      {isStatsLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-card rounded-lg shadow p-6 h-24" />
+          ))}
+        </div>
+      ) : estatisticas && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-card rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
+              <Medal className="w-4 h-4" />
+              Rank Geral
+            </div>
+            <p className="text-2xl font-bold text-foreground">
+              {estatisticas.rank_geral != null ? `#${estatisticas.rank_geral}` : '—'}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
+              <TrendingUp className="w-4 h-4" />
+              Taxa de Vitória
+            </div>
+            <p className="text-2xl font-bold text-foreground">{estatisticas.taxa_vitoria}%</p>
+          </div>
+
+          <div className="bg-card rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
+              <Trophy className="w-4 h-4" />
+              Torneios Jogados
+            </div>
+            <p className="text-2xl font-bold text-foreground">{estatisticas.torneio_totais}</p>
+          </div>
+
+          <div className="bg-card rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
+              <Swords className="w-4 h-4" />
+              Vitórias / Derrotas / Empates
+            </div>
+            <p className="text-2xl font-bold text-foreground">
+              <span className="text-success">{estatisticas.vitorias}</span>
+              {' / '}
+              <span className="text-destructive">{estatisticas.derrotas}</span>
+              {' / '}
+              <span className="text-muted-foreground">{estatisticas.empates}</span>
+            </p>
+          </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-card rounded-lg shadow p-12 flex flex-col items-center justify-center text-center text-muted-foreground">
-          <LayoutDashboard className="w-10 h-10 mb-3 text-muted-foreground" />
-          <p className="font-medium text-muted-foreground">Em breve</p>
-          <p className="text-sm">
-            Aqui vão aparecer seus próximos torneios, estatísticas e histórico de partidas.
-          </p>
+        <div className="lg:col-span-2 bg-card rounded-lg shadow p-6">
+          <h3 className="text-lg font-bold text-foreground flex items-center gap-2 mb-4">
+            <LayoutDashboard className="w-5 h-5 text-primary" />
+            Torneios Recentes
+          </h3>
+
+          {isTorneiosLoading ? (
+            <Spinner />
+          ) : torneiosRecentes.length > 0 ? (
+            <div className="space-y-3">
+              {torneiosRecentes.map((torneio) => (
+                <Link
+                  key={torneio.id}
+                  to={`/loja/torneio/${torneio.id}/visualizar`}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{torneio.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {dataExibicaoTorneio(torneio)}
+                      {torneio.loja?.nome ? ` · ${torneio.loja.nome}` : ''}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 px-2 py-1 text-xs rounded border font-medium ${corDoStatus(torneio.status)}`}>
+                    {torneio.status}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              Você ainda não participou de nenhum torneio.
+            </p>
+          )}
         </div>
 
         <div className="bg-card rounded-lg shadow p-6">

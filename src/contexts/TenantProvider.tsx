@@ -6,10 +6,6 @@ type TenantProviderProps = {
   children: React.ReactNode;
 };
 
-// BRK-308: consulta GET /tenant/atual uma vez no boot da SPA pra saber se o
-// subdomínio atual está travado numa loja — o backend (TenantHostMiddleware)
-// é a única fonte de verdade da resolução de Host, o frontend só consome o
-// resultado.
 export const TenantProvider = ({ children }: TenantProviderProps) => {
   const { data: tenant, isLoading } = useQuery({
     queryKey: ['tenant', 'atual'],

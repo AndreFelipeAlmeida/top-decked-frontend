@@ -18,6 +18,7 @@ import {
   useUploadPlayerPhoto,
 } from '@/hooks/players.hooks';
 import { updateGameIdSchema, type UpdateGameIdForm } from '@/schemas/player.schemas';
+import { tcgGames } from '@/lib/tcgGames';
 import type { ApiErrorDetail } from '@/types/Error';
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
@@ -32,13 +33,92 @@ const toDateInputValue = (value: string | Date | null | undefined) => {
   return data.toISOString().slice(0, 10);
 };
 
+type GameIdFieldProps = {
+  tcg: string;
+  label: string;
+  playerId: number | undefined;
+  currentGameId: string;
+};
+
+function GameIdField({ tcg, label, playerId, currentGameId }: GameIdFieldProps) {
+  const [pendingGameId, setPendingGameId] = useState<string | null>(null);
+
+  const { register, handleSubmit } = useForm<UpdateGameIdForm>({
+    resolver: zodResolver(updateGameIdSchema),
+    values: { game_id: currentGameId },
+  });
+
+  const updateGameIdMutation = useUpdatePlayerGameId(playerId);
+
+  // Só busca o impacto (torneios/créditos perdidos) quando é de fato uma
+  // TROCA (já existia um ID antes) — no primeiro cadastro não há nada a
+  // perder, então nem faz sentido consultar.
+  const trocandoGameIdExistente = pendingGameId !== null && currentGameId !== '';
+  const { data: impacto, isLoading: isImpactoLoading } = useImpactoTrocaGameId(tcg, trocandoGameIdExistente);
+
+  const onSubmit = handleSubmit((data) => {
+    if (data.game_id === currentGameId) return;
+    setPendingGameId(data.game_id);
+  });
+
+  const confirmarTrocaGameId = () => {
+    if (pendingGameId === null) return;
+    updateGameIdMutation.mutate(
+      { tcg, gameId: pendingGameId },
+      {
+        onSuccess: () => {
+          toast.success('ID do jogador atualizado com sucesso!');
+          setPendingGameId(null);
+        },
+        onError: (error) => {
+          toast.error(extractErrorMessage(error, 'Erro ao atualizar o ID do jogador.'));
+          setPendingGameId(null);
+        },
+      },
+    );
+  };
+
+  return (
+    <>
+      <div>
+        <label className="block text-sm mb-1 text-muted-foreground">ID do Jogador ({label})</label>
+        <form onSubmit={onSubmit} className="flex gap-2">
+          <input
+            type="text"
+            {...register('game_id')}
+            className="flex-1 px-3 py-2 border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary"
+          />
+          <Button type="submit" variant="outline" disabled={updateGameIdMutation.isPending}>
+            Salvar
+          </Button>
+        </form>
+      </div>
+
+      <ConfirmDeleteModal
+        isOpen={pendingGameId !== null}
+        onClose={() => setPendingGameId(null)}
+        onConfirm={confirmarTrocaGameId}
+        title={trocandoGameIdExistente ? `Trocar ID de ${label}?` : `Cadastrar ID de ${label}?`}
+        description={
+          trocandoGameIdExistente
+            ? isImpactoLoading || !impacto
+              ? 'Calculando o que será perdido com a troca...'
+              : `Ao trocar de "${impacto.game_id_atual}" para o novo ID, você perde a atribuição de ${impacto.torneios_importados} ${impacto.torneios_importados === 1 ? 'torneio importado' : 'torneios importados'} vinculados ao ID atual (seus créditos de loja não são afetados — eles ficam com a sua conta, não com o ID). O histórico em si não é apagado, mas deixa de estar associado a esta conta. Essa ação não pode ser desfeita.`
+            : `Você é totalmente responsável por inserir corretamente o seu ID de jogador (${label}). Se o ID informado pertencer a outra pessoa, você pode ser penalizado.`
+        }
+        isLoading={updateGameIdMutation.isPending || (trocandoGameIdExistente && isImpactoLoading)}
+        variant="default"
+        confirmLabel="Confirmar"
+        loadingLabel={updateGameIdMutation.isPending ? 'Salvando...' : 'Aguarde...'}
+      />
+    </>
+  );
+}
+
 export default function PlayerProfileWallet() {
   const { data: player } = useMe(true);
   const { data: stores = [] } = usePlayerCredits();
 
-  const [pendingGameId, setPendingGameId] = useState<string | null>(null);
-
-  const pokemonId = player?.tcgs?.find((t) => t.tcg === 'POKEMON')?.game_id ?? '';
   const totalCredits = stores.reduce((sum, store) => sum + store.creditos, 0);
 
   const {
@@ -52,16 +132,7 @@ export default function PlayerProfileWallet() {
     email: player?.usuario?.email ?? '',
   });
 
-  const {
-    register: registerGameId,
-    handleSubmit: handleSubmitGameId,
-  } = useForm<UpdateGameIdForm>({
-    resolver: zodResolver(updateGameIdSchema),
-    values: { game_id: pokemonId },
-  });
-
   const updatePerfilMutation = useUpdatePlayer(player?.id);
-  const updateGameIdMutation = useUpdatePlayerGameId(player?.id);
   const uploadPhotoMutation = useUploadPlayerPhoto(player?.id);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,12 +143,6 @@ export default function PlayerProfileWallet() {
       });
     }
   };
-
-  // Só busca o impacto (torneios/créditos perdidos) quando é de fato uma
-  // TROCA (já existia um ID antes) — no primeiro cadastro não há nada a
-  // perder, então nem faz sentido consultar.
-  const trocandoGameIdExistente = pendingGameId !== null && pokemonId !== '';
-  const { data: impacto, isLoading: isImpactoLoading } = useImpactoTrocaGameId('POKEMON', trocandoGameIdExistente);
 
   const onSubmitPerfil = handleSubmitPerfil((data) => {
     updatePerfilMutation.mutate(
@@ -93,25 +158,6 @@ export default function PlayerProfileWallet() {
       },
     );
   });
-
-  const onSubmitGameId = handleSubmitGameId((data) => {
-    if (data.game_id === pokemonId) return;
-    setPendingGameId(data.game_id);
-  });
-
-  const confirmarTrocaGameId = () => {
-    if (pendingGameId === null) return;
-    updateGameIdMutation.mutate(pendingGameId, {
-      onSuccess: () => {
-        toast.success('ID do jogador atualizado com sucesso!');
-        setPendingGameId(null);
-      },
-      onError: (error) => {
-        toast.error(extractErrorMessage(error, 'Erro ao atualizar o ID do jogador.'));
-        setPendingGameId(null);
-      },
-    });
-  };
 
   return (
     <div className="p-4 md:p-8">
@@ -219,26 +265,21 @@ export default function PlayerProfileWallet() {
           <AppCard
             title="IDs dos Jogos"
             icon={<Gamepad2 className="w-5 h-5" />}
-            description="Seu ID vincula seus resultados de torneios importados e créditos a esta conta."
+            description="Seu ID vincula seus resultados de torneios importados e créditos a esta conta, por TCG."
           >
-            <form onSubmit={onSubmitGameId} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1 text-muted-foreground">ID do Jogador (Pokémon TCG)</label>
-                  <input
-                    type="text"
-                    {...registerGameId('game_id')}
-                    className="w-full px-3 py-2 border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {tcgGames
+                .filter((game) => !game.disabled)
+                .map((game) => (
+                  <GameIdField
+                    key={game.id}
+                    tcg={game.id}
+                    label={game.name}
+                    playerId={player?.id}
+                    currentGameId={player?.tcgs?.find((t) => t.tcg === game.id)?.game_id ?? ''}
                   />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-2 border-t border-border">
-                <Button type="submit" disabled={updateGameIdMutation.isPending}>
-                  {updateGameIdMutation.isPending ? 'Salvando...' : 'Salvar ID'}
-                </Button>
-              </div>
-            </form>
+                ))}
+            </div>
           </AppCard>
         </div>
 
@@ -292,24 +333,6 @@ export default function PlayerProfileWallet() {
           </AppCard>
         </div>
       </div>
-
-      <ConfirmDeleteModal
-        isOpen={pendingGameId !== null}
-        onClose={() => setPendingGameId(null)}
-        onConfirm={confirmarTrocaGameId}
-        title={trocandoGameIdExistente ? 'Trocar ID do Jogador?' : 'Cadastrar ID do Jogador?'}
-        description={
-          trocandoGameIdExistente
-            ? isImpactoLoading || !impacto
-              ? 'Calculando o que será perdido com a troca...'
-              : `Ao trocar de "${impacto.game_id_atual}" para o novo ID, você perde a atribuição de ${impacto.torneios_importados} ${impacto.torneios_importados === 1 ? 'torneio importado' : 'torneios importados'} vinculados ao ID atual (seus créditos de loja não são afetados — eles ficam com a sua conta, não com o ID). O histórico em si não é apagado, mas deixa de estar associado a esta conta. Essa ação não pode ser desfeita.`
-            : 'Você é totalmente responsável por inserir corretamente o seu ID de jogador (Pokémon TCG). Se o ID informado pertencer a outra pessoa, você pode ser penalizado.'
-        }
-        isLoading={updateGameIdMutation.isPending || (trocandoGameIdExistente && isImpactoLoading)}
-        variant="default"
-        confirmLabel="Confirmar"
-        loadingLabel={updateGameIdMutation.isPending ? 'Salvando...' : 'Aguarde...'}
-      />
     </div>
   );
 }

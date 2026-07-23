@@ -32,9 +32,9 @@ export const getPlayerById = async (id: number) => {
   return response.data;
 };
 
-export const updatePlayerGameId = async (pokemonId: string) => {
+export const updatePlayerGameId = async ({ tcg, gameId }: { tcg: string; gameId: string }) => {
   const response = await api.put<JogadorPublico>(`${resource}/`, {
-    tcgs: [{ tcg: "POKEMON", id: pokemonId }],
+    tcgs: [{ tcg, id: gameId }],
   } satisfies JogadorUpdate);
   return response.data;
 };
@@ -49,8 +49,10 @@ export const getStoreByUser = async (usuarioId: number) => {
   return response.data;
 };
 
-export const getPlayerStatistics = async () => {
-  const response = await api.get<JogadorEstatisticas>(`${resource}/estatisticas`);
+export const getPlayerStatistics = async (tcg?: string) => {
+  const response = await api.get<JogadorEstatisticas>(`${resource}/estatisticas`, {
+    params: tcg ? { tcg } : undefined,
+  });
   return response.data;
 };
 

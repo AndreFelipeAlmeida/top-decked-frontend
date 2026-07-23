@@ -7,6 +7,7 @@ import { useLogin, useRegister, useRegisterLoja } from '@/hooks/login.hooks';
 import { useAuthContext } from '@/hooks/authContext.hooks';
 import { useTenant } from '@/hooks/tenantContext.hooks';
 import AuthLayout from '@/components/AuthLayout';
+import BrickeiLoadingScreen from '@/components/BrickeiLoadingScreen';
 import Spinner from '@/components/ui/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ROOT_DOMAIN, ROOT_DOMAIN_PROTOCOLO } from '@/lib/rootDomain';
@@ -22,12 +23,10 @@ import {
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
-  // BRK-312: sub-aba dentro de "Cadastre-se" — jogador é o cadastro comum
-  // (ativa direto após confirmar e-mail); loja é um pré-registro que só
-  // fica utilizável depois que um administrador aprova (ver Alert abaixo).
   const [registerType, setRegisterType] = useState<'jogador' | 'loja'>('jogador');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { handleLogin } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,23 +34,6 @@ export default function LoginPage() {
 
   const from = location.state?.from?.pathname || '/login';
 
-  // BRK-404/BRK-405: o formulário de login só existe no domínio raiz — sem
-  // isso o cookie de sessão compartilhado (BRK-309) não teria como
-  // funcionar de forma previsível (o Set-Cookie viria de um host diferente
-  // a cada subdomínio). Alguém acessando {slug}.brickei.com.br/login é
-  // mandado de volta pro domínio raiz.
-  //
-  // returnUrl só é anexado quando existe uma intenção EXPLÍCITA de
-  // subdomínio — ou seja, quando um ProtectedRoute de verdade mandou pra cá
-  // guardando de onde o usuário veio (location.state.from, ver
-  // ProtectedRoutes.tsx). window.location.href (a URL atual, crua) nunca é
-  // usado como base do returnUrl: ela já É a própria página de /login
-  // nesse ponto (é ela que está montando agora), então "voltar" pra ela não
-  // significa nada — foi exatamente isso que causava o "redirecionamento
-  // fantasma" (BRK-405): um jogador que logava LOGO DEPOIS de alguém sair
-  // de um subdomínio (ex.: um logout que não limpava a URL, já corrigido
-  // em AuthProvider) acabava sendo devolvido pro /login daquele mesmo
-  // subdomínio, e dali pro dashboard errado.
   useEffect(() => {
     if (isTenantLoading || !isTenant) return;
 
@@ -91,31 +73,17 @@ export default function LoginPage() {
       { email: data.email, password: data.senha },
       {
         onSuccess: async (res) => {
-          // BRK-314: aguarda o refetch da sessão terminar antes de navegar
-          // — sem isso, ProtectedRoute podia renderizar com o
-          // isAuthenticated ainda da sessão anterior (deslogada) e mandar
-          // de volta pro login antes da nova sessão chegar.
-          await handleLogin();
-
-          // BRK-404: ?returnUrl tem prioridade sobre qualquer destino
-          // padrão — representa a página exata que o usuário queria ver
-          // antes de ser mandado pro login (ex.: veio de {slug}.brickei.
-          // com.br/login, ver useEffect acima). Sempre validado (nunca é
-          // um Open Redirect: só aceita o próprio domínio raiz ou um
-          // subdomínio genuíno dele, ver lib/returnUrl.ts) — se inválido ou
-          // ausente, cai pro comportamento de sempre.
           const params = new URLSearchParams(location.search);
           const returnUrl = validarReturnUrl(params.get('returnUrl'));
+
           if (returnUrl) {
+            setIsRedirecting(true);
             window.location.href = returnUrl;
             return;
           }
 
-          // BRK-308: Dono de Loja sempre entra pelo subdomínio dela —
-          // window.location.href (não navigate) de propósito, é uma troca
-          // de domínio de verdade, não uma navegação client-side dentro
-          // da mesma SPA.
           if (res.tipo === 'loja' && res.slug) {
+            setIsRedirecting(true);
             // Preserva a porta atual (ex.: :5173 no Vite dev server) — em
             // produção window.location.port já vem vazio, então isso não
             // afeta a URL final lá.
@@ -124,6 +92,7 @@ export default function LoginPage() {
             return;
           }
 
+          await handleLogin();
           navigate(from, { replace: true });
         },
       },
@@ -144,13 +113,12 @@ export default function LoginPage() {
     );
   });
 
-  // BRK-404: nunca renderiza o formulário enquanto o subdomínio ainda está
-  // sendo resolvido, nem depois de confirmado que estamos num tenant (nesse
-  // caso o useEffect acima já está redirecionando pro domínio raiz) — evita
-  // o "flash" do form de login por uma fração de segundo num subdomínio
-  // onde ele não deveria nem aparecer.
   if (isTenantLoading || isTenant) {
     return <Spinner />;
+  }
+
+  if (isRedirecting) {
+    return <BrickeiLoadingScreen message="Levando você pra sua loja..." />;
   }
 
   return (
@@ -245,8 +213,6 @@ export default function LoginPage() {
             </form>
           ) : (
             <>
-              {/* Sub-abas do cadastro (BRK-312): Jogador é o cadastro comum;
-                  Loja é um pré-registro sujeito a aprovação (Alert abaixo). */}
               <div className="flex gap-1 p-1 mb-4 rounded-lg bg-muted/40 text-sm">
                 <button
                   type="button"

@@ -21,8 +21,6 @@ export const registerSchema = z
 
 export type RegisterForm = z.infer<typeof registerSchema>;
 
-// BRK-312: pré-registro de loja — mesma forma do cadastro de jogador, mas
-// vira uma Loja PENDENTE de aprovação do administrador (ver POST /lojas/).
 export const registerLojaSchema = z
   .object({
     nome: z.string().min(1, 'Informe o nome da loja'),

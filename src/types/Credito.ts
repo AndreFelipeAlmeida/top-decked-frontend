@@ -1,11 +1,8 @@
 import type { LojaPublico } from "./Store";
 import type { JogadorCriadoPublico } from "./JogadorCriado";
 
-// game_id/tcg são só informativos agora (o primeiro Game ID que a conta
-// reivindicou, em qualquer TCG) — LojaJogadorLink só guarda jogador_id (conta
-// real cadastrada na plataforma), nunca mais um game_id/JogadorCriado sem
-// conta (ver docs/JOGADORES.md).
 export interface JogadorComTcgs {
+  nome: string;
   tcgs: JogadorCriadoPublico[];
 }
 

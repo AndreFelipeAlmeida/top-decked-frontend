@@ -32,6 +32,7 @@ import {
 } from '@/hooks/evento.hooks';
 import { eventoSchema, type EventoForm } from '@/schemas/evento.schemas';
 import { nomeDoJogo } from '@/lib/tcgGames';
+import { formatarDataBR } from '@/lib/dateUtils';
 import { OrganizerViewSwitch } from '@/components/player/OrganizerViewSwitch';
 
 const extractErrorMessage = (error: unknown, fallback: string) => {
@@ -68,9 +69,6 @@ export default function Eventos() {
   const { viewMode } = useViewMode();
   const { data: jogador, isLoading: isMeLoading } = useMe(isJogador);
 
-  // BRK-402 "Regra de Ouro": criar/gerenciar evento como organizador só é
-  // possível dentro do subdomínio da própria loja — a loja fica implícita
-  // (tenantLojaId), sem select (BRK-401).
   const { isOrganizador: isOrganizadorDoTenant, tcgs: tcgsOrganizados, lojaId: tenantLojaId } =
     useOrganizadorDoTenantAtual();
   const isOrganizerOfSelectedTcg = isOrganizadorDoTenant && tcgsOrganizados.includes(selectedTcg ?? '');
@@ -192,8 +190,8 @@ export default function Eventos() {
 
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4 shrink-0" />
-                {new Date(evento.data_inicio).toLocaleDateString('pt-BR')} até{' '}
-                {new Date(evento.data_fim).toLocaleDateString('pt-BR')}
+                {formatarDataBR(evento.data_inicio)} até{' '}
+                {formatarDataBR(evento.data_fim)}
               </p>
 
               <div className="flex gap-2 mt-2">

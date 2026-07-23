@@ -33,10 +33,10 @@ export const usePlayerById = (id: number | undefined) => {
   });
 };
 
-export const usePlayerStatistics = () => {
+export const usePlayerStatistics = (tcg?: string) => {
   return useQuery({
-    queryKey: playersKeys.statistics(),
-    queryFn: getPlayerStatistics,
+    queryKey: playersKeys.statistics(tcg),
+    queryFn: () => getPlayerStatistics(tcg),
   });
 };
 
@@ -66,10 +66,6 @@ export const useUpdatePlayerGameId = (playerId: number | undefined) => {
       // sem invalidar aqui, o ID exibido ficava com o valor antigo em cache
       // até um refresh manual da página.
       queryClient.invalidateQueries({ queryKey: authKeys.all });
-      // Trocar de GameID pode desvincular créditos de loja e recalcular
-      // conquistas no backend (ver docs/DIVIDA_TECNICA.md) — sem invalidar
-      // esses dois, a carteira e as conquistas ficam mostrando dados de antes
-      // da troca até um refresh manual.
       queryClient.invalidateQueries({ queryKey: creditsKeys.all });
       queryClient.invalidateQueries({ queryKey: achievementsKeys.all });
     },

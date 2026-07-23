@@ -239,6 +239,7 @@ export default function PlayerRules() {
                 </div>
               </div>
 
+              <p className="text-xs text-muted-foreground font-medium mb-2">Sua pontuação</p>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-3 bg-success/15 rounded-lg">
                   <div className="text-2xl text-success font-bold">{ruleSet.pt_vitoria}</div>
@@ -251,6 +252,31 @@ export default function PlayerRules() {
                 <div className="text-center p-3 bg-destructive/15 rounded-lg">
                   <div className="text-2xl text-destructive font-bold">{ruleSet.pt_derrota}</div>
                   <div className="text-xs text-muted-foreground">Derrota</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 mt-4 mb-2">
+                <p className="text-xs text-muted-foreground font-medium">Pontuação do oponente</p>
+                <InfoTooltip text="Pontos que o OPONENTE ganha, dependendo do resultado desta partida contra alguém com esta regra." />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-3 bg-success/10 rounded-lg">
+                  <div className="text-2xl text-success/80 font-bold">{ruleSet.pt_oponente_ganha ?? 0}</div>
+                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                    Se ganha <InfoTooltip text={oponenteGanhaTooltip} />
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-muted/30 rounded-lg">
+                  <div className="text-2xl text-muted-foreground/80 font-bold">{ruleSet.pt_oponente_empate ?? 0}</div>
+                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                    Se empata <InfoTooltip text={oponenteEmpataTooltip} />
+                  </div>
+                </div>
+                <div className="text-center p-3 bg-destructive/10 rounded-lg">
+                  <div className="text-2xl text-destructive/80 font-bold">{ruleSet.pt_oponente_perde ?? 0}</div>
+                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                    Se perde <InfoTooltip text={oponentePerdeTooltip} />
+                  </div>
                 </div>
               </div>
             </div>

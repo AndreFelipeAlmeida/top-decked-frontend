@@ -16,11 +16,33 @@ export const getStock = async (): Promise<Estoque[]> => {
   }
 };
 
+export const getVendableStock = async (): Promise<Estoque[]> => {
+  try {
+    const response = await api.get<Estoque[]>(`${resource}/`, {
+      params: { apenas_vendaveis: true },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
+};
+
 export const updateStock = async (
   id: number,
   updatedStock: EstoqueCadastro,
 ): Promise<Estoque> => {
   const response = await api.put<Estoque>(`${resource}/${id}`, updatedStock);
+  return response.data;
+};
+
+export const updateItemCategory = async (
+  id: number,
+  categoria: number,
+): Promise<Estoque> => {
+  const response = await api.put<Estoque>(`${resource}/${id}`, { categoria });
   return response.data;
 };
 

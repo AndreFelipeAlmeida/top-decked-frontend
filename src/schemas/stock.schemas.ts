@@ -12,6 +12,7 @@ export const productSchema = z.object({
   quantidade: z.number().min(0),
   min_quantidade: z.number().min(0),
   preco: z.number().min(0),
+  is_vendavel: z.boolean(),
 });
 
 export type ProductForm = z.infer<typeof productSchema>;

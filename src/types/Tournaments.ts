@@ -6,15 +6,7 @@ export interface JogadorTorneioLinkPublico {
   id?: number | null;
   jogador_criado_id: number;
   jogador_id?: number | null;
-  // Papel do jogador NESTE torneio — "JUIZ" não entra no pareamento de
-  // rodadas nem no ranking/pódio deste torneio específico (mas conta no
-  // ranking geral entre torneios). "JOGADOR_E_JUIZ" é quem acumula os dois
-  // papéis (uma linha só — fonte única de verdade, nunca duas). Ver
-  // docs/PONTUACAO_EXTRA.md.
   tipo?: 'JOGADOR' | 'JUIZ' | 'JOGADOR_E_JUIZ';
-  // Regra ADICIONAL (opcional) desta participação — nunca substitui a regra
-  // básica do torneio, só soma/subtrai por cima dela. null = sem regra
-  // extra, pontua só pela básica. Ver docs/REGRA_EXTRA.md.
   regra_extra_id?: number | null;
   pontuacao: number;
   pontuacao_com_regras: number;
@@ -23,16 +15,12 @@ export interface JogadorTorneioLinkPublico {
   composicao_representacao_id?: number | null;
   composicao_representacao?: RepresentacaoComposicao | null;
   composicao_unidades?: ComposicaoUnidade[];
-  // Contadores + desempate suíço (só preenchidos pra jogos de formato suíço —
-  // Pokémon TCG/VGC — ver docs/RANKING.md); porcentagens em escala 0-100.
   vitorias?: number;
   derrotas?: number;
   empates?: number;
   byes?: number;
   porcentagem_vitorias_oponentes?: number | null;
   porcentagem_vitorias_oponentes_oponentes?: number | null;
-  // Junior/Senior/Master — calculada na hora (Temporada vigente + data de
-  // nascimento do JogadorCriado), nunca armazenada. Ver docs/TEMPORADAS.md.
   categoria?: string | null;
 }
 
@@ -57,9 +45,6 @@ export interface TorneioBase {
   vagas: number;
   hora_planejada?: string | null;
   formato?: string | null;
-  /** "Melhor de X" (MD1/MD3/MD5) escolhido pro torneio — informativo apenas,
-   * o sistema não modela partidas individuais dentro de uma rodada (ver
-   * docs/PARTIDAS.md). */
   melhor_de?: string | null;
   jogo?: string | null;
   tipo?: string | null;

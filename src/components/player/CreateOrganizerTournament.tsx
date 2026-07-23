@@ -56,10 +56,6 @@ export default function CreateOrganizerTournament() {
 
   const { data: regras, isLoading: isRegrasLoading } = usePlayerTypesByOrganizer(tenantLojaId);
 
-  // BRK-402 "Regra de Ouro": criar torneio como organizador só é possível
-  // dentro do subdomínio da própria loja — a loja fica implícita
-  // (tenantLojaId), nunca escolhida num select (BRK-401). Sem isso não tem
-  // como saber em nome de qual loja o torneio está sendo criado.
   useEffect(() => {
     if (tenantLojaId) {
       setValue('loja_id', tenantLojaId, { shouldValidate: true });
@@ -109,10 +105,6 @@ export default function CreateOrganizerTournament() {
         className="grid grid-cols-1 lg:grid-cols-3 gap-8"
       >
         <div className="lg:col-span-2 space-y-6">
-          {/* BRK-401/BRK-402: a loja nunca é escolhida aqui — este torneio
-              só pode ser criado dentro do subdomínio da própria loja
-              organizada (ver guarda de isOrganizador acima), então a loja já
-              está implícita (tenantLojaId). Mostrado só como confirmação. */}
           <AppCard title="Loja" icon={<Store className="w-5 h-5" />}>
             <p className="text-sm text-foreground font-medium">{tenant?.nome}</p>
             {errors.loja_id && (

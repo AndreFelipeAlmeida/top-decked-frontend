@@ -1,5 +1,5 @@
 import { AppCard } from '@/components/ui/app-card';
-import { Coins, ShoppingCart, User, X } from 'lucide-react';
+import { Coins, Receipt, ShoppingCart, User, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import CreditActionsCard from './components/CreditActionsCard';
 import PlayerSelect from './components/PlayerSelect';
@@ -7,13 +7,14 @@ import PlayerInfoCardContent from './components/PlayerInfoContent';
 import { useStorePlayerLinks } from '@/hooks/credits.hooks';
 import { useDebounce } from 'use-debounce';
 import StoreProductsCard from './components/StoreProductsCard';
+import CheckoutCard from './components/CheckoutCard';
 import { usePlayerCart } from './hooks/usePlayerCart';
 
 export default function PlayerCreditsPos() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 300);
-  const { addItem } = usePlayerCart();
+  const cart = usePlayerCart();
 
   const { data: players = [] } = useStorePlayerLinks(debouncedSearch);
 
@@ -53,11 +54,14 @@ export default function PlayerCreditsPos() {
             action={
               <button
                 type="button"
-                onClick={() => setSelectedPlayerId(null)}
+                onClick={() => {
+                  setSelectedPlayerId(null);
+                  cart.clearCart();
+                }}
                 className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/15 transition"
               >
                 <X className="w-3 h-3" />
-                Escolher outro jogador
+                Trocar Jogador
               </button>
             }
           >
@@ -73,17 +77,21 @@ export default function PlayerCreditsPos() {
             />
           </AppCard>
 
-          <AppCard title="Em breve" icon={<ShoppingCart className="w-5 h-5" />}>
+          <AppCard title="Vitrine de Produtos" icon={<ShoppingCart className="w-5 h-5" />}>
             <StoreProductsCard
-              onAddToCart={addItem}>
-
-            </StoreProductsCard>
+              onAddToCart={cart.addItem}
+              cartItems={cart.items}
+            />
           </AppCard>
 
-          <AppCard title="Em breve" icon={<ShoppingCart className="w-5 h-5" />}>
-            <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
-              Outro card será implementado aqui.
-            </div>
+          <AppCard title="Caixa" icon={<Receipt className="w-5 h-5" />}>
+            <CheckoutCard
+              player={selectedPlayer}
+              items={cart.items}
+              total={cart.total}
+              removeItem={cart.removeItem}
+              clearCart={cart.clearCart}
+            />
           </AppCard>
         </div>
       )}

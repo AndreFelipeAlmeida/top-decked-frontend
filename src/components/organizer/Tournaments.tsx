@@ -55,17 +55,16 @@ export default function Tournaments() {
 
   const { data: jogador, isLoading: isMeLoading } = useMe(isJogador)
 
-  // BRK-402 "Regra de Ouro": organizar só é possível dentro do subdomínio da
-  // própria loja (isOrganizador já exige isTenant) — e só faz sentido pro
-  // TCG selecionado agora na barra lateral, entre os que o jogador organiza
-  // NESTA loja especificamente (um jogador pode organizar TCGs diferentes
-  // em lojas diferentes, mas cada subdomínio só expõe os da própria loja).
   const { isOrganizador: isOrganizadorDoTenant, tcgs: tcgsOrganizados, lojaId: tenantLojaId } =
     useOrganizadorDoTenantAtual();
   const isOrganizerOfSelectedTcg = isOrganizadorDoTenant && tcgsOrganizados.includes(selectedTcg ?? '');
 
   const canCreateTournament = isJogador
     ? isOrganizerOfSelectedTcg && viewMode === 'organizador'
+    : true;
+
+  const podeImportarTorneio = isJogador
+    ? isOrganizadorDoTenant && tcgsOrganizados.includes('POKEMON') && viewMode === 'organizador'
     : true;
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -182,26 +181,26 @@ export default function Tournaments() {
         <div className="flex items-center gap-4">
           <OrganizerViewSwitch visible={isJogador && isOrganizerOfSelectedTcg} />
 
+          {podeImportarTorneio && (
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-accent transition-colors flex items-center space-x-2"
+            >
+              <Upload className="w-5 h-5" />
+              <span>Importar Torneio</span>
+            </button>
+          )}
+
           {canCreateTournament && (
-            <>
-              <button
-                type="button"
-                onClick={() => setIsImportModalOpen(true)}
-                className="bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-accent transition-colors flex items-center space-x-2"
-              >
-                <Upload className="w-5 h-5" />
-                <span>Importar Torneio</span>
-              </button>
+            <Link
+              to={isJogador ? "/jogador/criar-torneio" : "/loja/criar-torneio"}
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center space-x-2"
+            >
+              <Plus className="w-5 h-5" />
 
-              <Link
-                to={isJogador ? "/jogador/criar-torneio" : "/loja/criar-torneio"}
-                className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center space-x-2"
-              >
-                <Plus className="w-5 h-5" />
-
-                <span>Criar Torneio</span>
-              </Link>
-            </>
+              <span>Criar Torneio</span>
+            </Link>
           )}
         </div>
       </div>
@@ -388,7 +387,7 @@ export default function Tournaments() {
         </DialogContent>
       </Dialog>
 
-      {canCreateTournament && (
+      {podeImportarTorneio && (
         <ImportTournamentDialog
           open={isImportModalOpen}
           onOpenChange={setIsImportModalOpen}

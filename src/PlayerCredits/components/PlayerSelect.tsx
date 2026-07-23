@@ -8,6 +8,7 @@ import {
 
 import { useState } from 'react';
 import type { LojaJogadorPublico } from '@/types/Credito';
+import { nomeExibicaoJogador } from '@/lib/playerDisplay';
 
 
 type Props = {
@@ -63,7 +64,7 @@ export default function PlayerSelect({
                 >
                   <div className="flex flex-col">
                     <span className="font-medium">
-                      {player.apelido ?? '--'}
+                      {nomeExibicaoJogador(player)}
                     </span>
                   </div>
 
