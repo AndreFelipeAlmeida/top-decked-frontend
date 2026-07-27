@@ -4,10 +4,11 @@ import { Plus, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/hooks/authContext.hooks';
 import { useTcgSelection } from '@/hooks/tcgSelectionContext.hooks';
-import { getMonthlyTournaments, getFormatData, getRecentTournaments, getUpcomingTournaments } from '@/selectors/tournaments.selectors';
+import { getMonthlyTournaments, getFormatData, getRecentTournaments, getUpcomingTournaments, getCrescimentoSemanal } from '@/selectors/tournaments.selectors';
 import Spinner from '../ui/spinner';
 import { useTournaments } from '@/hooks/tournaments.hooks';
 import { DashboardActionButton } from '@/components/ui/dashboard-action-button';
+import { GrowthLabel } from '@/components/ui/growth-label';
 import { ImportTournamentButton } from './ImportTournamentButton';
 import { dataExibicaoTorneio } from '@/lib/dateUtils';
 import { nomeDoJogo } from '@/lib/tcgGames';
@@ -28,6 +29,10 @@ export default function OrganizerDashboard() {
   const formatData = getFormatData(tournaments);
   const upcomingTournaments = getUpcomingTournaments(tournaments);
   const recentTournaments = getRecentTournaments(tournaments);
+  // Crescimento real (nunca mais um texto fixo) -- torneios criados e
+  // jogadores inscritos nos últimos 7 dias contra os 7 dias anteriores.
+  const crescimentoTorneios = getCrescimentoSemanal(tournaments);
+  const crescimentoParticipantes = getCrescimentoSemanal(tournaments, (t) => t.jogadores?.length || 0);
 
   if (isLoading) return <Spinner />;
 
@@ -57,14 +62,14 @@ export default function OrganizerDashboard() {
         >
           <div className="text-sm text-muted-foreground mb-1">Torneios Ativos</div>
           <div className="text-3xl text-foreground font-bold">{upcomingTournaments.length}</div>
-          <div className="text-xs text-success mt-1">+2 desde a última semana</div>
+          <GrowthLabel diferenca={crescimentoTorneios.diferenca} sufixo="desde a última semana" />
         </Link>
         <div className="bg-card p-6 rounded-lg shadow">
           <div className="text-sm text-muted-foreground mb-1">Total de Participantes</div>
           <div className="text-3xl text-foreground font-bold">
             {tournaments.reduce((acc, t) => acc + (t.jogadores?.length || 0), 0)}
           </div>
-          <div className="text-xs text-success mt-1">+15% este mês</div>
+          <GrowthLabel diferenca={crescimentoParticipantes.diferenca} sufixo="desde a última semana" />
         </div>
         <div className="bg-card p-6 rounded-lg shadow">
           <div className="text-sm text-muted-foreground mb-1">Eventos Finalizados</div>

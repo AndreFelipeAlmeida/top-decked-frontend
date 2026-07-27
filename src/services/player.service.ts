@@ -73,6 +73,10 @@ export const getImpactoTrocaGameId = async (tcg: string) => {
   return response.data;
 };
 
+export const deletePlayer = async (id: number) => {
+  await api.delete(`${resource}/${id}`);
+};
+
 export const uploadPlayerPhoto = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);

@@ -1,18 +1,36 @@
 import { Save, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
 import { useAuthContext } from '@/hooks/authContext.hooks';
 import {
+  useDeleteMyStore,
   useMyStore,
   useUpdateMyStore,
   useUpdateStoreForm,
   useUploadStorePhoto,
 } from '@/hooks/store.hooks';
 import type { UpdateStoreForm } from '@/schemas/store.schemas';
+import type { ApiErrorDetail } from '@/types/Error';
 import Spinner from '@/components/ui/spinner';
+import { DangerZoneCard } from '@/components/DangerZoneCard';
+
+const extractErrorMessage = (error: unknown, fallback: string) => {
+  const detail = axios.isAxiosError<ApiErrorDetail>(error) ? error.response?.data?.detail : undefined;
+  return typeof detail === 'string' ? detail : fallback;
+};
 
 export default function OrganizerProfile() {
-  const { user } = useAuthContext();
+  const { user, handleLogout } = useAuthContext();
 
   const { data: loja, isLoading } = useMyStore(user?.id);
+  const deleteMutation = useDeleteMyStore();
+
+  const handleDelete = () => {
+    deleteMutation.mutate(undefined, {
+      onSuccess: () => handleLogout(),
+      onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao excluir a conta da loja.')),
+    });
+  };
 
   const { register, handleSubmit } = useUpdateStoreForm({
     nome: loja?.nome ?? '',
@@ -118,6 +136,21 @@ export default function OrganizerProfile() {
                 </button>
               </div>
             </form>
+
+            <div className="mt-8">
+              <DangerZoneCard
+                descricao="Excluir a conta da loja é permanente e não pode ser desfeito."
+                itensPerdidos={[
+                  'Todos os torneios e eventos organizados por esta loja',
+                  'Vínculos e créditos de jogadores nesta loja',
+                  'Estoque, categorias e histórico de vendas',
+                  'Regras de pontuação e temporadas cadastradas',
+                ]}
+                nomeParaConfirmar={loja?.nome}
+                onConfirmar={handleDelete}
+                isExcluindo={deleteMutation.isPending}
+              />
+            </div>
         </div>
       </div>
   );

@@ -8,9 +8,12 @@ import { Wallet, Store, Gamepad2, User as UserIcon, Upload } from 'lucide-react'
 import { AppCard } from '@/components/ui/app-card';
 import { Button } from '@/components/ui/button';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import { DangerZoneCard } from '@/components/DangerZoneCard';
+import { useAuthContext } from '@/hooks/authContext.hooks';
 import { useMe } from '@/hooks/auth.hooks';
 import { usePlayerCredits } from '@/hooks/credits.hooks';
 import {
+  useDeletePlayer,
   useImpactoTrocaGameId,
   useUpdatePlayer,
   useUpdatePlayerGameId,
@@ -116,8 +119,18 @@ function GameIdField({ tcg, label, playerId, currentGameId }: GameIdFieldProps) 
 }
 
 export default function PlayerProfileWallet() {
+  const { handleLogout } = useAuthContext();
   const { data: player } = useMe(true);
   const { data: stores = [] } = usePlayerCredits();
+  const deleteMutation = useDeletePlayer();
+
+  const handleDelete = () => {
+    if (!player) return;
+    deleteMutation.mutate(player.id, {
+      onSuccess: () => handleLogout(),
+      onError: (error) => toast.error(extractErrorMessage(error, 'Erro ao excluir a conta.')),
+    });
+  };
 
   const totalCredits = stores.reduce((sum, store) => sum + store.creditos, 0);
 
@@ -281,6 +294,18 @@ export default function PlayerProfileWallet() {
                 ))}
             </div>
           </AppCard>
+
+          <DangerZoneCard
+            descricao="Excluir a sua conta é permanente e não pode ser desfeito."
+            itensPerdidos={[
+              'Créditos e vínculos com todas as lojas em que você joga',
+              'Conquistas e todo o progresso desbloqueado',
+              'Acesso a esta conta de login (e-mail e senha)',
+            ]}
+            nomeParaConfirmar={player?.nome}
+            onConfirmar={handleDelete}
+            isExcluindo={deleteMutation.isPending}
+          />
         </div>
 
         {/* Right Column - Wallet */}

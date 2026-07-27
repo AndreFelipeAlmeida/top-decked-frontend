@@ -13,10 +13,12 @@ import { useAchievementHistory } from '@/hooks/achievements.hooks';
 import { OrganizerViewSwitch } from './OrganizerViewSwitch';
 import { DashboardActionButton } from '@/components/ui/dashboard-action-button';
 import { ImportTournamentButton } from '@/components/organizer/ImportTournamentButton';
+import { PlayerDeckStats } from './PlayerDeckStats';
 import Spinner from '@/components/ui/spinner';
 import { StatusTorneio } from '@/types/Enums';
 import { dataExibicaoTorneio, momentoEfetivoTorneio } from '@/lib/dateUtils';
 import { nomeDoJogo } from '@/lib/tcgGames';
+import { getDecksDoJogador } from '@/selectors/tournaments.selectors';
 
 const ULTIMA_VISITA_CONQUISTAS_KEY = 'ultima_visita_conquistas';
 
@@ -59,6 +61,26 @@ export default function PlayerDashboard() {
       .sort((a, b) => momentoEfetivoTorneio(b).getTime() - momentoEfetivoTorneio(a).getTime())
       .slice(0, QUANTIDADE_TORNEIOS_RECENTES);
   }, [torneios, jogador, mostrarTodosOsJogos, selectedTcg]);
+
+  // O widget de decks só sabe desenhar um jogo por vez (TCG mostra
+  // arquétipo, VGC/GO mostra a composição do time) — com "todos os jogos"
+  // selecionado, usamos o jogo em que o jogador mais participou.
+  const jogoMaisJogadoPeloJogador = useMemo(() => {
+    if (!jogador) return undefined;
+    const contagem: Record<string, number> = {};
+    for (const t of torneios ?? []) {
+      if (!t.jogo || !t.jogadores?.some((j) => j.jogador_id === jogador.id)) continue;
+      contagem[t.jogo] = (contagem[t.jogo] ?? 0) + 1;
+    }
+    return Object.entries(contagem).sort((a, b) => b[1] - a[1])[0]?.[0];
+  }, [torneios, jogador]);
+
+  const jogoDosDecks = mostrarTodosOsJogos ? jogoMaisJogadoPeloJogador : selectedTcg;
+
+  const decksDoJogador = useMemo(() => {
+    if (!jogador || !jogoDosDecks) return [];
+    return getDecksDoJogador(torneios ?? [], jogador.id, jogoDosDecks);
+  }, [torneios, jogador, jogoDosDecks]);
 
   useEffect(() => {
     if (!historico || historico.length === 0) return;
@@ -229,6 +251,12 @@ export default function PlayerDashboard() {
           </Link>
         </div>
       </div>
+
+      {!isTorneiosLoading && jogoDosDecks && (
+        <div className="mt-6">
+          <PlayerDeckStats decks={decksDoJogador} />
+        </div>
+      )}
     </div>
   );
 }

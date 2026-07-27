@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Medal, TriangleAlert, Trophy } from 'lucide-react';
+import { Layers, Medal, TriangleAlert, Trophy } from 'lucide-react';
 
 import Spinner from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthenticatedUser } from '@/hooks/authContext.hooks';
 import { useTournaments } from '@/hooks/tournaments.hooks';
 import { useMe } from '@/hooks/auth.hooks';
@@ -24,6 +24,9 @@ import { nomeDoJogo } from '@/lib/tcgGames';
 import { dataEstaNaTemporada } from '@/lib/temporadaUtils';
 import { momentoEfetivoTorneio } from '@/lib/dateUtils';
 import { omwTooltip, oomwTooltip } from '@/lib/tiebreakTooltips';
+import { jogoTemRepresentacaoDeck } from '@/lib/pokemonModalidade';
+import { pokemonSpriteUrl } from '@/lib/pokemon';
+import { getRankingDeDecks } from '@/selectors/tournaments.selectors';
 import { StatusTorneio } from '@/types/Enums';
 
 // Mesmas 3 variantes de Pokémon que têm Temporada cadastrável (ver
@@ -73,6 +76,7 @@ export default function OrganizerRankings() {
   const [categoriaFiltro, setCategoriaFiltro] = useState('todos');
   const [temporadaFiltro, setTemporadaFiltro] = useState('todas');
   const [tipoPontuacao, setTipoPontuacao] = useState<TipoPontuacao>('com_regras');
+  const [abaPrincipal, setAbaPrincipal] = useState<'jogadores' | 'decks'>('jogadores');
 
   // O ranking é sempre de um jogo específico (o selecionado na barra lateral)
   // — os filtros abaixo (busca/formato/loja/período) refinam dentro desse
@@ -211,8 +215,15 @@ export default function OrganizerRankings() {
       });
   }, [torneiosParaRanking, categoriaFiltro, tipoPontuacao]);
 
+  const rankingDecks = useMemo(
+    () => getRankingDeDecks(torneiosParaRanking, selectedTcg ?? '', categoriaFiltro, tipoPontuacao === 'com_regras'),
+    [torneiosParaRanking, selectedTcg, categoriaFiltro, tipoPontuacao],
+  );
+
+  const nomeAbaDecks = jogoTemRepresentacaoDeck(selectedTcg) ? 'Decks' : 'Equipes';
+
   if (isLoading) return <Spinner />;
-  
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -289,88 +300,173 @@ export default function OrganizerRankings() {
         </Alert>
       )}
 
-      <div className="flex justify-end mb-4">
-        <Tabs value={tipoPontuacao} onValueChange={(v) => setTipoPontuacao(v as TipoPontuacao)}>
+      <Tabs value={abaPrincipal} onValueChange={(v) => setAbaPrincipal(v as 'jogadores' | 'decks')}>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <TabsList>
-            <TabsTrigger value="com_regras">Com Regras Extras</TabsTrigger>
-            <TabsTrigger value="padrao">Pontuação Normal</TabsTrigger>
+            <TabsTrigger value="jogadores">Jogadores</TabsTrigger>
+            <TabsTrigger value="decks">{nomeAbaDecks}</TabsTrigger>
           </TabsList>
-        </Tabs>
-      </div>
 
-      {ranking.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-12">
-          <Trophy className="w-6 h-6" />
-          <span className="text-sm">Nenhum resultado ainda para este jogo com os filtros selecionados.</span>
+          <Tabs value={tipoPontuacao} onValueChange={(v) => setTipoPontuacao(v as TipoPontuacao)}>
+            <TabsList>
+              <TabsTrigger value="com_regras">Com Regras Extras</TabsTrigger>
+              <TabsTrigger value="padrao">Pontuação Normal</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
-      ) : (
-        <div className="bg-card rounded-lg shadow overflow-hidden">
-          <div className="hidden md:grid grid-cols-[0.375rem_auto_1fr_repeat(4,4.5rem)_5rem] gap-3 px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
-            <span />
-            <span>#</span>
-            <span>Jogador</span>
-            <span className="text-center">Vit.</span>
-            <span className="text-center">Der.</span>
-            <span className="text-center">Emp.</span>
-            <span className="text-center">Byes</span>
-            <span className="text-right">Pontos</span>
-          </div>
 
-          <div className="divide-y divide-border">
-            {ranking.map((item, index) => {
-              const posicao = index + 1;
-              return (
-                <div
-                  key={item.jogadorId}
-                  className={`flex md:grid md:grid-cols-[0.375rem_auto_1fr_repeat(4,4.5rem)_5rem] items-center gap-3 px-4 py-3 ${
-                    posicao <= 3 ? 'bg-accent/30' : ''
-                  }`}
-                >
-                  <div className={`w-1.5 self-stretch rounded-full ${corDaBarra(posicao)}`} />
+        <TabsContent value="jogadores">
+          {ranking.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-12">
+              <Trophy className="w-6 h-6" />
+              <span className="text-sm">Nenhum resultado ainda para este jogo com os filtros selecionados.</span>
+            </div>
+          ) : (
+            <div className="bg-card rounded-lg shadow overflow-hidden">
+              <div className="hidden md:grid grid-cols-[0.375rem_auto_1fr_repeat(4,4.5rem)_5rem] gap-3 px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
+                <span />
+                <span>#</span>
+                <span>Jogador</span>
+                <span className="text-center">Vit.</span>
+                <span className="text-center">Der.</span>
+                <span className="text-center">Emp.</span>
+                <span className="text-center">Byes</span>
+                <span className="text-right">Pontos</span>
+              </div>
 
-                  <div className="flex items-center gap-2 w-8 shrink-0 md:w-auto">
-                    {posicao <= 3 ? (
-                      <Medal className={`w-4 h-4 ${
-                        posicao === 1 ? 'text-gold' : posicao === 2 ? 'text-slate-400' : 'text-amber-600'
-                      }`} />
-                    ) : (
-                      <span className="text-sm text-muted-foreground">{posicao}</span>
-                    )}
-                  </div>
+              <div className="divide-y divide-border">
+                {ranking.map((item, index) => {
+                  const posicao = index + 1;
+                  return (
+                    <div
+                      key={item.jogadorId}
+                      className={`flex md:grid md:grid-cols-[0.375rem_auto_1fr_repeat(4,4.5rem)_5rem] items-center gap-3 px-4 py-3 ${
+                        posicao <= 3 ? 'bg-accent/30' : ''
+                      }`}
+                    >
+                      <div className={`w-1.5 self-stretch rounded-full ${corDaBarra(posicao)}`} />
 
-                  <div className="min-w-0 flex-1 md:flex-none">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {item.apelido}
-                      {item.contaJogadorId != null && item.contaJogadorId === jogador?.id && (
-                        <span className="ml-2 text-xs text-primary">(você)</span>
-                      )}
-                    </p>
-                    <p className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-                      <span className="truncate">
-                        {item.gameId ? `#${item.gameId} · ` : ''}{item.torneios} {item.torneios === 1 ? 'torneio' : 'torneios'}
-                        {item.omwMedio != null && ` · OMW% ${item.omwMedio.toFixed(2)}`}
-                        {item.oomwMedio != null && ` · OOMW% ${item.oomwMedio.toFixed(2)}`}
+                      <div className="flex items-center gap-2 w-8 shrink-0 md:w-auto">
+                        {posicao <= 3 ? (
+                          <Medal className={`w-4 h-4 ${
+                            posicao === 1 ? 'text-gold' : posicao === 2 ? 'text-slate-400' : 'text-amber-600'
+                          }`} />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{posicao}</span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1 md:flex-none">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {item.apelido}
+                          {item.contaJogadorId != null && item.contaJogadorId === jogador?.id && (
+                            <span className="ml-2 text-xs text-primary">(você)</span>
+                          )}
+                        </p>
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground truncate">
+                          <span className="truncate">
+                            {item.gameId ? `#${item.gameId} · ` : ''}{item.torneios} {item.torneios === 1 ? 'torneio' : 'torneios'}
+                            {item.omwMedio != null && ` · OMW% ${item.omwMedio.toFixed(2)}`}
+                            {item.oomwMedio != null && ` · OOMW% ${item.oomwMedio.toFixed(2)}`}
+                          </span>
+                          {(item.omwMedio != null || item.oomwMedio != null) && (
+                            <InfoTooltip text={`${omwTooltip} ${oomwTooltip}`} />
+                          )}
+                        </p>
+                      </div>
+
+                      <span className="hidden md:block text-center text-sm text-success font-medium">{item.vitorias}</span>
+                      <span className="hidden md:block text-center text-sm text-destructive font-medium">{item.derrotas}</span>
+                      <span className="hidden md:block text-center text-sm text-muted-foreground font-medium">{item.empates}</span>
+                      <span className="hidden md:block text-center text-sm text-muted-foreground font-medium">{item.byes}</span>
+
+                      <span className="text-right text-lg font-bold text-primary shrink-0 ml-auto md:ml-0">
+                        {tipoPontuacao === 'padrao' ? item.pontuacao : item.pontuacaoComRegras}
                       </span>
-                      {(item.omwMedio != null || item.oomwMedio != null) && (
-                        <InfoTooltip text={`${omwTooltip} ${oomwTooltip}`} />
-                      )}
-                    </p>
-                  </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </TabsContent>
 
-                  <span className="hidden md:block text-center text-sm text-success font-medium">{item.vitorias}</span>
-                  <span className="hidden md:block text-center text-sm text-destructive font-medium">{item.derrotas}</span>
-                  <span className="hidden md:block text-center text-sm text-muted-foreground font-medium">{item.empates}</span>
-                  <span className="hidden md:block text-center text-sm text-muted-foreground font-medium">{item.byes}</span>
+        <TabsContent value="decks">
+          {rankingDecks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-12">
+              <Layers className="w-6 h-6" />
+              <span className="text-sm">
+                Nenhum {nomeAbaDecks.toLowerCase()} registrado ainda para este jogo com os filtros selecionados.
+              </span>
+            </div>
+          ) : (
+            <div className="bg-card rounded-lg shadow overflow-hidden">
+              <div className="hidden md:grid grid-cols-[0.375rem_auto_1fr_repeat(3,4.5rem)_5rem_5rem] gap-3 px-4 py-3 text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
+                <span />
+                <span>#</span>
+                <span>{nomeAbaDecks}</span>
+                <span className="text-center">Vit.</span>
+                <span className="text-center">Der.</span>
+                <span className="text-center">Emp.</span>
+                <span className="text-center">Usado</span>
+                <span className="text-right">Pontos</span>
+              </div>
 
-                  <span className="text-right text-lg font-bold text-primary shrink-0 ml-auto md:ml-0">
-                    {tipoPontuacao === 'padrao' ? item.pontuacao : item.pontuacaoComRegras}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+              <div className="divide-y divide-border">
+                {rankingDecks.map((deck, index) => {
+                  const posicao = index + 1;
+                  return (
+                    <div
+                      key={deck.chave}
+                      className={`flex flex-wrap md:grid md:grid-cols-[0.375rem_auto_1fr_repeat(3,4.5rem)_5rem_5rem] items-center gap-3 px-4 py-3 ${
+                        posicao <= 3 ? 'bg-accent/30' : ''
+                      }`}
+                    >
+                      <div className={`w-1.5 self-stretch rounded-full ${corDaBarra(posicao)}`} />
+
+                      <div className="flex items-center gap-2 w-8 shrink-0 md:w-auto">
+                        {posicao <= 3 ? (
+                          <Medal className={`w-4 h-4 ${
+                            posicao === 1 ? 'text-gold' : posicao === 2 ? 'text-slate-400' : 'text-amber-600'
+                          }`} />
+                        ) : (
+                          <span className="text-sm text-muted-foreground">{posicao}</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 min-w-0 flex-1 md:flex-none">
+                        {deck.unidadesExibicao.length > 0 && (
+                          <div className="flex items-center -space-x-3 shrink-0">
+                            {deck.unidadesExibicao.map((unidade) => (
+                              <img
+                                key={unidade.id}
+                                src={pokemonSpriteUrl(unidade.external_id)}
+                                alt={unidade.nome}
+                                title={unidade.nome}
+                                className="w-8 h-8 rounded-full bg-muted object-contain border-2 border-border"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-sm font-medium text-foreground truncate">{deck.nome}</p>
+                      </div>
+
+                      <span className="hidden md:block text-center text-sm text-success font-medium">{deck.vitorias}</span>
+                      <span className="hidden md:block text-center text-sm text-destructive font-medium">{deck.derrotas}</span>
+                      <span className="hidden md:block text-center text-sm text-muted-foreground font-medium">{deck.empates}</span>
+                      <span className="hidden md:block text-center text-sm text-muted-foreground font-medium">{deck.popularidade}</span>
+
+                      <span className="text-right text-lg font-bold text-primary shrink-0 ml-auto md:ml-0">
+                        {deck.pontuacaoTotal}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

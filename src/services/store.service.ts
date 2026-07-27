@@ -54,3 +54,7 @@ export const demoteJogadorOrganizador = async (jogadorId: number, tcg: string) =
   );
   return response.data;
 };
+
+export const deleteMyStore = async () => {
+  await api.delete(`${resource}/`);
+};

@@ -2,6 +2,7 @@ import { storeKeys } from "@/keys/store.keys";
 import { playersKeys } from "@/keys/players.keys";
 import { updateStoreSchema, type UpdateStoreForm } from "@/schemas/store.schemas";
 import {
+  deleteMyStore,
   demoteJogadorOrganizador,
   getStoreById,
   getStores,
@@ -66,6 +67,12 @@ export const usePromoteJogadorOrganizador = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: playersKeys.all });
     },
+  });
+};
+
+export const useDeleteMyStore = () => {
+  return useMutation({
+    mutationFn: deleteMyStore,
   });
 };
 

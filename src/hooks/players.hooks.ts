@@ -3,6 +3,7 @@ import { creditsKeys } from "@/keys/credits.keys";
 import { achievementsKeys } from "@/keys/achievements.keys";
 import { playersKeys } from "@/keys/players.keys";
 import {
+  deletePlayer,
   getImpactoTrocaGameId,
   getPlayerById,
   getPlayerStatistics,
@@ -88,6 +89,12 @@ export const useUpdatePlayer = (playerId: number | undefined) => {
       queryClient.invalidateQueries({ queryKey: playersKeys.detail(playerId) });
       queryClient.invalidateQueries({ queryKey: authKeys.all });
     },
+  });
+};
+
+export const useDeletePlayer = () => {
+  return useMutation({
+    mutationFn: (playerId: number) => deletePlayer(playerId),
   });
 };
 
