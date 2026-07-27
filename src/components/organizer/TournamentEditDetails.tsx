@@ -56,10 +56,11 @@ import { jogoTemRepresentacaoDeck } from '@/lib/pokemonModalidade';
 import { pokemonFormats } from '@/lib/pokemonFormats';
 import { formatosMD } from '@/lib/formatoMD';
 import { encontrarTemporadaDaData } from '@/lib/temporadaUtils';
+import { CATEGORIAS_OFICIAIS, ordenarPorRankingOficial, type CategoriaFiltro } from '@/lib/rankingOficial';
 
 const JOGOS_POKEMON = ['POKEMON', 'POKEMON_VGC', 'POKEMON_GO'];
 
-type ScoreField = 'pontuacao' | 'pontuacao_com_regras';
+type ScoreField = 'pontuacao_com_regras';
 type ScoreOverrides = Record<string, Partial<Record<ScoreField, number>>>;
 
 const rowKey = (link: JogadorTorneioLinkPublico, index: number) =>
@@ -108,6 +109,7 @@ export default function TournamentEditDetails() {
   const [pendingSaveData, setPendingSaveData] = useState<UpdateStoreTournamentForm | null>(null);
   const [isJuizModalOpen, setIsJuizModalOpen] = useState(false);
   const [juizEscolhidoId, setJuizEscolhidoId] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState<CategoriaFiltro>('todos');
 
   const user = useAuthenticatedUser();
   const isJogador = user.tipo === 'jogador';
@@ -229,16 +231,17 @@ export default function TournamentEditDetails() {
     });
   };
 
-  const updateScore = (key: string, field: ScoreField, value: number) => {
+  const updateScore = (key: string, value: number) => {
     setScoreOverrides((prev) => ({
       ...prev,
-      [key]: { ...prev[key], [field]: value },
+      [key]: { pontuacao_com_regras: value },
     }));
   };
 
+  // A pontuação oficial (Match Points base) nunca é enviada aqui — só
+  // pontuacao_com_regras (pontos extras/regras customizadas) é editável.
   const commitScore = (
-    row: { linkId: number | null | undefined; pontuacao: number; pontuacao_com_regras: number },
-    field: ScoreField,
+    row: { linkId: number | null | undefined; pontuacao: number },
     value: number,
   ) => {
     if (!row.linkId) return;
@@ -247,8 +250,8 @@ export default function TournamentEditDetails() {
       {
         linkId: row.linkId,
         dados: {
-          pontuacao: field === 'pontuacao' ? value : row.pontuacao,
-          pontuacao_com_regras: field === 'pontuacao_com_regras' ? value : row.pontuacao_com_regras,
+          pontuacao: row.pontuacao,
+          pontuacao_com_regras: value,
         },
       },
       {
@@ -388,8 +391,8 @@ export default function TournamentEditDetails() {
   // Um jogador que também atuou como Juiz do torneio aparece nos dois
   // lugares: no Ranking normal (com a pontuação que ele de fato fez/ganhou)
   // e na lista separada de Juízes, só pra deixar claro quem arbitrou.
-  const rankingRows = (torneio?.jogadores ?? [])
-    .map((link, index) => {
+  const rankingRows = ordenarPorRankingOficial(
+    (torneio?.jogadores ?? []).map((link, index) => {
       const key = rowKey(link, index);
       const overrides = scoreOverrides[key];
       return {
@@ -399,16 +402,24 @@ export default function TournamentEditDetails() {
         jogador_id: link.jogador_id,
         tipo: link.tipo ?? 'JOGADOR',
         regraExtraId: link.regra_extra_id ?? null,
-        pontuacao: overrides?.pontuacao ?? link.pontuacao,
+        pontuacao: link.pontuacao,
         pontuacao_com_regras: overrides?.pontuacao_com_regras ?? link.pontuacao_com_regras,
+        vitorias: link.vitorias ?? 0,
+        derrotas: link.derrotas ?? 0,
+        empates: link.empates ?? 0,
+        categoria: link.categoria ?? null,
+        classificacao_oficial: link.classificacao_oficial ?? null,
+        posicao_ranking: link.posicao_ranking ?? null,
       };
-    })
-    .sort((a, b) => b.pontuacao_com_regras - a.pontuacao_com_regras)
-    .map((row, index) => ({ ...row, posicao: index + 1 }));
+    }),
+    categoriaFiltro,
+  ).map((row, index) => ({ ...row, posicao: index + 1 }));
 
   // Vagas/receita contam só jogadores de verdade — um Juiz não ocupa vaga
-  // nem paga inscrição, mesmo agora aparecendo no ranking.
-  const jogadoresCount = rankingRows.filter((row) => row.tipo !== 'JUIZ').length;
+  // nem paga inscrição, mesmo agora aparecendo no ranking. Sempre a partir
+  // da lista completa (participantesRows), nunca de rankingRows — que pode
+  // estar recortada por um filtro de categoria.
+  const jogadoresCount = participantesRows.filter((row) => row.tipo !== 'JUIZ').length;
 
   const composicaoRows = (torneio?.jogadores ?? []).map((link, index) => ({
     key: rowKey(link, index),
@@ -663,16 +674,31 @@ export default function TournamentEditDetails() {
               description="Participantes do torneio e ajuste fino de pontuação por jogador."
               icon={<Trophy className="w-5 h-5" />}
               action={
-                temRegraBasica && (
-                  <button
-                    onClick={handleRecalculate}
-                    disabled={recalculateMutation.isPending}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-primary bg-primary/15 rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${recalculateMutation.isPending ? 'animate-spin' : ''}`} />
-                    {recalculateMutation.isPending ? 'Recalculando...' : 'Recalcular Pontuações'}
-                  </button>
-                )
+                <div className="flex flex-wrap items-center gap-2">
+                  {ehJogoPokemon && (
+                    <Select value={categoriaFiltro} onValueChange={(v) => setCategoriaFiltro(v as CategoriaFiltro)}>
+                      <SelectTrigger className="w-40" size="sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todas as Categorias</SelectItem>
+                        {CATEGORIAS_OFICIAIS.map((categoria) => (
+                          <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {temRegraBasica && (
+                    <button
+                      onClick={handleRecalculate}
+                      disabled={recalculateMutation.isPending}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-primary bg-primary/15 rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${recalculateMutation.isPending ? 'animate-spin' : ''}`} />
+                      {recalculateMutation.isPending ? 'Recalculando...' : 'Recalcular Pontuações'}
+                    </button>
+                  )}
+                </div>
               }
             >
               <div className="relative mb-4">
@@ -798,7 +824,22 @@ export default function TournamentEditDetails() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 shrink-0">
+                          <div className="flex items-center gap-4 shrink-0">
+                            <div className="flex items-center gap-3 text-sm">
+                              <div className="text-center">
+                                <p className="font-bold text-success">{row.vitorias}</p>
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vit.</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="font-bold text-destructive">{row.derrotas}</p>
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Der.</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="font-bold text-foreground">{row.empates}</p>
+                                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Emp.</p>
+                              </div>
+                            </div>
+
                             <Select
                               value={row.regraExtraId ? String(row.regraExtraId) : 'nenhuma'}
                               onValueChange={(value) =>
@@ -816,23 +857,25 @@ export default function TournamentEditDetails() {
                               </SelectContent>
                             </Select>
 
-                            <ScoreBox
-                              label="Pontuação"
-                              value={row.pontuacao}
-                              onChange={(value) => updateScore(row.key, 'pontuacao', value)}
-                              onCommit={(value) => commitScore(row, 'pontuacao', value)}
-                            />
+                            {/* Pontuação oficial (Match Points base) é só leitura — vem
+                                estritamente do motor de cálculo oficial, nunca de edição manual. */}
+                            <div className="flex flex-col items-center">
+                              <span className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-border bg-muted text-center text-lg font-bold text-muted-foreground">
+                                {row.pontuacao}
+                              </span>
+                              <span className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground text-center">Pontuação</span>
+                            </div>
                             <ScoreBox
                               label="Com Regras"
                               value={row.pontuacao_com_regras}
-                              onChange={(value) => updateScore(row.key, 'pontuacao_com_regras', value)}
-                              onCommit={(value) => commitScore(row, 'pontuacao_com_regras', value)}
+                              onChange={(value) => updateScore(row.key, value)}
+                              onCommit={(value) => commitScore(row, value)}
                             />
                           </div>
                         </div>
                       ))}
                     </div>
-                  )}              
+                  )}
                 </TabsContent>
 
                 <TabsContent value="composicoes" className="pt-4">

@@ -21,7 +21,9 @@ export interface JogadorTorneioLinkPublico {
   byes?: number;
   porcentagem_vitorias_oponentes?: number | null;
   porcentagem_vitorias_oponentes_oponentes?: number | null;
+  classificacao_oficial?: number | null;
   categoria?: string | null;
+  posicao_ranking?: number | null;
 }
 
 export interface RodadaPublico {

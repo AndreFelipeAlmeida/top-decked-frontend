@@ -16,7 +16,11 @@ import { nomeDoFormatoMD } from '@/lib/formatoMD';
 import { pokemonSpriteUrl } from '@/lib/pokemon';
 import { jogoTemRepresentacaoDeck } from '@/lib/pokemonModalidade';
 import { formatarDataBR } from '@/lib/dateUtils';
+import { CATEGORIAS_OFICIAIS, ordenarPorRankingOficial, type CategoriaFiltro } from '@/lib/rankingOficial';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PontuacaoExtraHistorico } from './PontuacaoExtraHistorico';
+
+const JOGOS_POKEMON = ['POKEMON', 'POKEMON_VGC', 'POKEMON_GO'];
 
 type TipoPontuacao = 'padrao' | 'com_regras';
 
@@ -32,12 +36,14 @@ export default function TournamentView() {
   const { data: jogador } = useMe(isJogador);
   const { data: pontuacaoExtraDoTorneio, isLoading: isLoadingPontuacaoExtra } = usePontuacaoExtraDoTorneio(id);
   const [tipoPontuacao, setTipoPontuacao] = useState<TipoPontuacao>('com_regras');
+  const [categoriaFiltro, setCategoriaFiltro] = useState<CategoriaFiltro>('todos');
 
   if (isLoading) return <Spinner />;
 
   // TCG só exibe a representação (ícone de arquétipo); VGC/GO só exibem a
   // composição completa (o time) — nunca as duas juntas.
   const temRepresentacaoDeck = jogoTemRepresentacaoDeck(torneio?.jogo);
+  const ehJogoPokemon = JOGOS_POKEMON.includes(torneio?.jogo ?? '');
 
   const linkRows = (torneio?.jogadores ?? []).map((link, index) => ({
     key: rowKey(link, index),
@@ -52,6 +58,9 @@ export default function TournamentView() {
     byes: link.byes ?? 0,
     omw: link.porcentagem_vitorias_oponentes ?? null,
     oomw: link.porcentagem_vitorias_oponentes_oponentes ?? null,
+    categoria: link.categoria ?? null,
+    classificacao_oficial: link.classificacao_oficial ?? null,
+    posicao_ranking: link.posicao_ranking ?? null,
     composicaoRepresentacao: link.composicao_representacao ?? null,
     composicaoUnidades: link.composicao_unidades ?? [],
   }));
@@ -61,22 +70,10 @@ export default function TournamentView() {
   // e na lista separada de Juízes, só pra deixar claro quem arbitrou.
   const pontuacaoDoToggle = (row: { pontuacao: number; pontuacao_com_regras: number }) =>
     tipoPontuacao === 'padrao' ? row.pontuacao : row.pontuacao_com_regras;
-  const rankingRows = linkRows
-    .filter((row) => row.tipo !== 'JUIZ')
-    .sort((a, b) => {
-      const diferencaPontos = pontuacaoDoToggle(b) - pontuacaoDoToggle(a);
-      if (diferencaPontos !== 0) return diferencaPontos;
-
-      const diferencaOmw = (b.omw ?? 0) - (a.omw ?? 0);
-      if (diferencaOmw !== 0) return diferencaOmw;
-
-      const diferencaOomw = (b.oomw ?? 0) - (a.oomw ?? 0);
-      if (diferencaOomw !== 0) return diferencaOomw;
-
-      const nomeA = a.apelido || `Jogador #${a.jogador_id}`;
-      const nomeB = b.apelido || `Jogador #${b.jogador_id}`;
-      return nomeA.localeCompare(nomeB, 'pt-BR');
-    });
+  const rankingRows = ordenarPorRankingOficial(
+    linkRows.filter((row) => row.tipo !== 'JUIZ'),
+    categoriaFiltro,
+  );
   const juizesRows = linkRows.filter((row) => row.tipo === 'JUIZ' || row.tipo === 'JOGADOR_E_JUIZ');
   // Vagas/receita contam só jogadores de verdade — um Juiz não ocupa vaga
   // nem paga inscrição, mesmo aparecendo no ranking.
@@ -216,12 +213,27 @@ export default function TournamentView() {
             title="Ranking & Pontuações"
             icon={<Trophy className="w-5 h-5" />}
             action={
-              <Tabs value={tipoPontuacao} onValueChange={(v) => setTipoPontuacao(v as TipoPontuacao)}>
-                <TabsList>
-                  <TabsTrigger value="com_regras">Com Regras Extras</TabsTrigger>
-                  <TabsTrigger value="padrao">Pontuação Normal</TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="flex flex-wrap items-center gap-2">
+                {ehJogoPokemon && (
+                  <Select value={categoriaFiltro} onValueChange={(v) => setCategoriaFiltro(v as CategoriaFiltro)}>
+                    <SelectTrigger className="w-40" size="sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todas as Categorias</SelectItem>
+                      {CATEGORIAS_OFICIAIS.map((categoria) => (
+                        <SelectItem key={categoria} value={categoria}>{categoria}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Tabs value={tipoPontuacao} onValueChange={(v) => setTipoPontuacao(v as TipoPontuacao)}>
+                  <TabsList>
+                    <TabsTrigger value="com_regras">Com Regras Extras</TabsTrigger>
+                    <TabsTrigger value="padrao">Pontuação Normal</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             }
           >
             {rankingRows.length === 0 ? (
